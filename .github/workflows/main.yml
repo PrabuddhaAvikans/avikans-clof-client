@@ -1,0 +1,150 @@
+name: Deploy React Application to NAS
+
+on:
+  push:
+    branches:
+      - master
+
+  # Allows manual deployment when necessary
+  workflow_dispatch:
+
+concurrency:
+  group: production-nas
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  DEPLOYMENT_PATH: /volume1/docker/avikans-clof-deploy
+
+jobs:
+  # -----------------------------------------
+  # Job 1: Build and publish Docker image
+  # -----------------------------------------
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+
+    outputs:
+      image_name: ${{ steps.image.outputs.name }}
+
+    steps:
+      - name: Checkout master branch
+        uses: actions/checkout@v6
+
+      - name: Generate lowercase image name
+        id: image
+        shell: bash
+        run: |
+          echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish Docker image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+
+          # Use only the architecture supported by your NAS.
+          # You can keep both if you are unsure.
+          platforms: linux/amd64,linux/arm64
+
+          tags: |
+            ${{ steps.image.outputs.name }}:latest
+            ${{ steps.image.outputs.name }}:${{ github.sha }}
+
+          build-args: |
+            VITE_API_URL=${{ vars.VITE_API_URL }}
+
+  # -----------------------------------------
+  # Job 2: Deploy image on NAS
+  # -----------------------------------------
+  deploy:
+    name: Deploy to NAS
+    needs: build
+
+    runs-on:
+      - self-hosted
+      - linux
+      - nas
+
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Docker image tag
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cd "${{ env.DEPLOYMENT_PATH }}"
+
+          if grep -q '^IMAGE_TAG=' .env; then
+            sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=${GITHUB_SHA}/" .env
+          else
+            echo "IMAGE_TAG=${GITHUB_SHA}" >> .env
+          fi
+
+          echo "Deploying commit: ${GITHUB_SHA}"
+
+      - name: Pull and deploy application
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cd "${{ env.DEPLOYMENT_PATH }}"
+
+          docker compose pull react-app
+          docker compose up -d --no-deps --remove-orphans react-app
+
+      - name: Check application health
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for attempt in $(seq 1 20); do
+            STATUS=$(docker inspect \
+              --format='{{.State.Health.Status}}' \
+              my-react-app 2>/dev/null || echo "not-found")
+
+            echo "Attempt ${attempt}: ${STATUS}"
+
+            if [ "$STATUS" = "healthy" ]; then
+              echo "Deployment completed successfully."
+              exit 0
+            fi
+
+            sleep 5
+          done
+
+          echo "Deployment failed health check."
+          docker logs --tail 100 my-react-app
+          exit 1
+
+      - name: Remove unused Docker images
+        if: success()
+        shell: bash
+        run: |
+          docker image prune -f
