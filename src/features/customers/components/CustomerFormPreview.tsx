@@ -16,8 +16,8 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-function formatAddress(address: CustomerFormValues["billingAddress"] | undefined) {
-  if (!address) return "";
+function formatAddress(address: { city: string; state: string; country: string } | undefined) {
+  if (!address?.city) return "";
   return [address.city, address.state, address.country].filter(Boolean).join(", ");
 }
 
@@ -28,9 +28,16 @@ export function CustomerFormPreview() {
   const contactName = values.contactSameAsName
     ? values.name
     : values.contactPerson?.name;
-  const shipTo = values.deliverySameAsBilling
-    ? formatAddress(values.billingAddress)
-    : formatAddress(values.shippingAddress);
+
+  const billingActive =
+    values.billingAddresses?.[values.activeBillingAddressIndex] ?? values.billingAddresses?.[0];
+
+  const shipToAddress = values.deliverySameAsBilling
+    ? billingActive
+    : values.shippingAddresses?.[values.activeShippingAddressIndex ?? 0] ??
+      values.shippingAddresses?.[0];
+
+  const shipTo = formatAddress(shipToAddress);
 
   return (
     <aside className="space-y-3">
@@ -60,7 +67,7 @@ export function CustomerFormPreview() {
           <Row label="Email" value={values.email} />
           <Row label="Phone" value={values.phone} />
           <Row label="Contact" value={contactName ?? ""} />
-          <Row label="Billing" value={formatAddress(values.billingAddress)} />
+          <Row label="Billing" value={formatAddress(billingActive)} />
           <Row label="Ship To" value={shipTo} />
           <Row
             label="Credit Limit"

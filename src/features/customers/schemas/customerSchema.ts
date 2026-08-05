@@ -37,9 +37,30 @@ export const customerFormSchema = yup.object({
   phone: yup.string().required('Phone is required'),
   contactSameAsName: yup.boolean().required(),
   contactPerson: contactPersonSchema.required(),
-  billingAddress: addressSchema.required(),
+  billingAddresses: yup
+    .array()
+    .of(addressSchema)
+    .min(1, 'At least one billing address is required')
+    .required(),
+  activeBillingAddressIndex: yup.number().integer().min(0).required(),
   deliverySameAsBilling: yup.boolean().required(),
-  shippingAddress: addressSchema.optional(),
+  shippingAddresses: yup
+    .array()
+    .of(addressSchema)
+    .when('deliverySameAsBilling', {
+      is: true,
+      then: (schema) => schema.optional(),
+      otherwise: (schema) =>
+        schema.min(1, 'At least one delivery address is required').required(),
+    }),
+  activeShippingAddressIndex: yup
+    .number()
+    .integer()
+    .when('deliverySameAsBilling', {
+      is: true,
+      then: (schema) => schema.notRequired(),
+      otherwise: (schema) => schema.min(0).required(),
+    }),
   taxId: yup.string().optional(),
   creditLimit: coerceNumber().min(0).optional(),
   paymentTermsDays: coerceNumber()

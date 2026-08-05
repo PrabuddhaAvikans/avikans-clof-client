@@ -432,10 +432,16 @@ export function SalesOrderFormPage() {
                 onSelect={(customer: Customer) => {
                   void formik.setFieldValue("customerId", customer.id);
                   void formik.setFieldValue("customerName", customer.name);
-                  const address = customer.shippingAddress ?? customer.billingAddress;
+                  const billingActive =
+                    customer.billingAddresses?.[customer.activeBillingAddressIndex] ??
+                    customer.billingAddresses?.[0];
+                  const deliveryActive = customer.deliverySameAsBilling
+                    ? billingActive
+                    : customer.shippingAddresses?.[customer.activeShippingAddressIndex ?? 0] ??
+                      billingActive;
                   void formik.setFieldValue("deliveryAddress", {
-                    ...address,
-                    country: address.country || DEFAULT_COUNTRY,
+                    ...deliveryActive,
+                    country: deliveryActive?.country || DEFAULT_COUNTRY,
                   });
                   setCustomerModalOpen(false);
                 }}

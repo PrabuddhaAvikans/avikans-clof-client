@@ -78,6 +78,12 @@ export const mockQuotationService: QuotationService = {
     const customer = initialCustomers.find((c) => c.id === data.customerId);
     if (!customer) notFoundError("Customer", data.customerId);
 
+    const billingActive =
+      customer.billingAddresses?.[customer.activeBillingAddressIndex] ?? customer.billingAddresses[0];
+    const shippingActive = customer.deliverySameAsBilling
+      ? undefined
+      : customer.shippingAddresses?.[customer.activeShippingAddressIndex ?? 0];
+
     const lineItems = buildLineItems(data.lineItems);
     const totals = computeTotals(lineItems, data.discountAmount ?? 0);
     const timestamp = nowIso();
@@ -95,8 +101,8 @@ export const mockQuotationService: QuotationService = {
       currency: "LKR",
       validUntil: data.validUntil,
       paymentStatus: "unpaid",
-      billingAddress: customer.billingAddress,
-      shippingAddress: customer.shippingAddress,
+      billingAddress: billingActive,
+      shippingAddress: shippingActive,
       notes: data.notes,
       termsAndConditions: data.termsAndConditions,
       contactHistory: [

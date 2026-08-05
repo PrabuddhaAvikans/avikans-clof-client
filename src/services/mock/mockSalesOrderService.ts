@@ -80,6 +80,12 @@ export const mockSalesOrderService: SalesOrderService = {
     const customer = initialCustomers.find((c) => c.id === data.customerId);
     if (!customer) notFoundError("Customer", data.customerId);
 
+    const billingActive =
+      customer.billingAddresses?.[customer.activeBillingAddressIndex] ?? customer.billingAddresses[0];
+    const shippingActive = customer.deliverySameAsBilling
+      ? undefined
+      : customer.shippingAddresses?.[customer.activeShippingAddressIndex ?? 0];
+
     const quotation = data.quotationId
       ? initialQuotations.find((q) => q.id === data.quotationId)
       : undefined;
@@ -102,8 +108,8 @@ export const mockSalesOrderService: SalesOrderService = {
       ...totals,
       currency: "LKR",
       paymentStatus: "unpaid",
-      billingAddress: customer.billingAddress,
-      shippingAddress: customer.shippingAddress,
+      billingAddress: billingActive,
+      shippingAddress: shippingActive,
       requestedDeliveryDate: data.requestedDeliveryDate,
       notes: data.notes,
       manufacturingJobIds: [],

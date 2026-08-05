@@ -25,8 +25,15 @@ export interface Customer {
   type: CustomerTypeValue;
   email: string;
   phone: string;
-  billingAddress: Address;
-  shippingAddress?: Address;
+  billingAddresses: Address[];
+  activeBillingAddressIndex: number;
+  /**
+   * Delivery address(es).
+   * If omitted/empty, the system will fall back to the active billing address for delivery.
+   */
+  deliverySameAsBilling: boolean;
+  shippingAddresses?: Address[];
+  activeShippingAddressIndex?: number;
   contactPersons: ContactPerson[];
   taxId?: string;
   creditLimit?: number;

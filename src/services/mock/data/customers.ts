@@ -8,13 +8,17 @@ export const initialCustomers: Customer[] = [
     type: "corporate",
     email: "procurement@colomobgrand.lk",
     phone: "+94 11 234 5678",
-    billingAddress: {
-      line1: "77 Galle Road",
-      city: "Colombo",
-      state: "Western",
-      postalCode: "00300",
-      country: "Sri Lanka",
-    },
+    billingAddresses: [
+      {
+        line1: "77 Galle Road",
+        city: "Colombo",
+        state: "Western",
+        postalCode: "00300",
+        country: "Sri Lanka",
+      },
+    ],
+    activeBillingAddressIndex: 0,
+    deliverySameAsBilling: true,
     contactPersons: [
       {
         id: "cp-001",
@@ -41,14 +45,18 @@ export const initialCustomers: Customer[] = [
     type: "corporate",
     email: "projects@greenleaf.lk",
     phone: "+94 11 456 7890",
-    billingAddress: {
-      line1: "42 Independence Avenue",
-      line2: "Suite 5B",
-      city: "Colombo",
-      state: "Western",
-      postalCode: "00700",
-      country: "Sri Lanka",
-    },
+    billingAddresses: [
+      {
+        line1: "42 Independence Avenue",
+        line2: "Suite 5B",
+        city: "Colombo",
+        state: "Western",
+        postalCode: "00700",
+        country: "Sri Lanka",
+      },
+    ],
+    activeBillingAddressIndex: 0,
+    deliverySameAsBilling: true,
     contactPersons: [
       {
         id: "cp-002",
@@ -82,13 +90,17 @@ export const initialCustomers: Customer[] = [
     type: "retail",
     email: "orders@luxeinteriors.lk",
     phone: "+94 11 567 8901",
-    billingAddress: {
-      line1: "15 Ward Place",
-      city: "Colombo",
-      state: "Western",
-      postalCode: "00700",
-      country: "Sri Lanka",
-    },
+    billingAddresses: [
+      {
+        line1: "15 Ward Place",
+        city: "Colombo",
+        state: "Western",
+        postalCode: "00700",
+        country: "Sri Lanka",
+      },
+    ],
+    activeBillingAddressIndex: 0,
+    deliverySameAsBilling: true,
     contactPersons: [
       {
         id: "cp-004",
@@ -113,20 +125,27 @@ export const initialCustomers: Customer[] = [
     type: "individual",
     email: "sunil.j@email.lk",
     phone: "+94 77 567 8901",
-    billingAddress: {
-      line1: "28 Flower Road",
-      city: "Colombo",
-      state: "Western",
-      postalCode: "00700",
-      country: "Sri Lanka",
-    },
-    shippingAddress: {
-      line1: "28 Flower Road",
-      city: "Colombo",
-      state: "Western",
-      postalCode: "00700",
-      country: "Sri Lanka",
-    },
+    billingAddresses: [
+      {
+        line1: "28 Flower Road",
+        city: "Colombo",
+        state: "Western",
+        postalCode: "00700",
+        country: "Sri Lanka",
+      },
+    ],
+    activeBillingAddressIndex: 0,
+    deliverySameAsBilling: true,
+    shippingAddresses: [
+      {
+        line1: "28 Flower Road",
+        city: "Colombo",
+        state: "Western",
+        postalCode: "00700",
+        country: "Sri Lanka",
+      },
+    ],
+    activeShippingAddressIndex: 0,
     contactPersons: [
       {
         id: "cp-005",
@@ -150,14 +169,18 @@ export const initialCustomers: Customer[] = [
     type: "corporate",
     email: "facilities@techpark.lk",
     phone: "+94 11 678 9012",
-    billingAddress: {
-      line1: "Malabe IT Zone",
-      line2: "Building C, Level 4",
-      city: "Malabe",
-      state: "Western",
-      postalCode: "10115",
-      country: "Sri Lanka",
-    },
+    billingAddresses: [
+      {
+        line1: "Malabe IT Zone",
+        line2: "Building C, Level 4",
+        city: "Malabe",
+        state: "Western",
+        postalCode: "10115",
+        country: "Sri Lanka",
+      },
+    ],
+    activeBillingAddressIndex: 0,
+    deliverySameAsBilling: true,
     contactPersons: [
       {
         id: "cp-006",
@@ -184,13 +207,17 @@ export const initialCustomers: Customer[] = [
     type: "corporate",
     email: "maintenance@coastalresort.lk",
     phone: "+94 91 234 5678",
-    billingAddress: {
-      line1: "Beach Road",
-      city: "Galle",
-      state: "Southern",
-      postalCode: "80000",
-      country: "Sri Lanka",
-    },
+    billingAddresses: [
+      {
+        line1: "Beach Road",
+        city: "Galle",
+        state: "Southern",
+        postalCode: "80000",
+        country: "Sri Lanka",
+      },
+    ],
+    activeBillingAddressIndex: 0,
+    deliverySameAsBilling: true,
     contactPersons: [
       {
         id: "cp-007",
@@ -215,13 +242,17 @@ export const initialCustomers: Customer[] = [
     type: "retail",
     email: "buying@brighthome.lk",
     phone: "+94 11 789 0123",
-    billingAddress: {
-      line1: "100 High Level Road",
-      city: "Nugegoda",
-      state: "Western",
-      postalCode: "10250",
-      country: "Sri Lanka",
-    },
+    billingAddresses: [
+      {
+        line1: "100 High Level Road",
+        city: "Nugegoda",
+        state: "Western",
+        postalCode: "10250",
+        country: "Sri Lanka",
+      },
+    ],
+    activeBillingAddressIndex: 0,
+    deliverySameAsBilling: true,
     contactPersons: [
       {
         id: "cp-008",
@@ -246,13 +277,17 @@ export const initialCustomers: Customer[] = [
     type: "individual",
     email: "anjali.p@gmail.com",
     phone: "+94 77 901 2345",
-    billingAddress: {
-      line1: "5 Lake Drive",
-      city: "Kandy",
-      state: "Central",
-      postalCode: "20000",
-      country: "Sri Lanka",
-    },
+    billingAddresses: [
+      {
+        line1: "5 Lake Drive",
+        city: "Kandy",
+        state: "Central",
+        postalCode: "20000",
+        country: "Sri Lanka",
+      },
+    ],
+    activeBillingAddressIndex: 0,
+    deliverySameAsBilling: true,
     contactPersons: [
       {
         id: "cp-009",
@@ -276,13 +311,17 @@ export const initialCustomers: Customer[] = [
     type: "corporate",
     email: "ops@metromall.lk",
     phone: "+94 11 890 1234",
-    billingAddress: {
-      line1: "Basement Level, Metro Mall",
-      city: "Colombo",
-      state: "Western",
-      postalCode: "00300",
-      country: "Sri Lanka",
-    },
+    billingAddresses: [
+      {
+        line1: "Basement Level, Metro Mall",
+        city: "Colombo",
+        state: "Western",
+        postalCode: "00300",
+        country: "Sri Lanka",
+      },
+    ],
+    activeBillingAddressIndex: 0,
+    deliverySameAsBilling: true,
     contactPersons: [
       {
         id: "cp-010",
