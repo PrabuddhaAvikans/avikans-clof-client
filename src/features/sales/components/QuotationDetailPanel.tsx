@@ -1,0 +1,336 @@
+import { Link } from "react-router-dom";
+import { Copy, Package, Phone } from "lucide-react";
+import { toast } from "sonner";
+import { ROUTES } from "@/app/config/routes";
+import { AttachmentPanel } from "@/components/ui/AttachmentPanel";
+import { Button } from "@/components/ui/Button";
+import { MappedStatusBadge } from "@/features/shared/components/MappedStatusBadge";
+import { formatCurrency, formatDate, formatDateTime, formatPercent } from "@/lib/format";
+import { cn } from "@/lib/utils";
+import type { Address } from "@/types/common";
+import type { Quotation } from "@/types/quotation";
+import { QuotationStatus } from "@/types/status";
+
+function formatAddress(address: Address): string {
+  return [address.line1, address.line2, `${address.city}, ${address.state} ${address.postalCode}`, address.country]
+    .filter(Boolean)
+    .join(", ");
+}
+
+function daysUntil(date: string): number | null {
+  const target = new Date(date).getTime();
+  if (Number.isNaN(target)) return null;
+  return Math.ceil((target - Date.now()) / (1000 * 60 * 60 * 24));
+}
+
+export type QuotationDetailPanelProps = {
+  quotation: Quotation | null;
+  onOpenContacts?: () => void;
+  className?: string;
+};
+
+export function QuotationDetailPanel({
+  quotation,
+  onOpenContacts,
+  className,
+}: QuotationDetailPanelProps) {
+  if (!quotation) {
+    return (
+      <div
+        className={cn(
+          "flex h-full items-center justify-center rounded-lg border border-border bg-card p-8 shadow-xs",
+          className,
+        )}
+      >
+        <p className="text-sm text-muted-foreground">Select a quotation to view details.</p>
+      </div>
+    );
+  }
+
+  const remainingDays = daysUntil(quotation.validUntil);
+  const discountPercent =
+    quotation.subtotal > 0
+      ? (quotation.discountAmount / quotation.subtotal) * 100
+      : 0;
+  const preTax = quotation.subtotal - quotation.discountAmount;
+  const halfTax = quotation.taxAmount / 2;
+
+  const attachments = [
+    { id: "att-1", name: "Layout Drawing.pdf", size: 245_000 },
+    { id: "att-2", name: "Technical Spec.pdf", size: 180_000 },
+  ];
+
+  return (
+    <div
+      className={cn(
+        "flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xs",
+        className,
+      )}
+    >
+      <div className="border-b border-border px-4 py-3">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-sm font-semibold text-foreground">
+                Quotation & Order Conversion
+              </h2>
+              <MappedStatusBadge statusMap={QuotationStatus} value={quotation.status} dot />
+            </div>
+            <div className="mt-1.5 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+                onClick={() => {
+                  void navigator.clipboard.writeText(quotation.quotationNumber);
+                  toast.success("Quotation number copied");
+                }}
+              >
+                {quotation.quotationNumber}
+                <Copy className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Created on {formatDateTime(quotation.createdAt)} by {quotation.createdByName}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Valid till {formatDate(quotation.validUntil)}
+              {remainingDays !== null && remainingDays >= 0
+                ? ` (${remainingDays} days left)`
+                : remainingDays !== null
+                  ? " (expired)"
+                  : ""}
+            </p>
+          </div>
+          {onOpenContacts && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              leftIcon={<Phone className="h-4 w-4" />}
+              onClick={onOpenContacts}
+            >
+              Calls & Contacts
+              {(quotation.contactHistory?.length ?? 0) > 0
+                ? ` (${quotation.contactHistory.length})`
+                : ""}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="min-h-0 flex-1 space-y-4 overflow-auto p-4">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <section className="rounded-md border border-border p-3">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Customer Information
+            </h3>
+            <dl className="space-y-1.5 text-sm">
+              <div>
+                <dt className="text-xs text-muted-foreground">Customer Name</dt>
+                <dd className="font-medium">{quotation.customerName}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">Email</dt>
+                <dd className="font-medium">{quotation.customerEmail}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">Billing Address</dt>
+                <dd className="font-medium leading-snug">
+                  {formatAddress(quotation.billingAddress)}
+                </dd>
+              </div>
+            </dl>
+            <Link
+              to={ROUTES.customers.detail(quotation.customerId)}
+              className="mt-2 inline-block text-xs font-medium text-primary hover:underline"
+            >
+              View Customer Profile
+            </Link>
+          </section>
+
+          <section className="rounded-md border border-border p-3">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Project Information
+            </h3>
+            <dl className="space-y-1.5 text-sm">
+              <div>
+                <dt className="text-xs text-muted-foreground">Priority</dt>
+                <dd className="font-medium capitalize">{quotation.priority}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">Payment Status</dt>
+                <dd className="font-medium capitalize">
+                  {quotation.paymentStatus.replace(/_/g, " ")}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">Shipping Address</dt>
+                <dd className="font-medium leading-snug">
+                  {quotation.shippingAddress
+                    ? formatAddress(quotation.shippingAddress)
+                    : "Same as billing"}
+                </dd>
+              </div>
+            </dl>
+          </section>
+
+          <section className="rounded-md border border-border p-3">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Financial Summary
+            </h3>
+            <dl className="space-y-1.5 text-sm">
+              <div className="flex justify-between gap-2">
+                <dt className="text-muted-foreground">Sub Total</dt>
+                <dd className="tabular-nums font-medium">
+                  {formatCurrency(quotation.subtotal, quotation.currency)}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt className="text-muted-foreground">
+                  Discount ({formatPercent(discountPercent, 2)})
+                </dt>
+                <dd className="tabular-nums font-medium">
+                  −{formatCurrency(quotation.discountAmount, quotation.currency)}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt className="text-muted-foreground">Pre-Tax Total</dt>
+                <dd className="tabular-nums font-medium">
+                  {formatCurrency(preTax, quotation.currency)}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt className="text-muted-foreground">SGST (9%)</dt>
+                <dd className="tabular-nums font-medium">
+                  {formatCurrency(halfTax, quotation.currency)}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt className="text-muted-foreground">CGST (9%)</dt>
+                <dd className="tabular-nums font-medium">
+                  {formatCurrency(halfTax, quotation.currency)}
+                </dd>
+              </div>
+              <div className="mt-1 flex justify-between gap-2 border-t border-border pt-2">
+                <dt className="font-semibold text-foreground">Grand Total</dt>
+                <dd className="tabular-nums text-base font-semibold text-foreground">
+                  {formatCurrency(quotation.totalAmount, quotation.currency)}
+                </dd>
+              </div>
+            </dl>
+          </section>
+        </div>
+
+        <section>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Quotation Items
+            </h3>
+            <span className="text-xs text-muted-foreground">
+              {quotation.lineItems.length} item
+              {quotation.lineItems.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+          <ul className="divide-y divide-border rounded-md border border-border">
+            {quotation.lineItems.map((item, index) => (
+              <li key={item.id} className="flex gap-3 px-3 py-2.5">
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded bg-muted text-[11px] font-medium text-muted-foreground">
+                  {index + 1}
+                </span>
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded border border-border bg-muted/40">
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {item.productName}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{item.productSku}</p>
+                      {item.description && (
+                        <p className="mt-1 text-xs text-muted-foreground">{item.description}</p>
+                      )}
+                    </div>
+                    <p className="shrink-0 tabular-nums text-sm font-semibold">
+                      {formatCurrency(item.lineTotal, quotation.currency)}
+                    </p>
+                  </div>
+                  <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                    <span>
+                      Qty: <span className="text-foreground">{item.quantity}</span>
+                    </span>
+                    <span>
+                      Unit:{" "}
+                      <span className="text-foreground">
+                        {formatCurrency(item.unitPrice, quotation.currency)}
+                      </span>
+                    </span>
+                    <span>
+                      Disc:{" "}
+                      <span className="text-foreground">
+                        {formatPercent(item.discountPercent, 0)}
+                      </span>
+                    </span>
+                    <span>
+                      Tax:{" "}
+                      <span className="text-foreground">
+                        {formatPercent(item.taxPercent, 0)}
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <AttachmentPanel attachments={attachments} title="Attachments" />
+
+          <section className="rounded-lg border border-border bg-card">
+            <div className="border-b border-border px-4 py-3">
+              <h3 className="text-sm font-semibold text-foreground">Notes</h3>
+            </div>
+            <div className="space-y-3 p-4 text-sm">
+              <div>
+                <p className="mb-1 text-xs font-medium text-muted-foreground">Notes</p>
+                <p className="text-foreground">
+                  {quotation.notes?.trim() || "No notes added."}
+                </p>
+              </div>
+              <div>
+                <p className="mb-1 text-xs font-medium text-muted-foreground">
+                  Terms & Conditions
+                </p>
+                <p className="text-foreground">
+                  {quotation.termsAndConditions?.trim() || "Standard terms apply."}
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <section className="rounded-lg border border-border">
+          <div className="border-b border-border px-4 py-3">
+            <h3 className="text-sm font-semibold text-foreground">Revision / Version History</h3>
+          </div>
+          <ul className="divide-y divide-border">
+            <li className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm">
+              <div>
+                <p className="font-medium text-foreground">
+                  v1.0 <span className="text-xs font-normal text-primary">Current</span>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {formatDateTime(quotation.updatedAt)} · {quotation.createdByName}
+                </p>
+              </div>
+              <p className="tabular-nums font-medium">
+                {formatCurrency(quotation.totalAmount, quotation.currency)}
+              </p>
+            </li>
+          </ul>
+        </section>
+      </div>
+    </div>
+  );
+}

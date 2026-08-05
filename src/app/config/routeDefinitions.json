@@ -1,0 +1,412 @@
+{
+  "indexRedirect": "/dashboard",
+  "routes": [
+    {
+      "path": "dashboard",
+      "page": "DashboardPage",
+      "permission": "dashboard:view"
+    },
+
+    {
+      "path": "sales",
+      "redirect": "/quotations"
+    },
+    {
+      "path": "quotations",
+      "page": "QuotationWorkspacePage",
+      "permission": "quotations:view"
+    },
+    {
+      "path": "quotations/new",
+      "page": "EstimateFormPage",
+      "permission": "quotations:create"
+    },
+    {
+      "path": "quotations/:id/preview",
+      "page": "QuotationPreviewPage",
+      "permission": "quotations:view"
+    },
+    {
+      "path": "quotations/:id/edit",
+      "page": "EstimateFormPage",
+      "permission": "quotations:edit"
+    },
+    {
+      "path": "quotations/:id",
+      "page": "QuotationPreviewPage",
+      "permission": "quotations:view"
+    },
+
+    {
+      "path": "estimates",
+      "redirect": "/quotations"
+    },
+    {
+      "path": "estimates/new",
+      "redirect": "/quotations/new"
+    },
+    {
+      "path": "estimates/:id/preview",
+      "redirectHandler": "legacyEstimate",
+      "redirectHandlerMode": "preview"
+    },
+    {
+      "path": "estimates/:id/edit",
+      "redirectHandler": "legacyEstimate",
+      "redirectHandlerMode": "edit"
+    },
+    {
+      "path": "estimates/:id",
+      "redirectHandler": "legacyEstimate"
+    },
+
+    {
+      "path": "costing/approval",
+      "page": "CostingApprovalWorkspacePage",
+      "permission": "quotations:view"
+    },
+
+    {
+      "path": "sales-orders",
+      "page": "SalesOrderWorkspacePage",
+      "permission": "sales_orders:view"
+    },
+    {
+      "path": "sales-orders/new",
+      "page": "SalesOrderFormPage",
+      "permission": "sales_orders:create"
+    },
+    {
+      "path": "sales-orders/:id/review",
+      "page": "SalesOrderReviewPage",
+      "permission": "sales_orders:edit"
+    },
+    {
+      "path": "sales-orders/:id/edit",
+      "page": "SalesOrderFormPage",
+      "permission": "sales_orders:edit"
+    },
+    {
+      "path": "sales-orders/:id",
+      "page": "SalesOrderDetailPage",
+      "permission": "sales_orders:view"
+    },
+
+    {
+      "path": "sales/estimates",
+      "redirect": "/quotations"
+    },
+    {
+      "path": "sales/quotations",
+      "redirect": "/quotations"
+    },
+    {
+      "path": "sales/orders",
+      "redirect": "/sales-orders"
+    },
+    {
+      "path": "sales/payments",
+      "page": "PaymentsPage",
+      "permission": "sales_orders:view"
+    },
+    {
+      "path": "sales/invoices",
+      "page": "InvoicesPage",
+      "permission": "sales_orders:view"
+    },
+
+    {
+      "path": "customers",
+      "page": "CustomerListPage",
+      "permission": "customers:view"
+    },
+    {
+      "path": "customers/new",
+      "page": "CustomerFormPage",
+      "permission": "customers:create"
+    },
+    {
+      "path": "customers/create",
+      "redirect": "/customers/new"
+    },
+    {
+      "path": "customers/groups",
+      "page": "CustomerGroupsPage",
+      "permission": "customers:view"
+    },
+    {
+      "path": "customers/activity",
+      "page": "CustomerActivityPage",
+      "permission": "customers:view"
+    },
+    {
+      "path": "customers/:id/edit",
+      "page": "CustomerFormPage",
+      "permission": "customers:edit"
+    },
+    {
+      "path": "customers/:id",
+      "page": "CustomerDetailPage",
+      "permission": "customers:view"
+    },
+
+    {
+      "path": "products",
+      "page": "ProductListPage",
+      "permission": "products:view"
+    },
+    {
+      "path": "products/new",
+      "page": "ProductFormPage",
+      "permission": "products:create"
+    },
+    {
+      "path": "products/create",
+      "redirect": "/products/new"
+    },
+    {
+      "path": "products/categories",
+      "page": "CategoriesPage",
+      "permission": "categories:view"
+    },
+    {
+      "path": "products/brands",
+      "page": "BrandsPage",
+      "permission": "products:view"
+    },
+    {
+      "path": "products/attributes",
+      "page": "ProductAttributesPage",
+      "permission": "products:view"
+    },
+    {
+      "path": "products/price-lists",
+      "page": "PriceListsPage",
+      "permission": "products:view"
+    },
+    {
+      "path": "products/:id/edit",
+      "page": "ProductFormPage",
+      "permission": "products:edit"
+    },
+    {
+      "path": "products/:id",
+      "page": "ProductDetailPage",
+      "permission": "products:view"
+    },
+
+    {
+      "path": "inventory",
+      "page": "InventoryListPage",
+      "permission": "inventory:view"
+    },
+    {
+      "path": "inventory/new",
+      "page": "InventoryFormPage",
+      "permission": "inventory:create"
+    },
+    {
+      "path": "inventory/items",
+      "redirect": "/inventory"
+    },
+    {
+      "path": "inventory/stock",
+      "page": "StockOverviewPage",
+      "permission": "inventory:view"
+    },
+    {
+      "path": "inventory/movements",
+      "page": "StockMovementsPage",
+      "permission": "inventory:view"
+    },
+    {
+      "path": "inventory/low-stock",
+      "page": "LowStockPage",
+      "permission": "inventory:view"
+    },
+    {
+      "path": "inventory/units",
+      "page": "UnitsOfMeasurePage",
+      "permission": "inventory:view"
+    },
+    {
+      "path": "inventory/:id/edit",
+      "page": "InventoryFormPage",
+      "permission": "inventory:edit"
+    },
+    {
+      "path": "inventory/:id",
+      "page": "InventoryFormPage",
+      "permission": "inventory:view"
+    },
+
+    {
+      "path": "manufacturing",
+      "redirect": "/manufacturing/tracking"
+    },
+    {
+      "path": "manufacturing/tracking",
+      "page": "ProductionTrackingPage",
+      "permission": "manufacturing:view"
+    },
+    {
+      "path": "manufacturing/ready-to-ship",
+      "page": "ReadyToShipPage",
+      "permission": "manufacturing:view"
+    },
+    {
+      "path": "manufacturing/jobs/new",
+      "page": "ManufacturingJobFormPage",
+      "permission": "manufacturing:create"
+    },
+    {
+      "path": "manufacturing/jobs/:id",
+      "page": "ManufacturingJobDetailPage",
+      "permission": "manufacturing:view"
+    },
+    {
+      "path": "manufacturing/jobs",
+      "page": "ManufacturingJobsPage",
+      "permission": "manufacturing:view"
+    },
+    {
+      "path": "manufacturing/work-orders",
+      "page": "WorkOrdersPage",
+      "permission": "manufacturing:view"
+    },
+    {
+      "path": "manufacturing/board",
+      "page": "ProductionBoardPage",
+      "permission": "manufacturing:view"
+    },
+    {
+      "path": "manufacturing/material-requirements",
+      "page": "MaterialRequirementsPage",
+      "permission": "manufacturing:view"
+    },
+    {
+      "path": "manufacturing/quality",
+      "page": "QualityInspectionPage",
+      "permission": "manufacturing:view"
+    },
+
+    {
+      "path": "deliveries",
+      "page": "DeliveryListPage",
+      "permission": "delivery:view"
+    },
+    {
+      "path": "deliveries/new",
+      "page": "DeliveryFormPage",
+      "permission": "delivery:create"
+    },
+    {
+      "path": "deliveries/schedule",
+      "redirect": "/deliveries/calendar"
+    },
+    {
+      "path": "deliveries/calendar",
+      "page": "DeliveryCalendarPage",
+      "permission": "delivery:view"
+    },
+    {
+      "path": "deliveries/:id/dispatch",
+      "page": "DispatchPage",
+      "permission": "delivery:edit"
+    },
+    {
+      "path": "deliveries/:id/proof",
+      "page": "ProofOfDeliveryPage",
+      "permission": "delivery:edit"
+    },
+    {
+      "path": "deliveries/:id",
+      "page": "DeliveryDetailPage",
+      "permission": "delivery:view"
+    },
+
+    {
+      "path": "delivery",
+      "redirect": "/deliveries"
+    },
+    {
+      "path": "delivery/schedule",
+      "redirect": "/deliveries/calendar"
+    },
+    {
+      "path": "delivery/dispatch/:id",
+      "page": "DispatchPage",
+      "permission": "delivery:edit"
+    },
+    {
+      "path": "delivery/dispatch",
+      "page": "DeliveryListPage",
+      "permission": "delivery:view"
+    },
+    {
+      "path": "delivery/proof/:id",
+      "page": "ProofOfDeliveryPage",
+      "permission": "delivery:edit"
+    },
+    {
+      "path": "delivery/proof",
+      "page": "DeliveryListPage",
+      "permission": "delivery:view"
+    },
+
+    {
+      "path": "admin",
+      "redirect": "/admin/users"
+    },
+    {
+      "path": "admin/users/new",
+      "page": "UserFormPage",
+      "permission": "users:create"
+    },
+    {
+      "path": "admin/users/:id/edit",
+      "page": "UserFormPage",
+      "permission": "users:edit"
+    },
+    {
+      "path": "admin/users",
+      "page": "UsersPage",
+      "permission": "users:view"
+    },
+    {
+      "path": "admin/roles",
+      "page": "RolesPage",
+      "permission": "roles:view"
+    },
+    {
+      "path": "admin/role-groups",
+      "page": "RoleGroupsPage",
+      "permission": "roles:view"
+    },
+    {
+      "path": "admin/permissions",
+      "page": "PermissionsPage",
+      "permission": "roles:view"
+    },
+    {
+      "path": "admin/settings",
+      "page": "SystemSettingsPage",
+      "permission": "settings:view"
+    },
+    {
+      "path": "admin/notifications",
+      "page": "NotificationSettingsPage",
+      "permission": "settings:view"
+    },
+    {
+      "path": "admin/audit-logs",
+      "page": "AuditLogsPage",
+      "permission": "audit_logs:view"
+    },
+
+    {
+      "path": "*",
+      "page": "NotFoundPage"
+    }
+  ]
+}
