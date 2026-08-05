@@ -41,9 +41,7 @@ function ContactSyncEffect() {
 }
 
 function toFormData(values: CustomerFormValues): CustomerFormData {
-  const shippingAddress = values.deliverySameAsBilling
-    ? values.billingAddress
-    : values.shippingAddress ?? values.billingAddress;
+  const shippingAddresses = values.shippingAddresses;
 
   const contactPerson = values.contactSameAsName
     ? {
@@ -62,8 +60,11 @@ function toFormData(values: CustomerFormValues): CustomerFormData {
     type: values.type,
     email: values.email,
     phone: values.phone,
-    billingAddress: values.billingAddress,
-    shippingAddress: shippingAddress ?? undefined,
+    billingAddresses: values.billingAddresses,
+    activeBillingAddressIndex: values.activeBillingAddressIndex,
+    deliverySameAsBilling: values.deliverySameAsBilling,
+    shippingAddresses,
+    activeShippingAddressIndex: values.activeShippingAddressIndex,
     contactPersons: [contactPerson],
     taxId: values.taxId || undefined,
     creditLimit: values.creditLimit,
@@ -93,9 +94,11 @@ const defaultValues: CustomerFormValues = {
     phone: "",
     isPrimary: true,
   },
-  billingAddress: { ...EMPTY_ADDRESS },
+  billingAddresses: [{ ...EMPTY_ADDRESS }],
+  activeBillingAddressIndex: 0,
   deliverySameAsBilling: true,
-  shippingAddress: { ...EMPTY_ADDRESS },
+  shippingAddresses: [],
+  activeShippingAddressIndex: 0,
   taxId: "",
   creditLimit: 0,
   paymentTermsDays: 30,

@@ -54,11 +54,11 @@ import type { InventoryItem } from "@/types/inventory";
 
 const TABS = [
   { id: "overview", label: "Overview" },
-  { id: "technical", label: "Technical Specs" },
-  { id: "dimensions", label: "Dimensions" },
-  { id: "materials", label: "Materials" },
-  { id: "coating", label: "Coating Options" },
-  { id: "pricing", label: "Pricing Rules" },
+  // { id: "technical", label: "Technical Specs" },
+  // { id: "dimensions", label: "Dimensions" },
+  // { id: "materials", label: "Materials" },
+  // { id: "coating", label: "Coating Options" },
+  // { id: "pricing", label: "Pricing Rules" },
   { id: "images", label: "Images & Attachments" },
 ] as const;
 
@@ -452,7 +452,7 @@ export function ProductFormPage() {
                           }}
                         />
                         <KeySpecsSection />
-                        <OptionGroupsSection />
+                        {/* <OptionGroupsSection /> */}
                         <PricingMatrixSection />
                       </div>
                       <div className="space-y-3">

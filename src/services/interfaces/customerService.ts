@@ -13,8 +13,11 @@ export interface CustomerFormData {
   type: CustomerTypeValue;
   email: string;
   phone: string;
-  billingAddress: Customer["billingAddress"];
-  shippingAddress?: Customer["shippingAddress"];
+  billingAddresses: Customer["billingAddresses"];
+  activeBillingAddressIndex: Customer["activeBillingAddressIndex"];
+  deliverySameAsBilling: Customer["deliverySameAsBilling"];
+  shippingAddresses?: Customer["shippingAddresses"];
+  activeShippingAddressIndex?: Customer["activeShippingAddressIndex"];
   contactPersons: Omit<Customer["contactPersons"][number], "id">[];
   taxId?: string;
   creditLimit?: number;
