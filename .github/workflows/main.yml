@@ -5,7 +5,6 @@ on:
     branches:
       - master
 
-  # Allows manual deployment when necessary
   workflow_dispatch:
 
 concurrency:
@@ -17,12 +16,18 @@ permissions:
   packages: write
 
 env:
-  DEPLOYMENT_PATH: /volume1/docker/avikans-clof-deploy
+  # Inside the GitHub runner container.
+  # This maps to /volume1/docker/avikans-clof-deploy on Synology.
+  DEPLOYMENT_PATH: /deploy
+
+  # Synology host port.
+  # The React/Nginx container listens on port 80.
+  APP_PORT: "8080"
 
 jobs:
-  # -----------------------------------------
-  # Job 1: Build and publish Docker image
-  # -----------------------------------------
+  # =========================================================
+  # Job 1: Build and push the Docker image to GHCR
+  # =========================================================
   build:
     name: Build Docker Image
     runs-on: ubuntu-latest
@@ -31,7 +36,7 @@ jobs:
       image_name: ${{ steps.image.outputs.name }}
 
     steps:
-      - name: Checkout master branch
+      - name: Checkout repository
         uses: actions/checkout@v6
 
       - name: Generate lowercase image name
@@ -39,9 +44,6 @@ jobs:
         shell: bash
         run: |
           echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -59,9 +61,8 @@ jobs:
           context: .
           push: true
 
-          # Use only the architecture supported by your NAS.
-          # You can keep both if you are unsure.
-          platforms: linux/amd64,linux/arm64
+          # Your Synology runner is Linux x64.
+          platforms: linux/amd64
 
           tags: |
             ${{ steps.image.outputs.name }}:latest
@@ -70,9 +71,9 @@ jobs:
           build-args: |
             VITE_API_URL=${{ vars.VITE_API_URL }}
 
-  # -----------------------------------------
-  # Job 2: Deploy image on NAS
-  # -----------------------------------------
+  # =========================================================
+  # Job 2: Pull and deploy the image on Synology NAS
+  # =========================================================
   deploy:
     name: Deploy to NAS
     needs: build
@@ -86,7 +87,28 @@ jobs:
       contents: read
       packages: read
 
+    env:
+      IMAGE_NAME: ${{ needs.build.outputs.image_name }}
+
     steps:
+      - name: Verify NAS runner
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Runner hostname:"
+          hostname
+
+          echo "Docker version:"
+          docker --version
+
+          echo "Docker Compose version:"
+          docker compose version
+
+          echo "Deployment path:"
+          mkdir -p "${DEPLOYMENT_PATH}"
+          ls -la "${DEPLOYMENT_PATH}"
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v4
         with:
@@ -94,53 +116,91 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Update Docker image tag
+      - name: Create Docker Compose configuration
         shell: bash
         run: |
           set -euo pipefail
 
-          cd "${{ env.DEPLOYMENT_PATH }}"
+          mkdir -p "${DEPLOYMENT_PATH}"
 
-          if grep -q '^IMAGE_TAG=' .env; then
-            sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=${GITHUB_SHA}/" .env
-          else
-            echo "IMAGE_TAG=${GITHUB_SHA}" >> .env
-          fi
+          cat > "${DEPLOYMENT_PATH}/compose.yml" <<EOF
+          services:
+            react-app:
+              image: ${IMAGE_NAME}:${GITHUB_SHA}
+              container_name: my-react-app
+              restart: unless-stopped
 
-          echo "Deploying commit: ${GITHUB_SHA}"
+              ports:
+                - "${APP_PORT}:80"
+          EOF
+
+          echo "Generated Compose configuration:"
+          cat "${DEPLOYMENT_PATH}/compose.yml"
+
+          docker compose \
+            -p avikans-clof \
+            -f "${DEPLOYMENT_PATH}/compose.yml" \
+            config
 
       - name: Pull and deploy application
         shell: bash
         run: |
           set -euo pipefail
 
-          cd "${{ env.DEPLOYMENT_PATH }}"
+          echo "Deploying image:"
+          echo "${IMAGE_NAME}:${GITHUB_SHA}"
 
-          docker compose pull react-app
-          docker compose up -d --no-deps --remove-orphans react-app
+          docker compose \
+            -p avikans-clof \
+            -f "${DEPLOYMENT_PATH}/compose.yml" \
+            pull react-app
 
-      - name: Check application health
+          docker compose \
+            -p avikans-clof \
+            -f "${DEPLOYMENT_PATH}/compose.yml" \
+            up -d \
+            --remove-orphans \
+            react-app
+
+      - name: Check application status
         shell: bash
         run: |
           set -euo pipefail
 
           for attempt in $(seq 1 20); do
-            STATUS=$(docker inspect \
-              --format='{{.State.Health.Status}}' \
-              my-react-app 2>/dev/null || echo "not-found")
+            STATUS="$(
+              docker inspect \
+                --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{if .State.Running}}running{{else}}stopped{{end}}{{end}}' \
+                my-react-app 2>/dev/null || echo "not-found"
+            )"
 
             echo "Attempt ${attempt}: ${STATUS}"
 
-            if [ "$STATUS" = "healthy" ]; then
+            if [ "${STATUS}" = "healthy" ] || [ "${STATUS}" = "running" ]; then
               echo "Deployment completed successfully."
+
+              docker ps \
+                --filter "name=my-react-app" \
+                --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+
               exit 0
+            fi
+
+            if [ "${STATUS}" = "unhealthy" ] || \
+               [ "${STATUS}" = "stopped" ] || \
+               [ "${STATUS}" = "exited" ] || \
+               [ "${STATUS}" = "dead" ]; then
+
+              echo "Application container failed."
+              docker logs --tail 100 my-react-app || true
+              exit 1
             fi
 
             sleep 5
           done
 
-          echo "Deployment failed health check."
-          docker logs --tail 100 my-react-app
+          echo "Application did not start within the expected time."
+          docker logs --tail 100 my-react-app || true
           exit 1
 
       - name: Remove unused Docker images
@@ -148,3 +208,16 @@ jobs:
         shell: bash
         run: |
           docker image prune -f
+
+      - name: Show deployment information
+        if: always()
+        shell: bash
+        run: |
+          echo "Deployed commit: ${GITHUB_SHA}"
+          echo "Application port: ${APP_PORT}"
+          echo "Deployment directory: ${DEPLOYMENT_PATH}"
+
+          docker compose \
+            -p avikans-clof \
+            -f "${DEPLOYMENT_PATH}/compose.yml" \
+            ps || true
