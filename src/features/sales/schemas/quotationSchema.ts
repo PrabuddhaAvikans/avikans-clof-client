@@ -45,29 +45,86 @@ export const quotationFormSchema = yup
 export type QuotationFormValues = yup.InferType<typeof quotationFormSchema>;
 export type QuotationLineItemFormValues = yup.InferType<typeof quotationLineItemSchema>;
 
+export interface LineAmounts {
+  gross: number;
+  lineDiscount: number;
+  net: number;
+  tax: number;
+  total: number;
+}
+
+export interface QuotationTotalsBreakdown {
+  grossSubtotal: number;
+  lineDiscountTotal: number;
+  subtotal: number;
+  discountAmount: number;
+  taxableAmount: number;
+  taxAmount: number;
+  totalAmount: number;
+}
+
+export function computeLineAmounts(item: {
+  quantity: number;
+  unitPrice: number;
+  discountPercent: number;
+  taxPercent: number;
+}): LineAmounts {
+  const gross = item.quantity * item.unitPrice;
+  const lineDiscount = gross * (item.discountPercent / 100);
+  const net = gross - lineDiscount;
+  const tax = net * (item.taxPercent / 100);
+  return { gross, lineDiscount, net, tax, total: net + tax };
+}
+
+/** Line amount after line discount, before tax. */
+export function computeLineNet(item: {
+  quantity: number;
+  unitPrice: number;
+  discountPercent: number;
+  taxPercent: number;
+}): number {
+  return computeLineAmounts(item).net;
+}
+
+/** Line amount including tax (stored on persisted line items). */
 export function computeLineTotal(item: {
   quantity: number;
   unitPrice: number;
   discountPercent: number;
   taxPercent: number;
 }): number {
-  const subtotal = item.quantity * item.unitPrice;
-  const afterDiscount = subtotal * (1 - item.discountPercent / 100);
-  return afterDiscount * (1 + item.taxPercent / 100);
+  return computeLineAmounts(item).total;
 }
 
 export function computeQuotationTotals(
   lineItems: QuotationLineItemFormValues[],
-  discountAmount = 0,
-) {
-  const subtotal = lineItems.reduce((sum, item) => {
-    const base = item.quantity * item.unitPrice * (1 - item.discountPercent / 100);
-    return sum + base;
-  }, 0);
-  const taxAmount = lineItems.reduce((sum, item) => {
-    const base = item.quantity * item.unitPrice * (1 - item.discountPercent / 100);
-    return sum + base * (item.taxPercent / 100);
-  }, 0);
-  const totalAmount = subtotal - discountAmount + taxAmount;
-  return { subtotal, taxAmount, totalAmount, discountAmount };
+  additionalDiscount = 0,
+): QuotationTotalsBreakdown {
+  const amounts = lineItems.map(computeLineAmounts);
+  const grossSubtotal = amounts.reduce((sum, line) => sum + line.gross, 0);
+  const lineDiscountTotal = amounts.reduce((sum, line) => sum + line.lineDiscount, 0);
+  const subtotal = amounts.reduce((sum, line) => sum + line.net, 0);
+  const discountAmount = Math.min(Math.max(additionalDiscount, 0), subtotal);
+
+  let taxAmount = 0;
+  if (subtotal > 0) {
+    lineItems.forEach((item, index) => {
+      const share = amounts[index].net / subtotal;
+      const lineTaxable = amounts[index].net - discountAmount * share;
+      taxAmount += lineTaxable * (item.taxPercent / 100);
+    });
+  }
+
+  const taxableAmount = subtotal - discountAmount;
+  const totalAmount = taxableAmount + taxAmount;
+
+  return {
+    grossSubtotal,
+    lineDiscountTotal,
+    subtotal,
+    discountAmount,
+    taxableAmount,
+    taxAmount,
+    totalAmount,
+  };
 }

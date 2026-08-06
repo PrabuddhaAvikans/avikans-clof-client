@@ -1,7 +1,9 @@
 import { useFormikContext } from "formik";
 import { FileText, Send, Eye } from "lucide-react";
 import { Button, StatusBadge } from "@/components/ui";
+import { QuotationTotalsSummary } from "@/features/sales/components/QuotationTotalsSummary";
 import {
+  computeLineAmounts,
   computeQuotationTotals,
   type QuotationFormValues,
 } from "@/features/sales/schemas/quotationSchema";
@@ -48,28 +50,25 @@ export function QuotationFormPreview() {
           <Row label="Quote Date" value={values.quoteDate} />
           <Row label="Valid Until" value={values.validUntil} />
           <Row label="Priority" value={priorityLabel} />
-          <Row label="Subtotal" value={formatCurrency(totals.subtotal, "LKR")} />
-          <Row label="Discount" value={formatCurrency(totals.discountAmount, "LKR")} />
-          <Row label="Tax" value={formatCurrency(totals.taxAmount, "LKR")} />
         </dl>
 
-        <div className="mt-3 flex items-center justify-between rounded-md bg-muted px-2.5 py-2">
-          <span className="text-[11px] font-medium text-muted-foreground">Total</span>
-          <span className="text-sm font-semibold tabular-nums text-foreground">
-            {formatCurrency(totals.totalAmount, "LKR")}
-          </span>
+        <div className="mt-3 border-t border-border pt-3">
+          <QuotationTotalsSummary totals={totals} compact />
         </div>
 
         {values.lineItems.length > 0 && (
           <ul className="mt-3 space-y-1.5 border-t border-border pt-3">
-            {values.lineItems.slice(0, 5).map((item, index) => (
+            {values.lineItems.slice(0, 5).map((item, index) => {
+              const lineTotal = computeLineAmounts(item).total;
+              return (
               <li key={`${item.productId}-${index}`} className="text-[11px]">
                 <p className="truncate font-medium text-foreground">{item.productName}</p>
                 <p className="text-muted-foreground">
-                  Qty {item.quantity} · {formatCurrency(item.unitPrice, "LKR")}
+                  Qty {item.quantity} · {formatCurrency(lineTotal, "LKR")}
                 </p>
               </li>
-            ))}
+            );
+            })}
             {values.lineItems.length > 5 && (
               <li className="text-[10px] text-muted-foreground">
                 +{values.lineItems.length - 5} more

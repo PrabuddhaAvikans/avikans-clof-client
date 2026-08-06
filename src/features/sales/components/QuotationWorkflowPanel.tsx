@@ -141,7 +141,7 @@ export function QuotationWorkflowPanel({
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Quick Actions
           </h3>
-          <div className="space-y-1.5">
+          {/* <div className="space-y-1.5">
             {onOpenContacts && (
               <Button
                 variant="outline"
@@ -250,7 +250,7 @@ export function QuotationWorkflowPanel({
             >
               Share Link
             </Button>
-          </div>
+          </div> */}
         </section>
 
         {(quotation.status === "accepted" || quotation.status === "converted") && (

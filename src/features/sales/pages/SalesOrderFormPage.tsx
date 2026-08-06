@@ -1,11 +1,9 @@
 import { useMemo, useState } from "react";
-import { FieldArray, useFormikContext } from "formik";
+import { useFormikContext } from "formik";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
-  Plus,
   Save,
-  Trash2,
   UserPlus,
 } from "lucide-react";
 import { ROUTES } from "@/app/config/routes";
@@ -24,9 +22,9 @@ import { Input } from "@/components/ui/Input";
 import { Tabs, TabList, Tab, TabPanel } from "@/components/ui/Tabs";
 import { CustomerSelectorModal } from "@/features/shared/components/CustomerSelectorModal";
 import { ProductSelectorModal } from "@/features/shared/components/ProductSelectorModal";
+import { QuotationLineItemsTable } from "@/features/sales/components/QuotationLineItemsTable";
 import { SalesFormSection } from "@/features/sales/components/SalesFormSection";
 import { SalesOrderFormPreview } from "@/features/sales/components/SalesOrderFormPreview";
-import { computeQuotationTotals } from "@/features/sales/schemas/quotationSchema";
 import {
   salesOrderFormSchema,
   type SalesOrderFormValues,
@@ -37,7 +35,6 @@ import {
   useUpdateSalesOrder,
 } from "@/features/sales/hooks/useSalesOrders";
 import { useQuotation } from "@/features/sales/hooks/useQuotations";
-import { formatCurrency } from "@/lib/format";
 import { COUNTRY_OPTIONS, DEFAULT_COUNTRY } from "@/lib/countries";
 import { Priority } from "@/types/status";
 import type { Customer } from "@/types/customer";
@@ -80,100 +77,6 @@ function CustomerPicker({ onOpen }: { onOpen: () => void }) {
         <UserPlus className="h-4 w-4" />
       </Button>
     </div>
-  );
-}
-
-function LineItemsSection({ onAddProduct }: { onAddProduct: () => void }) {
-  const { values, errors } = useFormikContext<SalesOrderFormValues>();
-  const totals = computeQuotationTotals(values.lineItems, values.discountAmount ?? 0);
-
-  return (
-    <SalesFormSection
-      title="Line Items"
-      description="Products and quantities for this sales order."
-      action={
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-7 text-[11px] text-blue-600"
-          leftIcon={<Plus className="h-3.5 w-3.5" />}
-          onClick={onAddProduct}
-        >
-          Add Product
-        </Button>
-      }
-    >
-      {typeof errors.lineItems === "string" && (
-        <p className="mb-2 text-[12px] text-red-600">{errors.lineItems}</p>
-      )}
-      <FieldArray name="lineItems">
-        {({ remove }) => (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[560px] text-[12px]">
-              <thead>
-                <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted-foreground">
-                  <th className="py-1.5 pr-2">Product</th>
-                  <th className="py-1.5 pr-2">Qty</th>
-                  <th className="py-1.5 pr-2">Unit Price</th>
-                  <th className="py-1.5 pr-2">Disc %</th>
-                  <th className="py-1.5 pr-2">Tax %</th>
-                  <th className="py-1.5 pr-2">Total</th>
-                  <th className="py-1.5" />
-                </tr>
-              </thead>
-              <tbody>
-                {values.lineItems.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-6 text-center text-muted-foreground">
-                      No products added yet.
-                    </td>
-                  </tr>
-                ) : (
-                  values.lineItems.map((item, index) => {
-                    const lineTotal =
-                      item.quantity *
-                      item.unitPrice *
-                      (1 - item.discountPercent / 100) *
-                      (1 + item.taxPercent / 100);
-                    return (
-                      <tr key={`${item.productId}-${index}`} className="border-b border-border last:border-0">
-                        <td className="py-1.5 pr-2">
-                          <p className="font-medium">{item.productName}</p>
-                          <p className="text-[10px] text-muted-foreground">{item.productSku}</p>
-                        </td>
-                        <td className="py-1.5 pr-2">
-                          <FormikInput name={`lineItems.${index}.quantity`} type="number" className="w-20" />
-                        </td>
-                        <td className="py-1.5 pr-2">
-                          <FormikInput name={`lineItems.${index}.unitPrice`} type="number" step="0.01" className="w-28" />
-                        </td>
-                        <td className="py-1.5 pr-2">
-                          <FormikInput name={`lineItems.${index}.discountPercent`} type="number" className="w-16" />
-                        </td>
-                        <td className="py-1.5 pr-2">
-                          <FormikInput name={`lineItems.${index}.taxPercent`} type="number" className="w-16" />
-                        </td>
-                        <td className="py-1.5 pr-2 tabular-nums">{formatCurrency(lineTotal, "LKR")}</td>
-                        <td className="py-1.5">
-                          <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => remove(index)}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </FieldArray>
-      <div className="mt-3 flex justify-end border-t border-border pt-2 text-[12px] font-semibold">
-        <span className="mr-6 text-muted-foreground">Order Total</span>
-        <span className="tabular-nums">{formatCurrency(totals.totalAmount, "LKR")}</span>
-      </div>
-    </SalesFormSection>
   );
 }
 
@@ -377,10 +280,13 @@ export function SalesOrderFormPage() {
                             <div className="sm:col-span-2">
                               <FormikCheckbox name="requiresManufacturing" label="Requires Manufacturing" />
                             </div>
-                            <FormikInput name="discountAmount" label="Header Discount" type="number" min={0} step={0.01} />
+                            <FormikInput name="discountAmount" label="Additional Discount (LKR)" type="number" min={0} step={0.01} />
                           </div>
                         </SalesFormSection>
-                        <LineItemsSection onAddProduct={() => setProductModalOpen(true)} />
+                        <QuotationLineItemsTable
+                          onAddProduct={() => setProductModalOpen(true)}
+                          description="Products and quantities for this sales order."
+                        />
                       </div>
                       <div className="space-y-3">
                         <DeliverySection />
@@ -398,7 +304,10 @@ export function SalesOrderFormPage() {
                 <TabPanel value="lines" className="pt-3">
                   <div className="grid gap-3 lg:grid-cols-3">
                     <div className="lg:col-span-2">
-                      <LineItemsSection onAddProduct={() => setProductModalOpen(true)} />
+                      <QuotationLineItemsTable
+                        onAddProduct={() => setProductModalOpen(true)}
+                        description="Products and quantities for this sales order."
+                      />
                     </div>
                     <SalesOrderFormPreview />
                   </div>

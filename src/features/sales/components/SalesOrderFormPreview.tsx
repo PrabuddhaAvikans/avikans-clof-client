@@ -1,9 +1,9 @@
 import { useFormikContext } from "formik";
 import { ClipboardCheck, Factory, Truck } from "lucide-react";
 import { Button, StatusBadge } from "@/components/ui";
+import { QuotationTotalsSummary } from "@/features/sales/components/QuotationTotalsSummary";
 import { computeQuotationTotals } from "@/features/sales/schemas/quotationSchema";
 import type { SalesOrderFormValues } from "@/features/sales/schemas/salesOrderSchema";
-import { formatCurrency } from "@/lib/format";
 import { Priority } from "@/types/status";
 
 function Row({ label, value }: { label: string; value: string }) {
@@ -54,15 +54,10 @@ export function SalesOrderFormPreview() {
             label="Ship To"
             value={[address?.city, address?.country].filter(Boolean).join(", ")}
           />
-          <Row label="Subtotal" value={formatCurrency(totals.subtotal, "LKR")} />
-          <Row label="Tax" value={formatCurrency(totals.taxAmount, "LKR")} />
         </dl>
 
-        <div className="mt-3 flex items-center justify-between rounded-md bg-muted px-2.5 py-2">
-          <span className="text-[11px] font-medium text-muted-foreground">Total</span>
-          <span className="text-sm font-semibold tabular-nums text-foreground">
-            {formatCurrency(totals.totalAmount, "LKR")}
-          </span>
+        <div className="mt-3 border-t border-border pt-3">
+          <QuotationTotalsSummary totals={totals} compact />
         </div>
       </section>
 

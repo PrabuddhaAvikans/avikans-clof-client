@@ -273,7 +273,7 @@ export function QuotationWorkspacePage() {
             />
           </div>
 
-          <div className="min-h-[24rem] lg:col-span-6 lg:min-h-0">
+           <div className="min-h-[24rem] lg:col-span-6 lg:min-h-0">
             <QuotationDetailPanel
               quotation={activeQuotation}
               onOpenContacts={() => setContactsOpen(true)}
@@ -302,7 +302,7 @@ export function QuotationWorkspacePage() {
             />
           </div>
         </div>
-      </PageContent>
+      </PageContent>     
 
       <QuotationContactDrawer
         open={contactsOpen}

@@ -8,6 +8,8 @@ import { PageContent } from "@/components/feedback/PageStates";
 import { Button } from "@/components/ui/Button";
 import { MappedStatusBadge } from "@/features/shared/components/MappedStatusBadge";
 import { SendQuotationModal } from "@/features/sales/components/SendQuotationModal";
+import { QuotationTotalsSummary } from "@/features/sales/components/QuotationTotalsSummary";
+import { computeLineAmounts, computeQuotationTotals } from "@/features/sales/schemas/quotationSchema";
 import { useQuotation } from "@/features/sales/hooks/useQuotations";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { QuotationStatus } from "@/types/status";
@@ -18,6 +20,9 @@ export function QuotationPreviewPage() {
   const [sendOpen, setSendOpen] = useState(false);
 
   const { data: quotation, isLoading, error } = useQuotation(id);
+  const totals = quotation
+    ? computeQuotationTotals(quotation.lineItems, quotation.discountAmount)
+    : null;
 
   return (
     <PageContainer maxWidth="wide">
@@ -101,12 +106,16 @@ export function QuotationPreviewPage() {
                     <th className="px-3 py-2 text-left">Description</th>
                     <th className="px-3 py-2 text-right">Qty</th>
                     <th className="px-3 py-2 text-right">Unit Price</th>
-                    <th className="px-3 py-2 text-right">Disc %</th>
-                    <th className="px-3 py-2 text-right">Total</th>
+                    <th className="px-3 py-2 text-right">Discount %</th>
+                    <th className="px-3 py-2 text-right">Excl. VAT</th>
+                    <th className="px-3 py-2 text-right">VAT</th>
+                    <th className="px-3 py-2 text-right">Line Total</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {quotation.lineItems.map((item, index) => (
+                  {quotation.lineItems.map((item, index) => {
+                    const amounts = computeLineAmounts(item);
+                    return (
                     <tr key={item.id} className="border-b border-border">
                       <td className="px-3 py-2">{index + 1}</td>
                       <td className="px-3 py-2">
@@ -116,21 +125,25 @@ export function QuotationPreviewPage() {
                       <td className="px-3 py-2 text-right">{item.quantity}</td>
                       <td className="px-3 py-2 text-right">{formatCurrency(item.unitPrice, quotation.currency)}</td>
                       <td className="px-3 py-2 text-right">{item.discountPercent}%</td>
-                      <td className="px-3 py-2 text-right">{formatCurrency(item.lineTotal, quotation.currency)}</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(amounts.net, quotation.currency)}</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(amounts.tax, quotation.currency)}</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(amounts.total, quotation.currency)}</td>
                     </tr>
-                  ))}
+                  );
+                  })}
                 </tbody>
               </table>
 
-              {/* Totals */}
-              <div className="mb-8 flex justify-end">
-                <dl className="w-64 space-y-1 text-sm">
-                  <div className="flex justify-between"><dt>Subtotal</dt><dd>{formatCurrency(quotation.subtotal, quotation.currency)}</dd></div>
-                  <div className="flex justify-between"><dt>Discount</dt><dd>-{formatCurrency(quotation.discountAmount, quotation.currency)}</dd></div>
-                  <div className="flex justify-between"><dt>Tax</dt><dd>{formatCurrency(quotation.taxAmount, quotation.currency)}</dd></div>
-                  <div className="flex justify-between border-t border-border pt-2 text-base font-bold"><dt>Total</dt><dd>{formatCurrency(quotation.totalAmount, quotation.currency)}</dd></div>
-                </dl>
-              </div>
+              {totals && (
+                <div className="mb-8 flex justify-end">
+                  <div className="w-72 rounded-md border border-border p-4">
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Order Summary
+                    </p>
+                    <QuotationTotalsSummary totals={totals} currency={quotation.currency} />
+                  </div>
+                </div>
+              )}
 
               {/* Terms */}
               {quotation.termsAndConditions && (

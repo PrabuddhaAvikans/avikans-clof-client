@@ -5,6 +5,10 @@ import {
   nowIso,
 } from "@/services/http";
 import type { SalesOrderService } from "@/services/interfaces/salesOrderService";
+import {
+  computeLineTotal,
+  computeQuotationTotals,
+} from "@/features/sales/schemas/quotationSchema";
 import { applyListQuery, cloneData } from "@/services/mock/helpers";
 import { initialCustomers } from "@/services/mock/data/customers";
 import { initialQuotations } from "@/services/mock/data/quotations";
@@ -13,14 +17,6 @@ import { initialSalesOrders } from "@/services/mock/data/sales-orders";
 import type { SalesOrder, SalesOrderLineItem } from "@/types/sales-order";
 
 let salesOrders = cloneData(initialSalesOrders);
-
-function computeLineTotal(
-  item: Pick<SalesOrderLineItem, "quantity" | "unitPrice" | "discountPercent" | "taxPercent">,
-): number {
-  const subtotal = item.quantity * item.unitPrice;
-  const afterDiscount = subtotal * (1 - item.discountPercent / 100);
-  return afterDiscount * (1 + item.taxPercent / 100);
-}
 
 function buildLineItems(
   items: Omit<SalesOrderLineItem, "id" | "lineTotal" | "quantityDelivered" | "quantityInManufacturing">[],
@@ -35,15 +31,13 @@ function buildLineItems(
 }
 
 function computeTotals(lineItems: SalesOrderLineItem[], discountAmount = 0) {
-  const subtotal = lineItems.reduce(
-    (sum, item) => sum + item.quantity * item.unitPrice * (1 - item.discountPercent / 100),
-    0,
-  );
-  const taxAmount = lineItems.reduce((sum, item) => {
-    const base = item.quantity * item.unitPrice * (1 - item.discountPercent / 100);
-    return sum + base * (item.taxPercent / 100);
-  }, 0);
-  return { subtotal, discountAmount, taxAmount, totalAmount: subtotal - discountAmount + taxAmount };
+  const totals = computeQuotationTotals(lineItems, discountAmount);
+  return {
+    subtotal: totals.subtotal,
+    discountAmount: totals.discountAmount,
+    taxAmount: totals.taxAmount,
+    totalAmount: totals.totalAmount,
+  };
 }
 
 function nextOrderNumber(): string {

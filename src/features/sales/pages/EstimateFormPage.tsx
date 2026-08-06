@@ -1,13 +1,11 @@
 import { useMemo, useState } from "react";
-import { FieldArray, useFormikContext } from "formik";
+import { useFormikContext } from "formik";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   Eye,
-  Plus,
   Save,
   Send,
-  Trash2,
   UserPlus,
 } from "lucide-react";
 import { ROUTES } from "@/app/config/routes";
@@ -21,6 +19,8 @@ import { Tabs, TabList, Tab, TabPanel } from "@/components/ui/Tabs";
 import { CustomerSelectorModal } from "@/features/shared/components/CustomerSelectorModal";
 import { ProductSelectorModal } from "@/features/shared/components/ProductSelectorModal";
 import { QuotationFormPreview } from "@/features/sales/components/QuotationFormPreview";
+import { QuotationLineItemsTable } from "@/features/sales/components/QuotationLineItemsTable";
+import { QuotationTotalsSummary } from "@/features/sales/components/QuotationTotalsSummary";
 import { SalesFormSection } from "@/features/sales/components/SalesFormSection";
 import { SendQuotationModal } from "@/features/sales/components/SendQuotationModal";
 import {
@@ -33,11 +33,10 @@ import {
   useQuotation,
   useUpdateQuotation,
 } from "@/features/sales/hooks/useQuotations";
-import { formatCurrency } from "@/lib/format";
-import { Priority } from "@/types/status";
 import type { Customer } from "@/types/customer";
 import type { Product } from "@/types/product";
 import type { Quotation } from "@/types/quotation";
+import { Priority } from "@/types/status";
 
 const PRIORITY_OPTIONS = Object.entries(Priority).map(([value, def]) => ({
   value,
@@ -82,120 +81,12 @@ function CustomerPicker({ onOpen }: { onOpen: () => void }) {
   );
 }
 
-function LineItemsSection({ onAddProduct }: { onAddProduct: () => void }) {
-  const { values, errors } = useFormikContext<QuotationFormValues>();
-
-  return (
-    <SalesFormSection
-      title="Product Line Items"
-      description="Add products, quantities, discounts, and tax."
-      action={
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-7 text-[11px] text-blue-600"
-          leftIcon={<Plus className="h-3.5 w-3.5" />}
-          onClick={onAddProduct}
-        >
-          Add Product
-        </Button>
-      }
-    >
-      {typeof errors.lineItems === "string" && (
-        <p className="mb-2 text-[12px] text-red-600">{errors.lineItems}</p>
-      )}
-      <FieldArray name="lineItems">
-        {({ remove }) => (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-[12px]">
-              <thead>
-                <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted-foreground">
-                  <th className="py-1.5 pr-2">Product</th>
-                  <th className="py-1.5 pr-2">Qty</th>
-                  <th className="py-1.5 pr-2">Unit Price</th>
-                  <th className="py-1.5 pr-2">Disc %</th>
-                  <th className="py-1.5 pr-2">Tax %</th>
-                  <th className="py-1.5 pr-2">Line Total</th>
-                  <th className="py-1.5" />
-                </tr>
-              </thead>
-              <tbody>
-                {values.lineItems.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-6 text-center text-muted-foreground">
-                      No products added yet.
-                    </td>
-                  </tr>
-                ) : (
-                  values.lineItems.map((item, index) => {
-                    const lineTotal =
-                      item.quantity *
-                      item.unitPrice *
-                      (1 - item.discountPercent / 100) *
-                      (1 + item.taxPercent / 100);
-                    return (
-                      <tr key={`${item.productId}-${index}`} className="border-b border-border last:border-0">
-                        <td className="py-1.5 pr-2">
-                          <p className="font-medium text-foreground">{item.productName}</p>
-                          <p className="text-[10px] text-muted-foreground">{item.productSku}</p>
-                        </td>
-                        <td className="py-1.5 pr-2">
-                          <FormikInput name={`lineItems.${index}.quantity`} type="number" className="w-20" />
-                        </td>
-                        <td className="py-1.5 pr-2">
-                          <FormikInput name={`lineItems.${index}.unitPrice`} type="number" step="0.01" className="w-28" />
-                        </td>
-                        <td className="py-1.5 pr-2">
-                          <FormikInput name={`lineItems.${index}.discountPercent`} type="number" className="w-16" />
-                        </td>
-                        <td className="py-1.5 pr-2">
-                          <FormikInput name={`lineItems.${index}.taxPercent`} type="number" className="w-16" />
-                        </td>
-                        <td className="py-1.5 pr-2 tabular-nums">
-                          {formatCurrency(lineTotal, "LKR")}
-                        </td>
-                        <td className="py-1.5">
-                          <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => remove(index)}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </FieldArray>
-    </SalesFormSection>
-  );
-}
-
 function TotalsCard() {
   const { values } = useFormikContext<QuotationFormValues>();
   const totals = computeQuotationTotals(values.lineItems, values.discountAmount ?? 0);
   return (
-    <SalesFormSection title="Totals Summary">
-      <dl className="space-y-1.5 text-[12px]">
-        <div className="flex justify-between">
-          <dt className="text-muted-foreground">Subtotal</dt>
-          <dd className="tabular-nums">{formatCurrency(totals.subtotal, "LKR")}</dd>
-        </div>
-        <div className="flex justify-between">
-          <dt className="text-muted-foreground">Discount</dt>
-          <dd className="tabular-nums text-red-600">-{formatCurrency(totals.discountAmount, "LKR")}</dd>
-        </div>
-        <div className="flex justify-between">
-          <dt className="text-muted-foreground">Tax</dt>
-          <dd className="tabular-nums">{formatCurrency(totals.taxAmount, "LKR")}</dd>
-        </div>
-        <div className="flex justify-between border-t border-border pt-2 text-sm font-semibold">
-          <dt>Total</dt>
-          <dd className="tabular-nums">{formatCurrency(totals.totalAmount, "LKR")}</dd>
-        </div>
-      </dl>
+    <SalesFormSection title="Order Summary">
+      <QuotationTotalsSummary totals={totals} compact />
     </SalesFormSection>
   );
 }
@@ -370,11 +261,18 @@ export function EstimateFormPage() {
                             <FormikSelect name="priority" label="Priority" options={PRIORITY_OPTIONS} required />
                           </div>
                         </SalesFormSection>
-                        <LineItemsSection onAddProduct={() => setProductModalOpen(true)} />
+                        <QuotationLineItemsTable onAddProduct={() => setProductModalOpen(true)} />
                       </div>
                       <div className="space-y-3">
                         <SalesFormSection title="Commercial Terms">
-                          <FormikInput name="discountAmount" label="Header Discount" type="number" min={0} step={0.01} />
+                          <FormikInput
+                            name="discountAmount"
+                            label="Additional Discount (LKR)"
+                            type="number"
+                            min={0}
+                            step={0.01}
+                            hint="Applied to the whole quotation after line discounts. Tax is recalculated accordingly."
+                          />
                           <div className="mt-2">
                             <FormikTextarea name="termsAndConditions" label="Terms & Conditions" rows={5} />
                           </div>
@@ -391,7 +289,7 @@ export function EstimateFormPage() {
                 <TabPanel value="lines" className="pt-3">
                   <div className="grid gap-3 lg:grid-cols-3">
                     <div className="lg:col-span-2">
-                      <LineItemsSection onAddProduct={() => setProductModalOpen(true)} />
+                      <QuotationLineItemsTable onAddProduct={() => setProductModalOpen(true)} />
                     </div>
                     <QuotationFormPreview />
                   </div>
@@ -400,9 +298,16 @@ export function EstimateFormPage() {
                 <TabPanel value="pricing" className="pt-3">
                   <div className="grid gap-3 lg:grid-cols-3">
                     <div className="space-y-3 lg:col-span-2">
-                      <SalesFormSection title="Pricing & Terms">
+                      <SalesFormSection title="Pricing & Commercial Terms">
                         <div className="grid gap-2 sm:grid-cols-2">
-                          <FormikInput name="discountAmount" label="Header Discount" type="number" min={0} step={0.01} />
+                          <FormikInput
+                            name="discountAmount"
+                            label="Additional Discount (LKR)"
+                            type="number"
+                            min={0}
+                            step={0.01}
+                            hint="Applied to the whole quotation after line discounts."
+                          />
                         </div>
                         <div className="mt-2">
                           <FormikTextarea name="termsAndConditions" label="Terms & Conditions" rows={6} />
