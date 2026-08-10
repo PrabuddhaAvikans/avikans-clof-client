@@ -13,7 +13,7 @@ export const initialStockMovements: StockMovement[] = [
     referenceId: "mj-001",
     notes: "Issued for JC-2025-1187",
     performedBy: "usr-005",
-    performedByName: "Carlos Rivera",
+    performedByName: "Chaminda Jayasuriya",
     performedAt: "2025-07-20T08:30:00Z",
   },
   {
@@ -27,7 +27,7 @@ export const initialStockMovements: StockMovement[] = [
     referenceType: "manufacturing_job",
     referenceId: "mj-005",
     performedBy: "usr-005",
-    performedByName: "Carlos Rivera",
+    performedByName: "Chaminda Jayasuriya",
     performedAt: "2025-04-10T10:00:00Z",
   },
   {
@@ -41,7 +41,7 @@ export const initialStockMovements: StockMovement[] = [
     referenceType: "purchase_order",
     referenceId: "PO-2025-0089",
     performedBy: "usr-005",
-    performedByName: "Carlos Rivera",
+    performedByName: "Chaminda Jayasuriya",
     performedAt: "2025-07-05T11:00:00Z",
   },
   {
@@ -55,7 +55,7 @@ export const initialStockMovements: StockMovement[] = [
     referenceType: "manufacturing_job",
     referenceId: "mj-001",
     performedBy: "usr-004",
-    performedByName: "Mike Thompson",
+    performedByName: "Nuwan Wickramasinghe",
     performedAt: "2025-07-16T10:00:00Z",
   },
   {
@@ -68,7 +68,7 @@ export const initialStockMovements: StockMovement[] = [
     unit: "reel",
     notes: "Damaged during handling — write-off",
     performedBy: "usr-005",
-    performedByName: "Carlos Rivera",
+    performedByName: "Chaminda Jayasuriya",
     performedAt: "2025-06-15T14:00:00Z",
   },
 ];

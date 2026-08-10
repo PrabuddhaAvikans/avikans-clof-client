@@ -24,7 +24,7 @@ const MOCK_AUDIT_LOGS: AuditLogEntry[] = [
   {
     id: "aud-001",
     timestamp: "2025-07-21T14:30:00Z",
-    user: "Mike Thompson",
+    user: "Nuwan Wickramasinghe",
     action: "Updated",
     entity: "ManufacturingJob",
     entityId: "mj-001",
@@ -54,7 +54,7 @@ const MOCK_AUDIT_LOGS: AuditLogEntry[] = [
   {
     id: "aud-004",
     timestamp: "2025-07-20T09:15:00Z",
-    user: "Raj Patel",
+    user: "Kasun Silva",
     action: "Deleted",
     entity: "Quotation",
     entityId: "qt-089",
@@ -74,7 +74,7 @@ const MOCK_AUDIT_LOGS: AuditLogEntry[] = [
   {
     id: "aud-006",
     timestamp: "2025-07-19T10:30:00Z",
-    user: "Sarah Chen",
+    user: "Chamari Perera",
     action: "Approved",
     entity: "SalesOrder",
     entityId: "so-001",

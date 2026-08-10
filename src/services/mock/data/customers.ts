@@ -41,9 +41,9 @@ export const initialCustomers: Customer[] = [
   {
     id: "cus-002",
     code: "CUS-2024-002",
-    name: "GreenLeaf Architects",
+    name: "Haritha Architects",
     type: "corporate",
-    email: "projects@greenleaf.lk",
+    email: "projects@haritha.lk",
     phone: "+94 11 456 7890",
     billingAddresses: [
       {
@@ -62,7 +62,7 @@ export const initialCustomers: Customer[] = [
         id: "cp-002",
         name: "Priya Fernando",
         title: "Lead Architect",
-        email: "priya@greenleaf.lk",
+        email: "priya@haritha.lk",
         phone: "+94 77 234 5678",
         isPrimary: true,
       },
@@ -70,7 +70,7 @@ export const initialCustomers: Customer[] = [
         id: "cp-003",
         name: "Rohan Silva",
         title: "Project Coordinator",
-        email: "rohan@greenleaf.lk",
+        email: "rohan@haritha.lk",
         phone: "+94 77 345 6789",
         isPrimary: false,
       },
@@ -86,7 +86,7 @@ export const initialCustomers: Customer[] = [
   {
     id: "cus-003",
     code: "CUS-2024-003",
-    name: "Luxe Interiors Pvt Ltd",
+    name: "Ranmini Interiors Pvt Ltd",
     type: "retail",
     email: "orders@luxeinteriors.lk",
     phone: "+94 11 567 8901",
@@ -165,7 +165,7 @@ export const initialCustomers: Customer[] = [
   {
     id: "cus-005",
     code: "CUS-2024-005",
-    name: "TechPark Solutions",
+    name: "LankaTech Solutions",
     type: "corporate",
     email: "facilities@techpark.lk",
     phone: "+94 11 678 9012",
@@ -203,7 +203,7 @@ export const initialCustomers: Customer[] = [
   {
     id: "cus-006",
     code: "CUS-2024-006",
-    name: "Coastal Resort & Spa",
+    name: "Mirissa Coastal Resort",
     type: "corporate",
     email: "maintenance@coastalresort.lk",
     phone: "+94 91 234 5678",
@@ -238,7 +238,7 @@ export const initialCustomers: Customer[] = [
   {
     id: "cus-007",
     code: "CUS-2024-007",
-    name: "BrightHome Retail",
+    name: "Sisu Home Retail",
     type: "retail",
     email: "buying@brighthome.lk",
     phone: "+94 11 789 0123",
@@ -307,13 +307,13 @@ export const initialCustomers: Customer[] = [
   {
     id: "cus-009",
     code: "CUS-2024-009",
-    name: "Metro Mall Management",
+    name: "One Galle Face Mall",
     type: "corporate",
     email: "ops@metromall.lk",
     phone: "+94 11 890 1234",
     billingAddresses: [
       {
-        line1: "Basement Level, Metro Mall",
+        line1: "Basement Level, One Galle Face Mall",
         city: "Colombo",
         state: "Western",
         postalCode: "00300",

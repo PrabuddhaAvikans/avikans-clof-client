@@ -86,7 +86,7 @@ export const mockManufacturingService: ManufacturingService = {
       assignedToName: assignee?.displayName,
       notes: data.notes,
       createdBy: "usr-004",
-      createdByName: "Mike Thompson",
+      createdByName: "Nuwan Wickramasinghe",
       createdAt: timestamp,
       updatedAt: timestamp,
     };

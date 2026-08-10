@@ -18,9 +18,9 @@ export interface AuthState {
 
 const mockAdminUser: AuthUser = {
   id: "usr-001",
-  email: "john.doe@avikans.com",
-  firstName: "John",
-  lastName: "Doe",
+  email: "prabuddha.jayawardhana@avikans.com",
+  firstName: "Prabuddha",
+  lastName: "Jayawardhana",
   displayName: "Prabuddha Jayawardhana",
   role: "Admin",
   permissions: [...ALL_PERMISSIONS],

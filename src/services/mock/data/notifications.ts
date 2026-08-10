@@ -4,7 +4,7 @@ export const initialNotifications: AppNotification[] = [
   {
     id: "ntf-001",
     title: "Quotation Accepted",
-    message: "GreenLeaf Architects accepted quotation QT-2025-0143.",
+    message: "Haritha Architects accepted quotation QT-2025-0143.",
     type: "success",
     category: "quotation",
     isRead: false,
@@ -83,7 +83,7 @@ export const initialNotifications: AppNotification[] = [
   {
     id: "ntf-007",
     title: "New Sales Order",
-    message: "SO-2025-0095 confirmed for Luxe Interiors Pvt Ltd (LKR 490,213).",
+    message: "SO-2025-0095 confirmed for Ranmini Interiors Pvt Ltd (LKR 490,213).",
     type: "success",
     category: "sales_order",
     isRead: true,
@@ -97,7 +97,7 @@ export const initialNotifications: AppNotification[] = [
   {
     id: "ntf-008",
     title: "Quotation Ready to Send",
-    message: "QT-2025-0145 for BrightHome Retail is ready for review.",
+    message: "QT-2025-0145 for Sisu Home Retail is ready for review.",
     type: "info",
     category: "quotation",
     isRead: false,
@@ -124,7 +124,7 @@ export const initialNotifications: AppNotification[] = [
   {
     id: "ntf-010",
     title: "Proof of Delivery Received",
-    message: "DL-2025-0456 signed by Malini De Silva at Coastal Resort & Spa.",
+    message: "DL-2025-0456 signed by Malini De Silva at Mirissa Coastal Resort.",
     type: "success",
     category: "delivery",
     isRead: true,

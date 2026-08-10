@@ -91,7 +91,7 @@ export const initialDashboardSummary: DashboardSummary = {
       status: "draft",
       amount: 312000,
       date: "2025-07-29T14:30:00Z",
-      customer: "TechPark Lanka",
+      customer: "LankaTech Solutions",
     },
     {
       id: "qt-003",
@@ -234,7 +234,7 @@ export const initialDashboardSummary: DashboardSummary = {
     {
       id: "notif-001",
       title: "Quotation expiring soon",
-      message: "QT-2025-0135 expires in 2 days for TechPark Lanka",
+      message: "QT-2025-0135 expires in 2 days for LankaTech Solutions",
       type: "warning",
       createdAt: "2025-07-31T08:00:00Z",
       isRead: false,
