@@ -46,4 +46,4 @@ Mock APIs live under `src/services/`. Swap implementations in `src/services/inde
 | Deliveries | `/deliveries`, `/deliveries/:id/dispatch`, `/deliveries/:id/proof` |
 | Admin | `/admin/users`, `/admin/roles`, `/admin/settings` |
 
-Mock user: **John Doe** (Admin) with full permissions.
+Mock user: **Prabuddha Jayawardhana** (Admin) with full permissions.

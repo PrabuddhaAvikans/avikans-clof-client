@@ -21,7 +21,7 @@ const mockAdminUser: AuthUser = {
   email: "john.doe@avikans.com",
   firstName: "John",
   lastName: "Doe",
-  displayName: "John Doe",
+  displayName: "Prabuddha Jayawardhana",
   role: "Admin",
   permissions: [...ALL_PERMISSIONS],
 };

@@ -141,7 +141,7 @@ export const initialSalesOrders: SalesOrder[] = [
     manufacturingJobIds: ["mj-004"],
     deliveryIds: [],
     createdBy: "usr-001",
-    createdByName: "John Doe",
+    createdByName: "Prabuddha Jayawardhana",
     confirmedAt: "2025-05-05T11:00:00Z",
     createdAt: "2025-05-05T11:00:00Z",
     updatedAt: "2025-07-10T14:00:00Z",

@@ -109,7 +109,7 @@ export const mockSalesOrderService: SalesOrderService = {
       manufacturingJobIds: [],
       deliveryIds: [],
       createdBy: "usr-001",
-      createdByName: "John Doe",
+      createdByName: "Prabuddha Jayawardhana",
       createdAt: timestamp,
       updatedAt: timestamp,
     };

@@ -290,7 +290,7 @@ export const initialManufacturingJobs: ManufacturingJob[] = [
     assignedToName: "Mike Thompson",
     notes: "Custom crystal drops sourced from Italy — ETA Aug 1.",
     createdBy: "usr-001",
-    createdByName: "John Doe",
+    createdByName: "Prabuddha Jayawardhana",
     createdAt: "2025-05-06T10:00:00Z",
     updatedAt: "2025-07-25T09:00:00Z",
   },

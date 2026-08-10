@@ -71,7 +71,7 @@ export const mockDeliveryService: DeliveryService = {
       scheduledDate: data.scheduledDate,
       notes: data.notes,
       createdBy: "usr-001",
-      createdByName: "John Doe",
+      createdByName: "Prabuddha Jayawardhana",
       createdAt: timestamp,
       updatedAt: timestamp,
     };

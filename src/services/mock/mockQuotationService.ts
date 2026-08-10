@@ -104,12 +104,12 @@ export const mockQuotationService: QuotationService = {
           type: "comment",
           summary: "Quotation created",
           contactedBy: "usr-001",
-          contactedByName: "John Doe",
+          contactedByName: "Prabuddha Jayawardhana",
           contactedAt: timestamp,
         },
       ],
       createdBy: "usr-001",
-      createdByName: "John Doe",
+      createdByName: "Prabuddha Jayawardhana",
       createdAt: timestamp,
       updatedAt: timestamp,
     };
@@ -168,7 +168,7 @@ export const mockQuotationService: QuotationService = {
           summary: "Quotation sent to customer",
           detail: `Email sent to ${quotations[index].customerEmail}`,
           contactedBy: "usr-001",
-          contactedByName: "John Doe",
+          contactedByName: "Prabuddha Jayawardhana",
           contactedAt: nowIso(),
           outcome: "Delivered",
         },
@@ -202,7 +202,7 @@ export const mockQuotationService: QuotationService = {
       detail: data.detail,
       outcome: data.outcome,
       contactedBy: "usr-001",
-      contactedByName: "John Doe",
+      contactedByName: "Prabuddha Jayawardhana",
       contactedAt: nowIso(),
     };
 

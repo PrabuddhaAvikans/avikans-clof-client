@@ -163,7 +163,7 @@ export const initialUsers: User[] = [
     email: "john.doe@avikans.com",
     firstName: "John",
     lastName: "Doe",
-    displayName: "John Doe",
+    displayName: "Prabuddha Jayawardhana",
     phone: "+94 77 100 0001",
     roleId: "rol-001",
     roleName: "Administrator",

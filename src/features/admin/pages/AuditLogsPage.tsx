@@ -34,7 +34,7 @@ const MOCK_AUDIT_LOGS: AuditLogEntry[] = [
   {
     id: "aud-002",
     timestamp: "2025-07-21T12:00:00Z",
-    user: "John Doe",
+    user: "Prabuddha Jayawardhana",
     action: "Created",
     entity: "Delivery",
     entityId: "del-003",

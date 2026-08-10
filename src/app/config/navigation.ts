@@ -31,13 +31,13 @@ export const NAVIGATION: NavItem[] = [
         icon: "FileText",
         permission: "quotations:view",
       },
-      // {
-      //   id: "sales-orders",
-      //   label: "Sales Orders",
-      //   path: ROUTES.salesOrders.list,
-      //   icon: "ClipboardList",
-      //   permission: "sales_orders:view",
-      // },
+      {
+        id: "sales-orders",
+        label: "Sales Orders",
+        path: ROUTES.salesOrders.list,
+        icon: "ClipboardList",
+        permission: "sales_orders:view",
+      },
       // {
       //   id: "sales-payments",
       //   label: "Payments",

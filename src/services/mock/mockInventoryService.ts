@@ -153,7 +153,7 @@ export const mockInventoryService: InventoryService = {
       referenceId: reference?.referenceId,
       notes: reference?.notes,
       performedBy: "usr-001",
-      performedByName: "John Doe",
+      performedByName: "Prabuddha Jayawardhana",
       performedAt: nowIso(),
     };
     stockMovements.unshift(movement);
