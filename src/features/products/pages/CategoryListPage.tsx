@@ -34,7 +34,7 @@ export function CategoryListPage() {
       {
         accessorKey: "parentName",
         header: "Parent",
-        cell: ({ row }) => row.original.parentName ?? "—",
+        cell: ({ row }) => row.original.parentName ?? "-",
       },
       {
         accessorKey: "productCount",

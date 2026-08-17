@@ -38,6 +38,7 @@ const MODULE_LABELS: Record<PermissionModule, string> = {
   customers: "Customers",
   quotations: "Quotations",
   sales_orders: "Sales Orders",
+  finance: "Finance",
   manufacturing: "Manufacturing",
   delivery: "Delivery",
   users: "Users",
@@ -139,7 +140,7 @@ export function RolesPage() {
         id: "description",
         accessorKey: "description",
         header: "Description",
-        cell: ({ row }) => row.original.description ?? "—",
+        cell: ({ row }) => row.original.description ?? "-",
       },
       {
         id: "permissions",

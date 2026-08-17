@@ -62,6 +62,13 @@ export const ROUTES = {
     review: (id: string) => `/sales-orders/${id}/review` as const,
   },
 
+  finance: {
+    invoices: "/finance/invoices",
+    invoiceDetail: (id: string) => `/finance/invoices/${id}` as const,
+    creditNotes: "/finance/credit-notes",
+    creditNoteDetail: (id: string) => `/finance/credit-notes/${id}` as const,
+  },
+
   manufacturing: {
     jobs: "/manufacturing/jobs",
     jobsNew: "/manufacturing/jobs/new",

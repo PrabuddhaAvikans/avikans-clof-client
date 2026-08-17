@@ -14,6 +14,7 @@ import { Timeline, type TimelineEvent } from "@/components/ui/Timeline";
 import { commentSchema } from "@/features/costing/schemas/costingSchema";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { workspacePanelBody, workspacePanelEmpty, workspacePanelShell } from "@/lib/panelLayout";
 import type { ApprovalLevel, CostingRequest } from "@/types/costing";
 
 function mapApprovalStatus(status: ApprovalLevel["status"]): StepStatus {
@@ -80,7 +81,7 @@ export function ApprovalWorkflowPanel({
       id: entry.id,
       title: entry.action,
       description: entry.comment
-        ? `${entry.userName} — ${entry.comment}`
+        ? `${entry.userName} - ${entry.comment}`
         : entry.userName,
       timestamp: formatDateTime(entry.timestamp),
       status: mapHistoryStatus(entry.action),
@@ -115,12 +116,7 @@ export function ApprovalWorkflowPanel({
 
   if (!request) {
     return (
-      <div
-        className={cn(
-          "flex h-full items-center justify-center rounded-lg border border-border bg-card p-8 shadow-xs",
-          className,
-        )}
-      >
+      <div className={cn(workspacePanelEmpty, className)}>
         <p className="text-sm text-muted-foreground">
           Approval workflow will appear here.
         </p>
@@ -129,17 +125,12 @@ export function ApprovalWorkflowPanel({
   }
 
   return (
-    <div
-      className={cn(
-        "flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xs",
-        className,
-      )}
-    >
+    <div className={cn(workspacePanelShell, className)}>
       <div className="border-b border-border px-4 py-3">
         <h2 className="text-sm font-semibold text-foreground">Approval Workflow</h2>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-4 overflow-auto p-4">
+      <div className={workspacePanelBody}>
         <section className="rounded-md border border-border bg-muted/20 p-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Requester

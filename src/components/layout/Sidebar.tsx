@@ -125,7 +125,7 @@ function SidebarNavItem({
           <NavLinkItem
             item={firstChild}
             collapsed={collapsed}
-            title={`${item.label} — ${firstChild.label}`}
+            title={`${item.label} - ${firstChild.label}`}
           />
         </li>
       );

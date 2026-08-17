@@ -154,7 +154,7 @@ export const initialDeliveries: Delivery[] = [
     },
     carrier: "White Glove Delivery",
     scheduledDate: "2025-09-05T10:00:00Z",
-    notes: "Fragile — requires 2-person lift team.",
+    notes: "Fragile - requires 2-person lift team.",
     createdBy: "usr-003",
     createdByName: "Kasun Silva",
     createdAt: "2025-07-25T09:00:00Z",

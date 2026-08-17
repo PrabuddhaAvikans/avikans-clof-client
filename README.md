@@ -1,4 +1,4 @@
-# Avikans Solution — Client
+# Avikans Solution - Client
 
 Enterprise React frontend for custom lighting product management, quotations, sales orders, manufacturing, inventory, delivery, and user administration.
 

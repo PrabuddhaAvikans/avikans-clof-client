@@ -116,7 +116,7 @@ export function NotificationSettingsPage() {
                     <Switch
                       checked={event.channels[channel]}
                       onChange={() => toggleChannel(event.id, channel)}
-                      aria-label={`${event.label} — ${CHANNEL_LABELS[channel]}`}
+                      aria-label={`${event.label} - ${CHANNEL_LABELS[channel]}`}
                     />
                   </td>
                 ))}

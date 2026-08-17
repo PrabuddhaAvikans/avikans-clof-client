@@ -1,9 +1,13 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { ExternalLink } from "lucide-react";
+import { ROUTES } from "@/app/config/routes";
 import { Pagination } from "@/components/ui/Pagination";
 import { SearchBar } from "@/components/ui/SearchBar";
 import { MappedStatusBadge } from "@/features/shared/components/MappedStatusBadge";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { workspaceListPanelBody, workspaceListPanelShell } from "@/lib/panelLayout";
 import type { SalesOrder } from "@/types/sales-order";
 import { SalesOrderStatus, type SalesOrderStatusValue } from "@/types/status";
 
@@ -67,10 +71,7 @@ export function SalesOrderListPanel({
 
   return (
     <div
-      className={cn(
-        "flex h-full flex-col rounded-lg border border-border bg-card shadow-xs",
-        className,
-      )}
+      className={cn(workspaceListPanelShell, className)}
     >
       <div className="border-b border-border px-3 py-3">
         <h2 className="text-sm font-semibold text-foreground">Sales Orders</h2>
@@ -109,7 +110,7 @@ export function SalesOrderListPanel({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div className={workspaceListPanelBody}>
         {isLoading ? (
           <div className="divide-y divide-border">
             {Array.from({ length: 6 }).map((_, index) => (
@@ -127,18 +128,36 @@ export function SalesOrderListPanel({
           <ul className="divide-y divide-border">
             {items.map((item) => (
               <li key={item.id}>
-                <button
-                  type="button"
+                <div
+                  role="button"
+                  tabIndex={0}
                   onClick={() => onSelect(item.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      onSelect(item.id);
+                    }
+                  }}
                   className={cn(
-                    "flex w-full flex-col gap-1.5 px-3 py-2.5 text-left transition-colors hover:bg-muted/50",
+                    "flex w-full cursor-pointer flex-col gap-1.5 px-3 py-2.5 text-left transition-colors hover:bg-muted/50",
                     selectedId === item.id && "bg-primary/5 hover:bg-primary/5",
                   )}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <p className="truncate text-sm font-medium text-primary">
-                      {item.orderNumber}
-                    </p>
+                    <div className="flex min-w-0 items-center gap-1">
+                      <p className="truncate text-sm font-medium text-primary">
+                        {item.orderNumber}
+                      </p>
+                      <Link
+                        to={ROUTES.salesOrders.detail(item.id)}
+                        title="Open order page"
+                        aria-label={`Open ${item.orderNumber}`}
+                        className="shrink-0 rounded p-0.5 text-primary hover:bg-primary/10"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </Link>
+                    </div>
                     <MappedStatusBadge
                       statusMap={SalesOrderStatus}
                       value={item.status}
@@ -157,7 +176,7 @@ export function SalesOrderListPanel({
                       {formatCurrency(item.totalAmount, item.currency)}
                     </span>
                   </div>
-                </button>
+                </div>
               </li>
             ))}
           </ul>

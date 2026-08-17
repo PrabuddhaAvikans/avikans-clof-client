@@ -7,14 +7,13 @@ import { AppFooter } from "@/components/layout/AppFooter";
 import { Header } from "@/components/layout/Header";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { useBreakpoint } from "@/hooks/useMediaQuery";
+import { useBreakpoints } from "@/hooks/useMediaQuery";
 import { Drawer } from "@/components/ui/Drawer";
 
 export function AppShell() {
   const dispatch = useDispatch<AppDispatch>();
   const rightDrawer = useSelector((state: RootState) => state.ui.rightDrawer);
-  const isTablet = useBreakpoint("md") && !useBreakpoint("lg");
-  const isMobile = !useBreakpoint("md");
+  const { isMobile, isTablet } = useBreakpoints();
 
   useEffect(() => {
     if (isTablet) {
@@ -25,13 +24,13 @@ export function AppShell() {
   }, [isTablet, isMobile, dispatch]);
 
   return (
-    <div className="flex h-svh overflow-hidden bg-background">
+    <div className="flex h-dvh bg-background">
       {!isMobile && <Sidebar forceCollapsed={isTablet} />}
 
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <Header />
 
-        <main className="flex-1 overflow-y-auto bg-background">
+        <main className="min-h-0 flex-1 overflow-y-auto bg-background">
           <Outlet />
         </main>
 

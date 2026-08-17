@@ -1,8 +1,10 @@
 import { format, isValid, parseISO } from "date-fns";
+import { getAppCountryConfig } from "@/lib/countryConfig";
 
-const DEFAULT_LOCALE = "en-LK";
-/** Application-wide currency — always LKR. */
-export const APP_CURRENCY = "LKR";
+const appCountry = getAppCountryConfig();
+const DEFAULT_LOCALE = appCountry.locale;
+/** Application-wide currency - driven by country config (`DEFAULT_COUNTRY`). */
+export const APP_CURRENCY = appCountry.currency;
 const DEFAULT_CURRENCY = APP_CURRENCY;
 
 function toDate(value: Date | string | number): Date | null {
@@ -59,7 +61,7 @@ export function formatDate(
 ): string {
   const date = toDate(value);
   if (!date) {
-    return "—";
+    return "-";
   }
 
   return format(date, pattern);
@@ -71,7 +73,7 @@ export function formatDateTime(
 ): string {
   const date = toDate(value);
   if (!date) {
-    return "—";
+    return "-";
   }
 
   return format(date, pattern);

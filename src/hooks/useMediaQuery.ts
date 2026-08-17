@@ -43,3 +43,52 @@ export const BREAKPOINTS = {
 export function useBreakpoint(breakpoint: keyof typeof BREAKPOINTS): boolean {
   return useMediaQuery(BREAKPOINTS[breakpoint]);
 }
+
+export type BreakpointFlags = {
+  isMobile: boolean;
+  isTablet: boolean;
+  isDesktop: boolean;
+};
+
+/** Single listener for layout breakpoints - avoids flicker from multiple hook instances. */
+export function useBreakpoints(): BreakpointFlags {
+  const [flags, setFlags] = useState<BreakpointFlags>(() => {
+    const isMd = getMatch(BREAKPOINTS.md);
+    const isLg = getMatch(BREAKPOINTS.lg);
+    return {
+      isMobile: !isMd,
+      isTablet: isMd && !isLg,
+      isDesktop: isLg,
+    };
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return;
+    }
+
+    const mdQuery = window.matchMedia(BREAKPOINTS.md);
+    const lgQuery = window.matchMedia(BREAKPOINTS.lg);
+
+    const sync = (): void => {
+      const isMd = mdQuery.matches;
+      const isLg = lgQuery.matches;
+      setFlags({
+        isMobile: !isMd,
+        isTablet: isMd && !isLg,
+        isDesktop: isLg,
+      });
+    };
+
+    sync();
+    mdQuery.addEventListener("change", sync);
+    lgQuery.addEventListener("change", sync);
+
+    return () => {
+      mdQuery.removeEventListener("change", sync);
+      lgQuery.removeEventListener("change", sync);
+    };
+  }, []);
+
+  return flags;
+}

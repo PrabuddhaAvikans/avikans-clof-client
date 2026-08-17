@@ -98,15 +98,15 @@ export function DeliveryDetailPage() {
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Carrier</dt>
-                    <dd>{delivery.carrier ?? "—"}</dd>
+                    <dd>{delivery.carrier ?? "-"}</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Tracking</dt>
-                    <dd>{delivery.trackingNumber ?? "—"}</dd>
+                    <dd>{delivery.trackingNumber ?? "-"}</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Vehicle</dt>
-                    <dd>{delivery.vehicleNumber ?? "—"}</dd>
+                    <dd>{delivery.vehicleNumber ?? "-"}</dd>
                   </div>
                   {delivery.dispatchedAt && (
                     <div className="flex justify-between">

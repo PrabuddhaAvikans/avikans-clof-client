@@ -78,7 +78,7 @@ export function CustomerListPage() {
         cell: ({ row }) =>
           row.original.contactPersons.find((c) => c.isPrimary)?.name ??
           row.original.contactPersons[0]?.name ??
-          "—",
+          "-",
       },
       { accessorKey: "phone", header: "Phone" },
       { accessorKey: "email", header: "Email" },
@@ -91,7 +91,7 @@ export function CustomerListPage() {
         id: "lastOrder",
         header: "Last Order",
         cell: ({ row }) =>
-          row.original.totalOrders > 0 ? formatDate(row.original.updatedAt) : "—",
+          row.original.totalOrders > 0 ? formatDate(row.original.updatedAt) : "-",
       },
       {
         accessorKey: "totalRevenue",

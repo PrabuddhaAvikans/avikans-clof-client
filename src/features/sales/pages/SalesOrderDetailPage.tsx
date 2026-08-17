@@ -70,18 +70,18 @@ export function SalesOrderDetailPage() {
       {
         accessorKey: "quantityInManufacturing",
         header: "In Mfg",
-        cell: ({ row }) => row.original.quantityInManufacturing || "—",
+        cell: ({ row }) => row.original.quantityInManufacturing || "-",
       },
       {
         accessorKey: "quantityDelivered",
         header: "Delivered",
-        cell: ({ row }) => row.original.quantityDelivered || "—",
+        cell: ({ row }) => row.original.quantityDelivered || "-",
       },
       {
         accessorKey: "lineTotal",
         header: "Total",
         cell: ({ row }) =>
-          order ? formatCurrency(row.original.lineTotal, order.currency) : "—",
+          order ? formatCurrency(row.original.lineTotal, order.currency) : "-",
       },
     ],
     [order],

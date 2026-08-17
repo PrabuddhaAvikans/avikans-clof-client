@@ -25,7 +25,7 @@ const contactHistoryById: Record<string, QuotationContactEntry[]> = {
     {
       id: "qch-003",
       type: "call",
-      summary: "Follow-up call — pricing clarification",
+      summary: "Follow-up call - pricing clarification",
       detail: "Customer asked about bulk discount on pendant lights.",
       contactedBy: "usr-002",
       contactedByName: "Chamari Perera",
@@ -66,7 +66,7 @@ const contactHistoryById: Record<string, QuotationContactEntry[]> = {
     {
       id: "qch-012",
       type: "comment",
-      summary: "Internal note — convert to sales order",
+      summary: "Internal note - convert to sales order",
       detail: "Customer accepted; proceed with SO creation.",
       contactedBy: "usr-001",
       contactedByName: "Prabuddha Jayawardhana",
@@ -139,7 +139,7 @@ const contactHistoryById: Record<string, QuotationContactEntry[]> = {
     {
       id: "qch-050",
       type: "call",
-      summary: "Buyer call — retail restock",
+      summary: "Buyer call - retail restock",
       detail: "Sisu Home needs wall sconces and desk lamps for Q3 shelves.",
       contactedBy: "usr-003",
       contactedByName: "Kasun Silva",
@@ -169,7 +169,7 @@ const contactHistoryById: Record<string, QuotationContactEntry[]> = {
     {
       id: "qch-061",
       type: "call",
-      summary: "Follow-up — no response",
+      summary: "Follow-up - no response",
       detail: "Left voicemail; quotation later expired.",
       contactedBy: "usr-002",
       contactedByName: "Chamari Perera",

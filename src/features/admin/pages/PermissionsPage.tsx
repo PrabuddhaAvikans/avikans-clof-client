@@ -15,6 +15,7 @@ const MODULE_LABELS: Record<PermissionModule, string> = {
   customers: "Customers",
   quotations: "Quotations",
   sales_orders: "Sales Orders",
+  finance: "Finance",
   manufacturing: "Manufacturing",
   delivery: "Delivery",
   users: "Users",

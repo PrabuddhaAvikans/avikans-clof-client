@@ -310,7 +310,7 @@ export function ManufacturingJobDetailPage() {
                           <td className="px-4 py-3">{op.sequence}</td>
                           <td className="px-4 py-3 font-medium">{op.name}</td>
                           <td className="px-4 py-3">{op.workstation}</td>
-                          <td className="px-4 py-3">{op.assignedToName ?? "—"}</td>
+                          <td className="px-4 py-3">{op.assignedToName ?? "-"}</td>
                           <td className="px-4 py-3">{op.estimatedHours}h</td>
                           <td className="px-4 py-3">
                             <StatusBadge

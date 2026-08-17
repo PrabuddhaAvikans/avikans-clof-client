@@ -66,7 +66,7 @@ export const initialStockMovements: StockMovement[] = [
     type: "adjustment",
     quantity: -2,
     unit: "reel",
-    notes: "Damaged during handling — write-off",
+    notes: "Damaged during handling - write-off",
     performedBy: "usr-005",
     performedByName: "Chaminda Jayasuriya",
     performedAt: "2025-06-15T14:00:00Z",

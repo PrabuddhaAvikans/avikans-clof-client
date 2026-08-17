@@ -149,7 +149,7 @@ function DashboardTable({
                   </td>
                   {showAmount && (
                     <td className="px-4 py-3 text-right text-foreground">
-                      {row.amount !== undefined ? formatCurrency(row.amount, "LKR") : "—"}
+                      {row.amount !== undefined ? formatCurrency(row.amount, "LKR") : "-"}
                     </td>
                   )}
                   <td className="px-4 py-3 text-right text-muted-foreground">

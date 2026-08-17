@@ -186,7 +186,7 @@ export function CostingApprovalWorkspacePage() {
             >
               Create Quotation
             </Button>
-            <Button
+            {/* <Button
               variant="outline"
               size="sm"
               leftIcon={<Send className="h-4 w-4" />}
@@ -198,7 +198,7 @@ export function CostingApprovalWorkspacePage() {
               }}
             >
               Submit for Approval
-            </Button>
+            </Button> */}
             <Button
               variant="success"
               size="sm"
@@ -221,7 +221,7 @@ export function CostingApprovalWorkspacePage() {
             >
               Reject
             </Button>
-            <div className="relative">
+            {/* <div className="relative">
               <Button
                 variant="outline"
                 size="sm"
@@ -269,7 +269,7 @@ export function CostingApprovalWorkspacePage() {
               }}
             >
               Filters
-            </Button>
+            </Button> */}
             <Button
               variant="ghost"
               size="sm"
@@ -342,7 +342,7 @@ export function CostingApprovalWorkspacePage() {
             />
           </div>
 
-          <div className="col-span-1 md:col-span-2 lg:col-span-1 xl:col-span-1">
+          {/* <div className="col-span-1 md:col-span-2 lg:col-span-1 xl:col-span-1">
             <ApprovalWorkflowPanel
               request={isDetailLoading ? activeRequest : selectedRequest ?? activeRequest}
               onApprove={(comment) => selectedId && void handleApprove(selectedId, comment)}
@@ -355,7 +355,7 @@ export function CostingApprovalWorkspacePage() {
               isAddingComment={addCommentMutation.isPending}
               className="min-h-[28rem]"
             />
-          </div>
+          </div> */}
         </div>
       </PageContent>
     </PageContainer>

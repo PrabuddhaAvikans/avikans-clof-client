@@ -47,8 +47,8 @@ const PRIORITY_OPTIONS = Object.entries(Priority).map(([value, def]) => ({
 
 const TABS = [
   { id: "overview", label: "Overview" },
-  { id: "lines", label: "Line Items" },
-  { id: "delivery", label: "Delivery" },
+  // { id: "lines", label: "Line Items" },
+  // { id: "delivery", label: "Delivery" },
   { id: "notes", label: "Notes" },
 ] as const;
 

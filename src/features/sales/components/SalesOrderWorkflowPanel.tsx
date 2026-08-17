@@ -1,8 +1,10 @@
 import { useMemo } from "react";
 import {
   Check,
+  ExternalLink,
   FileText,
   Pencil,
+  Receipt,
   Truck,
   X,
 } from "lucide-react";
@@ -11,6 +13,7 @@ import { ROUTES } from "@/app/config/routes";
 import { Button } from "@/components/ui/Button";
 import { Stepper, type StepItem, type StepStatus } from "@/components/ui/Stepper";
 import { cn } from "@/lib/utils";
+import { workspacePanelBody, workspacePanelEmpty, workspacePanelShell } from "@/lib/panelLayout";
 import type { SalesOrder } from "@/types/sales-order";
 import type { SalesOrderStatusValue } from "@/types/status";
 
@@ -136,6 +139,8 @@ export type SalesOrderWorkflowPanelProps = {
   onCancel?: () => void;
   onConfirm?: () => void;
   onReview?: () => void;
+  onApplyCreditNote?: () => void;
+  canApplyCreditNote?: boolean;
   isConfirming?: boolean;
   isCancelling?: boolean;
   className?: string;
@@ -147,6 +152,8 @@ export function SalesOrderWorkflowPanel({
   onCancel,
   onConfirm,
   onReview,
+  onApplyCreditNote,
+  canApplyCreditNote = false,
   isConfirming,
   isCancelling,
   className,
@@ -158,12 +165,7 @@ export function SalesOrderWorkflowPanel({
 
   if (!order) {
     return (
-      <div
-        className={cn(
-          "flex h-full items-center justify-center rounded-lg border border-border bg-card p-8 shadow-xs",
-          className,
-        )}
-      >
+      <div className={cn(workspacePanelEmpty, className)}>
         <p className="text-sm text-muted-foreground">Select an order to view workflow.</p>
       </div>
     );
@@ -177,17 +179,12 @@ export function SalesOrderWorkflowPanel({
     order.status === "submitted";
 
   return (
-    <div
-      className={cn(
-        "flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xs",
-        className,
-      )}
-    >
+    <div className={cn(workspacePanelShell, className)}>
       <div className="border-b border-border px-4 py-3">
         <h2 className="text-sm font-semibold text-foreground">Order Workflow</h2>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-4 overflow-auto p-4">
+      <div className={workspacePanelBody}>
         <Stepper steps={steps} orientation="vertical" />
 
         {order.quotationId && order.quotationNumber && (
@@ -210,6 +207,16 @@ export function SalesOrderWorkflowPanel({
             Quick Actions
           </h3>
           <div className="space-y-1.5">
+            <Link to={ROUTES.salesOrders.detail(order.id)} className="block">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start"
+                leftIcon={<ExternalLink className="h-4 w-4" />}
+              >
+                Open Order Page
+              </Button>
+            </Link>
             {canEdit && (
               <Button
                 variant="outline"
@@ -267,6 +274,18 @@ export function SalesOrderWorkflowPanel({
                   Schedule Delivery
                 </Button>
               </Link>
+            )}
+            {onApplyCreditNote && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start"
+                leftIcon={<Receipt className="h-4 w-4" />}
+                disabled={!canApplyCreditNote}
+               // onClick={onApplyCreditNote}
+              >
+                Apply Credit Note
+              </Button>
             )}
           </div>
         </section>

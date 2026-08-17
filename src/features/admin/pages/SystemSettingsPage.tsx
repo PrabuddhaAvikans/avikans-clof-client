@@ -6,12 +6,25 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { COUNTRY_CONFIG, getCountryConfig } from "@/lib/countryConfig";
+import { DEFAULT_COUNTRY } from "@/lib/countries";
+
+const COUNTRY_SETTING_OPTIONS = Object.keys(COUNTRY_CONFIG).map((country) => ({
+  value: country,
+  label: country,
+}));
 
 export function SystemSettingsPage() {
   const [companyName, setCompanyName] = useState("AVIKANS SOLUTION");
-  const [currency, setCurrency] = useState("LKR");
-  const [taxRate, setTaxRate] = useState("15");
+  const [country, setCountry] = useState(DEFAULT_COUNTRY);
+  const countryConfig = getCountryConfig(country);
+  const [taxRate, setTaxRate] = useState(String(countryConfig.defaultTaxRate));
   const [quotationValidityDays, setQuotationValidityDays] = useState("30");
+
+  const handleCountryChange = (nextCountry: string) => {
+    setCountry(nextCountry);
+    setTaxRate(String(getCountryConfig(nextCountry).defaultTaxRate));
+  };
 
   const handleSave = () => {
     toast.success("System settings saved");
@@ -32,21 +45,29 @@ export function SystemSettingsPage() {
           onChange={(e) => setCompanyName(e.target.value)}
         />
         <Select
-          label="Default Currency"
-          value={currency}
-          onChange={(e) => setCurrency(e.target.value)}
-          options={[
-            { value: "LKR", label: "LKR — Sri Lankan Rupee" },
-          ]}
+          label="Operating Country"
+          value={country}
+          onChange={(e) => handleCountryChange(e.target.value)}
+          options={COUNTRY_SETTING_OPTIONS}
         />
         <Input
-          label="Default Tax Rate (%)"
+          label="Default Currency"
+          value={countryConfig.currency}
+          disabled
+          hint="Derived from country configuration"
+        />
+        <Input
+          label={`Default ${countryConfig.taxName} Rate (%)`}
           type="number"
           min={0}
           max={100}
           value={taxRate}
           onChange={(e) => setTaxRate(e.target.value)}
         />
+        <p className="text-xs text-muted-foreground">
+          Tax display:{" "}
+          {countryConfig.taxComponents.map((c) => c.code).join(" + ")}
+        </p>
         <Input
           label="Quotation Validity (days)"
           type="number"

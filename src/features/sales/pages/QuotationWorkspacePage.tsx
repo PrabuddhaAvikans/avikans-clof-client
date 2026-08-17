@@ -25,6 +25,12 @@ import {
 import type { QuotationContactInput } from "@/services/interfaces/quotationService";
 import type { Quotation } from "@/types/quotation";
 import type { QuotationStatusValue } from "@/types/status";
+import { cn } from "@/lib/utils";
+import {
+  workspaceGrid,
+  workspaceGridCol,
+  workspacePanelFill,
+} from "@/lib/panelLayout";
 
 export function QuotationWorkspacePage() {
   const navigate = useNavigate();
@@ -135,7 +141,7 @@ export function QuotationWorkspacePage() {
         await addContact.mutateAsync({ id: activeQuotation.id, data });
         toast.success("Contact logged");
       } catch {
-        toast.error("Could not log contact — approval may already be complete");
+        toast.error("Could not log contact - approval may already be complete");
       }
     },
     [activeQuotation, addContact],
@@ -247,8 +253,8 @@ export function QuotationWorkspacePage() {
         onRetry={() => void refetch()}
         loadingVariant="card"
       >
-        <div className="grid min-h-[calc(100svh-11rem)] grid-cols-1 gap-2 lg:grid-cols-12">
-          <div className="min-h-[18rem] lg:col-span-3 lg:min-h-0">
+        <div className={workspaceGrid}>
+          <div className={cn("min-h-[18rem] lg:col-span-3", workspaceGridCol)}>
             <QuotationListPanel
               items={data?.items ?? []}
               totalCount={data?.totalCount ?? 0}
@@ -269,19 +275,19 @@ export function QuotationWorkspacePage() {
                 setPage(1);
               }}
               isLoading={isLoading}
-              className="h-full"
+              className={workspacePanelFill}
             />
           </div>
 
-           <div className="min-h-[24rem] lg:col-span-6 lg:min-h-0">
+           <div className={cn("min-h-[24rem] lg:col-span-6", workspaceGridCol)}>
             <QuotationDetailPanel
               quotation={activeQuotation}
               onOpenContacts={() => setContactsOpen(true)}
-              className="h-full"
+              className={workspacePanelFill}
             />
           </div>
 
-          <div className="min-h-[18rem] lg:col-span-3 lg:min-h-0">
+          <div className={cn("min-h-[18rem] lg:col-span-3", workspaceGridCol)}>
             <QuotationWorkflowPanel
               quotation={activeQuotation}
               onEdit={() =>
@@ -298,7 +304,7 @@ export function QuotationWorkspacePage() {
               isSending={sendQuotation.isPending}
               isConverting={convertToOrder.isPending}
               isDeleting={deleteQuotation.isPending}
-              className="h-full"
+              className={workspacePanelFill}
             />
           </div>
         </div>

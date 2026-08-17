@@ -37,5 +37,5 @@ export function getPrimaryWorkshop(job: ManufacturingJob): string {
     return inProgress.workstation;
   }
   const pending = job.operations.find((op) => op.status === "pending");
-  return pending?.workstation ?? job.operations[0]?.workstation ?? "—";
+  return pending?.workstation ?? job.operations[0]?.workstation ?? "-";
 }

@@ -13,6 +13,7 @@ import {
   isNavItemActive,
 } from "@/components/layout/nav-utils";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { cn } from "@/lib/utils";
 import { IconButton } from "@/components/ui/IconButton";
 
@@ -33,17 +34,7 @@ export function MobileNav() {
     getDefaultExpandedGroups(pathname),
   );
 
-  useEffect(() => {
-    if (mobileNavOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [mobileNavOpen]);
+  useScrollLock(mobileNavOpen);
 
   useEffect(() => {
     dispatch(setMobileNavOpen(false));

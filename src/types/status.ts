@@ -97,6 +97,38 @@ export const PaymentStatus = {
 
 export type PaymentStatusValue = keyof typeof PaymentStatus;
 
+export const InvoiceStatus = {
+  draft: { label: "Draft", variant: "secondary" },
+  issued: { label: "Issued", variant: "info" },
+  partial: { label: "Partially Paid", variant: "warning" },
+  paid: { label: "Paid", variant: "success" },
+  overdue: { label: "Overdue", variant: "destructive" },
+  void: { label: "Void", variant: "destructive" },
+} as const satisfies Record<string, StatusDefinition>;
+
+export type InvoiceStatusValue = keyof typeof InvoiceStatus;
+
+export const CreditNoteStatus = {
+  draft: { label: "Draft", variant: "secondary" },
+  issued: { label: "Issued", variant: "info" },
+  partially_applied: { label: "Partially Applied", variant: "warning" },
+  applied: { label: "Fully Applied", variant: "success" },
+  void: { label: "Void", variant: "destructive" },
+} as const satisfies Record<string, StatusDefinition>;
+
+export type CreditNoteStatusValue = keyof typeof CreditNoteStatus;
+
+export const CreditNoteReason = {
+  return: { label: "Return", variant: "warning" },
+  price_adjustment: { label: "Price Adjustment", variant: "info" },
+  overbilling: { label: "Overbilling", variant: "outline" },
+  damaged_goods: { label: "Damaged Goods", variant: "destructive" },
+  goodwill: { label: "Goodwill", variant: "teal" },
+  other: { label: "Other", variant: "secondary" },
+} as const satisfies Record<string, StatusDefinition>;
+
+export type CreditNoteReasonValue = keyof typeof CreditNoteReason;
+
 export const CostingRequestStatus = {
   pending: { label: "Pending", variant: "secondary" },
   in_review: { label: "In Review", variant: "info" },
@@ -125,6 +157,9 @@ const STATUS_MAPS: readonly StatusMap[] = [
   StockStatus,
   Priority,
   PaymentStatus,
+  InvoiceStatus,
+  CreditNoteStatus,
+  CreditNoteReason,
   CostingRequestStatus,
   CostingRiskFlag,
 ];

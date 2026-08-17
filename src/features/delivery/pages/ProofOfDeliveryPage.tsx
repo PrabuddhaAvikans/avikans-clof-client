@@ -65,7 +65,7 @@ export function ProofOfDeliveryPage() {
     <PageContainer>
       <PageHeader
         title="Proof of Delivery"
-        description={delivery ? `${delivery.deliveryNumber} — ${delivery.customerName}` : undefined}
+        description={delivery ? `${delivery.deliveryNumber} - ${delivery.customerName}` : undefined}
         breadcrumbs={[
           { label: "Delivery", href: ROUTES.deliveries.list },
           { label: delivery?.deliveryNumber ?? "Proof" },

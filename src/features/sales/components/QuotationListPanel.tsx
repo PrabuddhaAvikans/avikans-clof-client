@@ -4,6 +4,7 @@ import { SearchBar } from "@/components/ui/SearchBar";
 import { MappedStatusBadge } from "@/features/shared/components/MappedStatusBadge";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { workspaceListPanelBody, workspaceListPanelShell } from "@/lib/panelLayout";
 import type { Quotation } from "@/types/quotation";
 import { QuotationStatus, type QuotationStatusValue } from "@/types/status";
 
@@ -66,10 +67,7 @@ export function QuotationListPanel({
 
   return (
     <div
-      className={cn(
-        "flex h-full flex-col rounded-lg border border-border bg-card shadow-xs",
-        className,
-      )}
+      className={cn(workspaceListPanelShell, className)}
     >
       <div className="border-b border-border px-3 py-3">
         <h2 className="text-sm font-semibold text-foreground">Quotations</h2>
@@ -108,7 +106,7 @@ export function QuotationListPanel({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div className={workspaceListPanelBody}>
         {isLoading ? (
           <div className="divide-y divide-border">
             {Array.from({ length: 6 }).map((_, index) => (

@@ -166,7 +166,7 @@ export function DataTable<TData>({
         </div>
       )}
 
-      {/* Table — horizontal scroll on narrow viewports instead of stacked cards when forceTable */}
+      {/* Table - horizontal scroll on narrow viewports instead of stacked cards when forceTable */}
       <div
         className={cn(
           'overflow-hidden rounded-md border border-border bg-card',

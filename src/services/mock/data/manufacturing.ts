@@ -288,7 +288,7 @@ export const initialManufacturingJobs: ManufacturingJob[] = [
     actualStartDate: "2025-05-15T08:00:00Z",
     assignedTo: "usr-004",
     assignedToName: "Nuwan Wickramasinghe",
-    notes: "Custom crystal drops sourced from Italy — ETA Aug 1.",
+    notes: "Custom crystal drops sourced from Italy - ETA Aug 1.",
     createdBy: "usr-001",
     createdByName: "Prabuddha Jayawardhana",
     createdAt: "2025-05-06T10:00:00Z",

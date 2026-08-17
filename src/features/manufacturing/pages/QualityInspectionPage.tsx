@@ -199,7 +199,7 @@ export function QualityInspectionPage() {
       <Drawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        title={`Inspect — ${selectedJob?.jobNumber ?? ""}`}
+        title={`Inspect - ${selectedJob?.jobNumber ?? ""}`}
         size="lg"
         footer={
           <>

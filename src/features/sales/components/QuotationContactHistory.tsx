@@ -234,7 +234,7 @@ function ContactHistoryItem({ entry }: { entry: QuotationContactEntry }) {
   );
 }
 
-/** Compact trigger summary for panels — does not render the full history. */
+/** Compact trigger summary for panels - does not render the full history. */
 export function QuotationContactTrigger({
   count,
   onClick,
@@ -251,7 +251,7 @@ export function QuotationContactTrigger({
       size="sm"
       className={cn("justify-start", className)}
       leftIcon={<Phone className="h-4 w-4" />}
-      onClick={onClick}
+      // onClick={onClick}
     >
       Calls & Contacts
       {count > 0 ? ` (${count})` : ""}

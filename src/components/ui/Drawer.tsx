@@ -1,6 +1,7 @@
 import { useEffect, useId, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { useScrollLock } from '@/hooks/useScrollLock';
 import { cn } from '@/lib/utils';
 import { IconButton } from './IconButton';
 
@@ -35,6 +36,8 @@ export function Drawer({
 }: DrawerProps) {
   const titleId = useId();
 
+  useScrollLock(open);
+
   useEffect(() => {
     if (!open) return;
 
@@ -45,11 +48,9 @@ export function Drawer({
     };
 
     document.addEventListener('keydown', handleEscape);
-    document.body.style.overflow = 'hidden';
 
     return () => {
       document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = '';
     };
   }, [open, onClose]);
 

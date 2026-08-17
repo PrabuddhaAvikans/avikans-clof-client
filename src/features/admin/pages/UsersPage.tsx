@@ -69,7 +69,7 @@ export function UsersPage() {
       {
         id: "groups",
         header: "Role Groups",
-        cell: ({ row }) => row.original.roleGroupNames.join(", ") || "—",
+        cell: ({ row }) => row.original.roleGroupNames.join(", ") || "-",
       },
       { id: "department", accessorKey: "department", header: "Department" },
       {

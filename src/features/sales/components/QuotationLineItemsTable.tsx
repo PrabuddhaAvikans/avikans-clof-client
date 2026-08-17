@@ -8,6 +8,7 @@ import {
   computeQuotationTotals,
   type QuotationLineItemFormValues,
 } from "@/features/sales/schemas/quotationSchema";
+import { getAppCountryConfig } from "@/lib/countryConfig";
 import { formatCurrency } from "@/lib/format";
 
 type LineItemFormValues = {
@@ -36,6 +37,7 @@ export function QuotationLineItemsTable({
   const linesExclVat = lineTotals.reduce((sum, line) => sum + line.net, 0);
   const linesInclVat = lineTotals.reduce((sum, line) => sum + line.total, 0);
   const hasAdditionalDiscount = documentTotals.discountAmount > 0;
+  const { taxName, currency } = getAppCountryConfig();
 
   return (
     <SalesFormSection
@@ -68,8 +70,8 @@ export function QuotationLineItemsTable({
                   <th className="py-1.5 pr-2 text-right">Unit Price</th>
                   <th className="py-1.5 pr-2 text-right">Discount %</th>
                   <th className="py-1.5 pr-2 text-right">Tax %</th>
-                  <th className="py-1.5 pr-2 text-right">Excl. VAT</th>
-                  <th className="py-1.5 pr-2 text-right">VAT</th>
+                  <th className="py-1.5 pr-2 text-right">Excl. {taxName}</th>
+                  <th className="py-1.5 pr-2 text-right">{taxName}</th>
                   <th className="py-1.5 pr-2 text-right">Line Total</th>
                   <th className="py-1.5" />
                 </tr>
@@ -123,13 +125,13 @@ export function QuotationLineItemsTable({
                           />
                         </td>
                         <td className="py-1.5 pr-2 text-right tabular-nums text-muted-foreground">
-                          {formatCurrency(amounts.net, "LKR")}
+                          {formatCurrency(amounts.net, currency)}
                         </td>
                         <td className="py-1.5 pr-2 text-right tabular-nums text-muted-foreground">
-                          {formatCurrency(amounts.tax, "LKR")}
+                          {formatCurrency(amounts.tax, currency)}
                         </td>
                         <td className="py-1.5 pr-2 text-right tabular-nums font-medium">
-                          {formatCurrency(amounts.total, "LKR")}
+                          {formatCurrency(amounts.total, currency)}
                         </td>
                         <td className="py-1.5">
                           <Button
@@ -154,13 +156,13 @@ export function QuotationLineItemsTable({
                       Lines total
                     </td>
                     <td className="py-2 pr-2 text-right tabular-nums">
-                      {formatCurrency(linesExclVat, "LKR")}
+                      {formatCurrency(linesExclVat, currency)}
                     </td>
                     <td className="py-2 pr-2 text-right tabular-nums">
-                      {formatCurrency(lineTotals.reduce((sum, line) => sum + line.tax, 0), "LKR")}
+                      {formatCurrency(lineTotals.reduce((sum, line) => sum + line.tax, 0), currency)}
                     </td>
                     <td className="py-2 pr-2 text-right tabular-nums">
-                      {formatCurrency(linesInclVat, "LKR")}
+                      {formatCurrency(linesInclVat, currency)}
                     </td>
                     <td />
                   </tr>
@@ -168,7 +170,7 @@ export function QuotationLineItemsTable({
                     <tr className="text-[10px] text-muted-foreground">
                       <td colSpan={9} className="pb-2 pt-1 text-right">
                         Additional discount of{" "}
-                        {formatCurrency(documentTotals.discountAmount, "LKR")} is applied in the
+                        {formatCurrency(documentTotals.discountAmount, currency)} is applied in the
                         order summary below.
                       </td>
                     </tr>

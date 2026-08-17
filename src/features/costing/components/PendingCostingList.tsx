@@ -6,6 +6,7 @@ import { SearchBar } from "@/components/ui/SearchBar";
 import { MappedStatusBadge } from "@/features/shared/components/MappedStatusBadge";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { workspaceListPanelBody, workspaceListPanelShell } from "@/lib/panelLayout";
 import type { CostingRequest } from "@/types/costing";
 import { CostingRequestStatus } from "@/types/status";
 
@@ -86,7 +87,7 @@ export function PendingCostingList({
   );
 
   return (
-    <div className="flex h-full flex-col rounded-lg border border-border bg-card shadow-xs">
+    <div className={workspaceListPanelShell}>
       <div className="border-b border-border px-4 py-3">
         <h2 className="text-sm font-semibold text-foreground">Pending Costing Items</h2>
         <p className="mt-0.5 text-xs text-muted-foreground">
@@ -111,7 +112,7 @@ export function PendingCostingList({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div className={workspaceListPanelBody}>
         {isLoading ? (
           <div className="space-y-0 divide-y divide-border">
             {Array.from({ length: 5 }).map((_, index) => (

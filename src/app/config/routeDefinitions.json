@@ -114,6 +114,16 @@
       "page": "InvoicesPage",
       "permission": "sales_orders:view"
     },
+    {
+      "path": "finance/invoices",
+      "page": "FinanceInvoicesPage",
+      "permission": "finance:view"
+    },
+    {
+      "path": "finance/credit-notes",
+      "page": "FinanceCreditNotesPage",
+      "permission": "finance:view"
+    },
 
     {
       "path": "customers",

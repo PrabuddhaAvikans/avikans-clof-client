@@ -11,6 +11,8 @@ import { SendQuotationModal } from "@/features/sales/components/SendQuotationMod
 import { QuotationTotalsSummary } from "@/features/sales/components/QuotationTotalsSummary";
 import { computeLineAmounts, computeQuotationTotals } from "@/features/sales/schemas/quotationSchema";
 import { useQuotation } from "@/features/sales/hooks/useQuotations";
+import { getCountryConfig } from "@/lib/countryConfig";
+import { DEFAULT_COUNTRY } from "@/lib/countries";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { QuotationStatus } from "@/types/status";
 
@@ -23,6 +25,11 @@ export function QuotationPreviewPage() {
   const totals = quotation
     ? computeQuotationTotals(quotation.lineItems, quotation.discountAmount)
     : null;
+  const taxCountry =
+    quotation?.billingAddress?.country ||
+    quotation?.shippingAddress?.country ||
+    DEFAULT_COUNTRY;
+  const { taxName } = getCountryConfig(taxCountry);
 
   return (
     <PageContainer maxWidth="wide">
@@ -43,12 +50,12 @@ export function QuotationPreviewPage() {
                       Edit
                     </Button>
                   )}
-                  <Button variant="secondary" leftIcon={<Mail className="h-4 w-4" />} onClick={() => setSendOpen(true)}>
+                  {/* <Button variant="secondary" leftIcon={<Mail className="h-4 w-4" />} onClick={() => setSendOpen(true)}>
                     Send
-                  </Button>
-                  <Button variant="outline" leftIcon={<Download className="h-4 w-4" />} onClick={() => window.print()}>
+                  </Button> */}
+                  {/* <Button variant="outline" leftIcon={<Download className="h-4 w-4" />} onClick={() => window.print()}>
                     Download PDF
-                  </Button>
+                  </Button> */}
                 </>
               }
             />
@@ -107,8 +114,8 @@ export function QuotationPreviewPage() {
                     <th className="px-3 py-2 text-right">Qty</th>
                     <th className="px-3 py-2 text-right">Unit Price</th>
                     <th className="px-3 py-2 text-right">Discount %</th>
-                    <th className="px-3 py-2 text-right">Excl. VAT</th>
-                    <th className="px-3 py-2 text-right">VAT</th>
+                    <th className="px-3 py-2 text-right">Excl. {taxName}</th>
+                    <th className="px-3 py-2 text-right">{taxName}</th>
                     <th className="px-3 py-2 text-right">Line Total</th>
                   </tr>
                 </thead>
@@ -140,7 +147,11 @@ export function QuotationPreviewPage() {
                     <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Order Summary
                     </p>
-                    <QuotationTotalsSummary totals={totals} currency={quotation.currency} />
+                    <QuotationTotalsSummary
+                      totals={totals}
+                      currency={quotation.currency}
+                      country={taxCountry}
+                    />
                   </div>
                 </div>
               )}

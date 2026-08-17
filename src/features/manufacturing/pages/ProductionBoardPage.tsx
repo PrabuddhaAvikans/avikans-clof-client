@@ -103,7 +103,7 @@ export function ProductionBoardPage() {
     <PageContainer maxWidth="full">
       <PageHeader
         title="Production Board"
-        description="Kanban view of manufacturing jobs — drag cards to update status."
+        description="Kanban view of manufacturing jobs - drag cards to update status."
         breadcrumbs={[
           { label: "Manufacturing", href: ROUTES.manufacturing.jobs },
           { label: "Production Board" },

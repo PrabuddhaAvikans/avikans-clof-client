@@ -64,6 +64,7 @@ import {
   InvoicesPage,
   PaymentsPage,
 } from "@/features/sales/pages/SalesPages";
+import { FinanceInvoicesPage, FinanceCreditNotesPage } from "@/features/finance/pages/FinancePages";
 import { CostingApprovalWorkspacePage } from "@/features/costing/pages/CostingApprovalWorkspacePage";
 import { NotFoundPage } from "@/features/shared/pages/NotFoundPage";
 
@@ -79,6 +80,8 @@ export const PAGE_REGISTRY = {
   SalesOrderDetailPage,
   PaymentsPage,
   InvoicesPage,
+  FinanceInvoicesPage,
+  FinanceCreditNotesPage,
   CustomerListPage,
   CustomerFormPage,
   CustomerGroupsPage,

@@ -58,7 +58,7 @@ export function DispatchPage() {
     <PageContainer>
       <PageHeader
         title="Dispatch Delivery"
-        description={delivery ? `${delivery.deliveryNumber} — ${delivery.customerName}` : undefined}
+        description={delivery ? `${delivery.deliveryNumber} - ${delivery.customerName}` : undefined}
         breadcrumbs={[
           { label: "Delivery", href: ROUTES.deliveries.list },
           { label: delivery?.deliveryNumber ?? "Dispatch" },

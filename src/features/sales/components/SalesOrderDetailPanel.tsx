@@ -1,11 +1,14 @@
 import { Link } from "react-router-dom";
-import { Copy, FileText, Package } from "lucide-react";
+import { Copy, ExternalLink, FileText, Package } from "lucide-react";
 import { toast } from "sonner";
 import { ROUTES } from "@/app/config/routes";
 import { Button } from "@/components/ui/Button";
 import { MappedStatusBadge } from "@/features/shared/components/MappedStatusBadge";
+import { TaxBreakdownRows } from "@/features/sales/components/TaxBreakdownRows";
+import { DEFAULT_COUNTRY } from "@/lib/countries";
 import { formatCurrency, formatDate, formatDateTime, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { workspacePanelBody, workspacePanelEmpty, workspacePanelShell } from "@/lib/panelLayout";
 import type { Address } from "@/types/common";
 import type { SalesOrder } from "@/types/sales-order";
 import { PaymentStatus, SalesOrderStatus } from "@/types/status";
@@ -24,12 +27,7 @@ export type SalesOrderDetailPanelProps = {
 export function SalesOrderDetailPanel({ order, className }: SalesOrderDetailPanelProps) {
   if (!order) {
     return (
-      <div
-        className={cn(
-          "flex h-full items-center justify-center rounded-lg border border-border bg-card p-8 shadow-xs",
-          className,
-        )}
-      >
+      <div className={cn(workspacePanelEmpty, className)}>
         <p className="text-sm text-muted-foreground">Select a sales order to view details.</p>
       </div>
     );
@@ -38,15 +36,11 @@ export function SalesOrderDetailPanel({ order, className }: SalesOrderDetailPane
   const discountPercent =
     order.subtotal > 0 ? (order.discountAmount / order.subtotal) * 100 : 0;
   const preTax = order.subtotal - order.discountAmount;
-  const halfTax = order.taxAmount / 2;
+  const taxCountry =
+    order.billingAddress?.country || order.shippingAddress?.country || DEFAULT_COUNTRY;
 
   return (
-    <div
-      className={cn(
-        "flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xs",
-        className,
-      )}
-    >
+    <div className={cn(workspacePanelShell, className)}>
       <div className="border-b border-border px-4 py-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
@@ -57,15 +51,21 @@ export function SalesOrderDetailPanel({ order, className }: SalesOrderDetailPane
               <MappedStatusBadge statusMap={SalesOrderStatus} value={order.status} dot />
             </div>
             <div className="mt-1.5 flex flex-wrap items-center gap-2">
+              <Link
+                to={ROUTES.salesOrders.detail(order.id)}
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+              >
+                {order.orderNumber}
+              </Link>
               <button
                 type="button"
-                className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+                className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
+                aria-label="Copy order number"
                 onClick={() => {
                   void navigator.clipboard.writeText(order.orderNumber);
                   toast.success("Order number copied");
                 }}
               >
-                {order.orderNumber}
                 <Copy className="h-3.5 w-3.5" />
               </button>
               <MappedStatusBadge statusMap={PaymentStatus} value={order.paymentStatus} />
@@ -79,22 +79,34 @@ export function SalesOrderDetailPanel({ order, className }: SalesOrderDetailPane
               </p>
             )}
           </div>
-          {order.quotationId && order.quotationNumber && (
-            <Link to={ROUTES.quotations.detail(order.quotationId)}>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link to={ROUTES.salesOrders.detail(order.id)}>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                leftIcon={<FileText className="h-4 w-4" />}
+                leftIcon={<ExternalLink className="h-4 w-4" />}
               >
-                Quotation {order.quotationNumber}
+                Open Order Page
               </Button>
             </Link>
-          )}
+            {order.quotationId && order.quotationNumber && (
+              <Link to={ROUTES.quotations.detail(order.quotationId)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  leftIcon={<FileText className="h-4 w-4" />}
+                >
+                  Quotation {order.quotationNumber}
+                </Button>
+              </Link>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-4 overflow-auto p-4">
+      <div className={workspacePanelBody}>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
           <section className="rounded-md border border-border p-3">
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -188,18 +200,12 @@ export function SalesOrderDetailPanel({ order, className }: SalesOrderDetailPane
                   {formatCurrency(preTax, order.currency)}
                 </dd>
               </div>
-              <div className="flex justify-between gap-2">
-                <dt className="text-muted-foreground">SGST (9%)</dt>
-                <dd className="tabular-nums font-medium">
-                  {formatCurrency(halfTax, order.currency)}
-                </dd>
-              </div>
-              <div className="flex justify-between gap-2">
-                <dt className="text-muted-foreground">CGST (9%)</dt>
-                <dd className="tabular-nums font-medium">
-                  {formatCurrency(halfTax, order.currency)}
-                </dd>
-              </div>
+              <TaxBreakdownRows
+                taxAmount={order.taxAmount}
+                taxableAmount={preTax}
+                currency={order.currency}
+                country={taxCountry}
+              />
               <div className="mt-1 flex justify-between gap-2 border-t border-border pt-2">
                 <dt className="font-semibold text-foreground">Grand Total</dt>
                 <dd className="tabular-nums text-base font-semibold text-foreground">
@@ -299,7 +305,7 @@ export function SalesOrderDetailPanel({ order, className }: SalesOrderDetailPane
               <li className="flex justify-between gap-2 px-4 py-2.5">
                 <span className="text-muted-foreground">Confirmed</span>
                 <span className="font-medium">
-                  {order.confirmedAt ? formatDateTime(order.confirmedAt) : "—"}
+                  {order.confirmedAt ? formatDateTime(order.confirmedAt) : "-"}
                 </span>
               </li>
             </ul>

@@ -1,10 +1,14 @@
 import type { QuotationTotalsBreakdown } from "@/features/sales/schemas/quotationSchema";
+import { TaxBreakdownRows } from "@/features/sales/components/TaxBreakdownRows";
+import { getCountryConfig } from "@/lib/countryConfig";
+import { DEFAULT_COUNTRY } from "@/lib/countries";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 interface QuotationTotalsSummaryProps {
   totals: QuotationTotalsBreakdown;
   currency?: string;
+  country?: string;
   className?: string;
   compact?: boolean;
 }
@@ -47,14 +51,16 @@ function SummaryRow({
 export function QuotationTotalsSummary({
   totals,
   currency = "LKR",
+  country = DEFAULT_COUNTRY,
   className,
   compact = false,
 }: QuotationTotalsSummaryProps) {
   const textSize = compact ? "text-[12px]" : "text-sm";
   const showAdditionalDiscount = totals.discountAmount > 0;
+  const { taxName } = getCountryConfig(country);
   const subtotalLabel = showAdditionalDiscount
-    ? "Subtotal after item discounts (excl. VAT)"
-    : "Subtotal (excl. VAT)";
+    ? `Subtotal after item discounts (excl. ${taxName})`
+    : `Subtotal (excl. ${taxName})`;
 
   return (
     <dl className={cn("space-y-1.5", textSize, className)}>
@@ -72,14 +78,19 @@ export function QuotationTotalsSummary({
       ) : null}
       {showAdditionalDiscount ? (
         <SummaryRow
-          label="Amount (excl. VAT)"
+          label={`Amount (excl. ${taxName})`}
           value={formatCurrency(totals.taxableAmount, currency)}
           muted
         />
       ) : null}
-      <SummaryRow label="VAT" value={formatCurrency(totals.taxAmount, currency)} />
+      <TaxBreakdownRows
+        taxAmount={totals.taxAmount}
+        taxableAmount={totals.taxableAmount}
+        currency={currency}
+        country={country}
+      />
       <SummaryRow
-        label="Total (incl. VAT)"
+        label={`Total (incl. ${taxName})`}
         value={formatCurrency(totals.totalAmount, currency)}
         emphasize
       />

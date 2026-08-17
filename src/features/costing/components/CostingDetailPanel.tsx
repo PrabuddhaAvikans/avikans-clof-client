@@ -6,6 +6,7 @@ import { MappedStatusBadge } from "@/features/shared/components/MappedStatusBadg
 import { notesSchema } from "@/features/costing/schemas/costingSchema";
 import { formatCurrency, formatDate, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { workspacePanelBody, workspacePanelEmpty, workspacePanelShell } from "@/lib/panelLayout";
 import type { CostingAttachment, CostingRequest } from "@/types/costing";
 import { CostingRequestStatus, CostingRiskFlag } from "@/types/status";
 
@@ -43,12 +44,7 @@ export function CostingDetailPanel({
 }: CostingDetailPanelProps) {
   if (!request) {
     return (
-      <div
-        className={cn(
-          "flex h-full items-center justify-center rounded-lg border border-border bg-card p-8 shadow-xs",
-          className,
-        )}
-      >
+      <div className={cn(workspacePanelEmpty, className)}>
         <p className="text-sm text-muted-foreground">
           Select a costing request to view details.
         </p>
@@ -59,12 +55,7 @@ export function CostingDetailPanel({
   const lineTotal = request.lineItems.reduce((sum, item) => sum + item.baseCost, 0);
 
   return (
-    <div
-      className={cn(
-        "flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xs",
-        className,
-      )}
-    >
+    <div className={cn(workspacePanelShell, className)}>
       <div className="border-b border-border px-4 py-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
@@ -77,7 +68,7 @@ export function CostingDetailPanel({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-4 overflow-auto p-4">
+      <div className={workspacePanelBody}>
         <section>
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Metadata
@@ -190,7 +181,7 @@ export function CostingDetailPanel({
           )}
         </section>
 
-        <section>
+         {/* <section>
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Notes
           </h3>
@@ -224,7 +215,7 @@ export function CostingDetailPanel({
               </div>
             )}
           </FormikForm>
-        </section>
+        </section> */}
       </div>
     </div>
   );

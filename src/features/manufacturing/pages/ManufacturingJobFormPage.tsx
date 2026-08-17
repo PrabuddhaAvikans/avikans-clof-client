@@ -87,11 +87,11 @@ function ManufacturingJobFormFields({ disabled }: { disabled: boolean }) {
         disabled,
         salesOrderOptions: (salesOrders?.items ?? []).map((o) => ({
           value: o.id,
-          label: `${o.orderNumber} — ${o.customerName}`,
+          label: `${o.orderNumber} - ${o.customerName}`,
         })),
         productOptions: (products?.items ?? []).map((p) => ({
           value: p.id,
-          label: `${p.sku} — ${p.name}`,
+          label: `${p.sku} - ${p.name}`,
         })),
         assigneeOptions: (users?.items ?? []).map((u) => ({
           value: u.id,
@@ -337,7 +337,7 @@ function MaterialRequirementsPanel({
 
       {plannedStartDate && plannedEndDate && (
         <p className="mt-4 text-xs text-muted-foreground">
-          Planned: {formatDate(plannedStartDate)} — {formatDate(plannedEndDate)}
+          Planned: {formatDate(plannedStartDate)} - {formatDate(plannedEndDate)}
         </p>
       )}
     </div>

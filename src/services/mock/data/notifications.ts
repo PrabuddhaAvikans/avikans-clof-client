@@ -57,7 +57,7 @@ export const initialNotifications: AppNotification[] = [
   {
     id: "ntf-005",
     title: "Materials Pending",
-    message: "Job JC-2025-1178 cannot start — Powder Coat RAL 9005 not reserved.",
+    message: "Job JC-2025-1178 cannot start - Powder Coat RAL 9005 not reserved.",
     type: "warning",
     category: "manufacturing",
     isRead: false,

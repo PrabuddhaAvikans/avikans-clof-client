@@ -115,7 +115,7 @@ export function SalesOrderReviewPage() {
                 <dl className="space-y-2 text-sm">
                   <div className="flex justify-between"><dt>Customer</dt><dd>{order.customerName}</dd></div>
                   <div className="flex justify-between"><dt>Priority</dt><dd className="capitalize">{order.priority}</dd></div>
-                  <div className="flex justify-between"><dt>Delivery Date</dt><dd>{order.requestedDeliveryDate ? formatDate(order.requestedDeliveryDate) : "—"}</dd></div>
+                  <div className="flex justify-between"><dt>Delivery Date</dt><dd>{order.requestedDeliveryDate ? formatDate(order.requestedDeliveryDate) : "-"}</dd></div>
                   <div className="flex justify-between border-t border-border pt-2 font-semibold"><dt>Total</dt><dd>{formatCurrency(order.totalAmount, order.currency)}</dd></div>
                 </dl>
               </section>

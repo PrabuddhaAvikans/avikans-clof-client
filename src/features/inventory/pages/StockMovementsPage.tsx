@@ -60,7 +60,7 @@ export function StockMovementsPage() {
     () =>
       (items?.items ?? []).map((item) => ({
         value: item.id,
-        label: `${item.sku} — ${item.name}`,
+        label: `${item.sku} - ${item.name}`,
       })),
     [items?.items],
   );
@@ -98,7 +98,7 @@ export function StockMovementsPage() {
   const timelineItems = (movements?.items ?? []).slice(0, 10).map((m) => ({
     id: m.id,
     title: `${MOVEMENT_LABELS[m.type] ?? m.type}: ${m.inventoryItemName}`,
-    description: `${formatNumber(m.quantity)} ${m.unit}${m.notes ? ` — ${m.notes}` : ""}`,
+    description: `${formatNumber(m.quantity)} ${m.unit}${m.notes ? ` - ${m.notes}` : ""}`,
     timestamp: formatDateTime(m.performedAt),
     icon:
       m.type === StockMovementType.receipt ? (

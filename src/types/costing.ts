@@ -68,3 +68,11 @@ export interface CostingRequest {
   approvalLevels: ApprovalLevel[];
   history: ApprovalHistoryEntry[];
 }
+
+export type CostingRequestFilters = {
+  status?: CostingRequestStatusValue;
+  riskFlag?: CostingRiskFlagValue;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+};

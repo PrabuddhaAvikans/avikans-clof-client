@@ -7,8 +7,14 @@ import { Button } from "@/components/ui/Button";
 import { MappedStatusBadge } from "@/features/shared/components/MappedStatusBadge";
 import { QuotationTotalsSummary } from "@/features/sales/components/QuotationTotalsSummary";
 import { computeQuotationTotals } from "@/features/sales/schemas/quotationSchema";
+import { DEFAULT_COUNTRY } from "@/lib/countries";
 import { formatCurrency, formatDate, formatDateTime, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import {
+  workspacePanelBody,
+  workspacePanelEmpty,
+  workspacePanelShell,
+} from "@/lib/panelLayout";
 import type { Address } from "@/types/common";
 import type { Quotation } from "@/types/quotation";
 import { QuotationStatus } from "@/types/status";
@@ -38,12 +44,7 @@ export function QuotationDetailPanel({
 }: QuotationDetailPanelProps) {
   if (!quotation) {
     return (
-      <div
-        className={cn(
-          "flex h-full items-center justify-center rounded-lg border border-border bg-card p-8 shadow-xs",
-          className,
-        )}
-      >
+      <div className={cn(workspacePanelEmpty, className)}>
         <p className="text-sm text-muted-foreground">Select a quotation to view details.</p>
       </div>
     );
@@ -51,7 +52,10 @@ export function QuotationDetailPanel({
 
   const remainingDays = daysUntil(quotation.validUntil);
   const totals = computeQuotationTotals(quotation.lineItems, quotation.discountAmount);
-  const halfTax = totals.taxAmount / 2;
+  const taxCountry =
+    quotation.billingAddress?.country ||
+    quotation.shippingAddress?.country ||
+    DEFAULT_COUNTRY;
 
   const attachments = [
     { id: "att-1", name: "Layout Drawing.pdf", size: 245_000 },
@@ -59,12 +63,7 @@ export function QuotationDetailPanel({
   ];
 
   return (
-    <div
-      className={cn(
-        "flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xs",
-        className,
-      )}
-    >
+    <div className={cn(workspacePanelShell, className)}>
       <div className="border-b border-border px-4 py-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
@@ -99,24 +98,24 @@ export function QuotationDetailPanel({
                   : ""}
             </p>
           </div>
-          {/* {onOpenContacts && (
+          {onOpenContacts && (
             <Button
               type="button"
               variant="outline"
               size="sm"
               leftIcon={<Phone className="h-4 w-4" />}
-              onClick={onOpenContacts}
+              // onClick={onOpenContacts}
             >
               Calls & Contacts
               {(quotation.contactHistory?.length ?? 0) > 0
                 ? ` (${quotation.contactHistory.length})`
                 : ""}
             </Button>
-          )} */}
+          )}
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-4 overflow-auto p-4">
+      <div className={workspacePanelBody}>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
           <section className="rounded-md border border-border p-3">
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -176,23 +175,11 @@ export function QuotationDetailPanel({
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Financial Summary
             </h3>
-            <QuotationTotalsSummary totals={totals} currency={quotation.currency} />
-            {totals.taxAmount > 0 && (
-              <dl className="mt-3 space-y-1.5 border-t border-border pt-3 text-sm">
-                <div className="flex justify-between gap-2">
-                  <dt className="text-muted-foreground">SGST (9%)</dt>
-                  <dd className="tabular-nums font-medium">
-                    {formatCurrency(halfTax, quotation.currency)}
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <dt className="text-muted-foreground">CGST (9%)</dt>
-                  <dd className="tabular-nums font-medium">
-                    {formatCurrency(halfTax, quotation.currency)}
-                  </dd>
-                </div>
-              </dl>
-            )}
+            <QuotationTotalsSummary
+              totals={totals}
+              currency={quotation.currency}
+              country={taxCountry}
+            />
           </section>
         </div>
 

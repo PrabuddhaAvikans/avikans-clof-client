@@ -31,7 +31,7 @@ export function BrandListPage() {
       {
         accessorKey: "countryOfOrigin",
         header: "Country",
-        cell: ({ row }) => row.original.countryOfOrigin ?? "—",
+        cell: ({ row }) => row.original.countryOfOrigin ?? "-",
       },
       {
         accessorKey: "productCount",

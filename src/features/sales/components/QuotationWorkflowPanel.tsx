@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Stepper, type StepItem, type StepStatus } from "@/components/ui/Stepper";
 import { cn } from "@/lib/utils";
+import { workspacePanelBody, workspacePanelEmpty, workspacePanelShell } from "@/lib/panelLayout";
 import type { Quotation } from "@/types/quotation";
 import type { QuotationStatusValue } from "@/types/status";
 
@@ -103,12 +104,7 @@ export function QuotationWorkflowPanel({
 
   if (!quotation) {
     return (
-      <div
-        className={cn(
-          "flex h-full items-center justify-center rounded-lg border border-border bg-card p-8 shadow-xs",
-          className,
-        )}
-      >
+      <div className={cn(workspacePanelEmpty, className)}>
         <p className="text-sm text-muted-foreground">Select a quotation to view workflow.</p>
       </div>
     );
@@ -124,17 +120,12 @@ export function QuotationWorkflowPanel({
     quotation.status === "accepted" || quotation.status === "sent";
 
   return (
-    <div
-      className={cn(
-        "flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xs",
-        className,
-      )}
-    >
+    <div className={cn(workspacePanelShell, className)}>
       <div className="border-b border-border px-4 py-3">
         <h2 className="text-sm font-semibold text-foreground">Quotation Workflow</h2>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-4 overflow-auto p-4">
+      <div className={workspacePanelBody}>
         <Stepper steps={steps} orientation="vertical" />
 
         <section>

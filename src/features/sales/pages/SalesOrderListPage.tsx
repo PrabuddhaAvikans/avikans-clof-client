@@ -68,7 +68,7 @@ export function SalesOrderListPage() {
         header: "Manufacturing",
         cell: ({ row }) => {
           const inMfg = row.original.lineItems.some((li) => li.quantityInManufacturing > 0);
-          return inMfg ? "In Progress" : row.original.manufacturingJobIds.length > 0 ? "Scheduled" : "—";
+          return inMfg ? "In Progress" : row.original.manufacturingJobIds.length > 0 ? "Scheduled" : "-";
         },
       },
       {
@@ -104,7 +104,7 @@ export function SalesOrderListPage() {
         cell: ({ row }) =>
           row.original.requestedDeliveryDate
             ? formatDate(row.original.requestedDeliveryDate)
-            : "—",
+            : "-",
       },
       {
         id: "actions",

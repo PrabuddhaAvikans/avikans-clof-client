@@ -124,7 +124,7 @@ export function DeliveryListPage() {
       {
         id: "driver",
         header: "Driver",
-        cell: ({ row }) => row.original.driverName ?? "—",
+        cell: ({ row }) => row.original.driverName ?? "-",
       },
       {
         id: "actions",

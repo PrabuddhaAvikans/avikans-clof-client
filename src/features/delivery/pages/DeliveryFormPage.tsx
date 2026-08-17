@@ -134,7 +134,7 @@ export function DeliveryFormPage() {
       createDeliveryFormSections({
         salesOrderOptions: (salesOrders?.items ?? []).map((o) => ({
           value: o.id,
-          label: `${o.orderNumber} — ${o.customerName}`,
+          label: `${o.orderNumber} - ${o.customerName}`,
         })),
         driverOptions: (users?.items ?? []).map((u) => ({
           value: u.id,

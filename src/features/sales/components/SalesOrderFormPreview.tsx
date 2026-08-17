@@ -11,7 +11,7 @@ function Row({ label, value }: { label: string; value: string }) {
     <div className="flex items-start justify-between gap-3 border-b border-border py-1.5 last:border-0">
       <dt className="text-[11px] text-muted-foreground">{label}</dt>
       <dd className="max-w-[62%] truncate text-right text-[12px] font-medium text-foreground">
-        {value || "—"}
+        {value || "-"}
       </dd>
     </div>
   );
