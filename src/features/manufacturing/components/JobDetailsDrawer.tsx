@@ -4,10 +4,10 @@ import {
   CheckCircle2,
   Circle,
   Download,
-  FileText,
   Loader2,
 } from "lucide-react";
 import { ROUTES } from "@/app/config/routes";
+import { AttachmentIcon } from "@/components/ui/AttachmentIcon";
 import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Drawer";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -197,13 +197,20 @@ export function JobDetailsDrawer({ job, open, onClose }: JobDetailsDrawerProps) 
             Attachments
           </p>
           <div className="space-y-1.5">
-            {["Spec Sheet", "Drawing"].map((name) => (
+            {[
+              { name: "Spec Sheet", type: "pdf" },
+              { name: "Drawing", type: "pdf" },
+            ].map((attachment) => (
               <div
-                key={name}
+                key={attachment.name}
                 className="flex items-center gap-2 rounded-md border border-border px-2.5 py-2"
               >
-                <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="flex-1 text-foreground">{name}</span>
+                <AttachmentIcon
+                  type={attachment.type}
+                  fileName={attachment.name}
+                  className="h-3.5 w-3.5 text-muted-foreground"
+                />
+                <span className="flex-1 text-foreground">{attachment.name}</span>
                 <Download className="h-3.5 w-3.5 text-muted-foreground" />
               </div>
             ))}

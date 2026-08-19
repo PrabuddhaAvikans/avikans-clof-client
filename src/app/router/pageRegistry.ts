@@ -66,6 +66,7 @@ import {
 } from "@/features/sales/pages/SalesPages";
 import { FinanceInvoicesPage, FinanceCreditNotesPage } from "@/features/finance/pages/FinancePages";
 import { CostingApprovalWorkspacePage } from "@/features/costing/pages/CostingApprovalWorkspacePage";
+import { CoatingRequestsWorkspacePage } from "@/features/costing/pages/CoatingRequestsWorkspacePage";
 import { NotFoundPage } from "@/features/shared/pages/NotFoundPage";
 
 export const PAGE_REGISTRY = {
@@ -74,6 +75,7 @@ export const PAGE_REGISTRY = {
   EstimateFormPage,
   QuotationPreviewPage,
   CostingApprovalWorkspacePage,
+  CoatingRequestsWorkspacePage,
   SalesOrderWorkspacePage,
   SalesOrderFormPage,
   SalesOrderReviewPage,

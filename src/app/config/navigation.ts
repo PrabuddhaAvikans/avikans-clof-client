@@ -61,20 +61,20 @@ export const NAVIGATION: NavItem[] = [
     path: ROUTES.costing.workspace,
     icon: "ClipboardCheck",
     children: [
-      // {
-      //   id: "ops-coating",
-      //   label: "Coating Requests",
-      //   path: "/operations/coating",
-      //   icon: "Layers",
-      //   permission: "quotations:view",
-      // },
-      // {
-      //   id: "ops-workshops",
-      //   label: "Workshops",
-      //   path: "/operations/workshops",
-      //   icon: "Wrench",
-      //   permission: "quotations:view",
-      // },
+      {
+        id: "ops-coating",
+        label: "Coating Requests",
+        path: ROUTES.coating.workspace,
+        icon: "Layers",
+        permission: "quotations:view",
+      },
+      {
+        id: "ops-workshops",
+        label: "Workshops",
+        path: "/operations/workshops",
+        icon: "Wrench",
+        permission: "quotations:view",
+      },
       {
         id: "ops-costing",
         label: "Costing & Approval",

@@ -1,32 +1,22 @@
-import { File, FileSpreadsheet, FileArchive, Paperclip, Save } from "lucide-react";
+import { Save } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ROUTES } from "@/app/config/routes";
 import { FormikForm } from "@/components/forms/FormikForm";
 import { FormikTextarea } from "@/components/forms/FormikTextarea";
+import { AttachmentIcon } from "@/components/ui/AttachmentIcon";
 import { Button } from "@/components/ui/Button";
 import { MappedStatusBadge } from "@/features/shared/components/MappedStatusBadge";
 import { notesSchema } from "@/features/costing/schemas/costingSchema";
 import { formatCurrency, formatDate, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { workspacePanelBody, workspacePanelEmpty, workspacePanelShell } from "@/lib/panelLayout";
-import type { CostingAttachment, CostingRequest } from "@/types/costing";
-import { CostingRequestStatus, CostingRiskFlag } from "@/types/status";
+import type { CostingRequest } from "@/types/costing";
+import { CostingRequestStatus, CostingRiskFlag, CoatingStatus } from "@/types/status";
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function AttachmentIcon({ type }: { type: CostingAttachment["type"] }) {
-  switch (type) {
-    case "pdf":
-      return <File className="h-4 w-4" />;
-    case "xlsx":
-      return <FileSpreadsheet className="h-4 w-4" />;
-    case "zip":
-      return <FileArchive className="h-4 w-4" />;
-    default:
-      return <Paperclip className="h-4 w-4" />;
-  }
 }
 
 export type CostingDetailPanelProps = {
@@ -64,7 +54,10 @@ export function CostingDetailPanel({
               {request.requestNumber} · {request.requestType}
             </p>
           </div>
-          <MappedStatusBadge statusMap={CostingRequestStatus} value={request.status} />
+          <div className="flex flex-wrap gap-1.5">
+            <MappedStatusBadge statusMap={CostingRequestStatus} value={request.status} />
+            <MappedStatusBadge statusMap={CoatingStatus} value={request.coatingStatus} dot />
+          </div>
         </div>
       </div>
 
@@ -78,6 +71,26 @@ export function CostingDetailPanel({
               <dt className="text-xs text-muted-foreground">Customer</dt>
               <dd className="font-medium">{request.customerName}</dd>
             </div>
+            {request.salesOrderId && request.salesOrderNumber && (
+              <div>
+                <dt className="text-xs text-muted-foreground">Sales Order</dt>
+                <dd className="font-medium">
+                  <Link to={ROUTES.salesOrders.detail(request.salesOrderId)} className="text-primary hover:underline">
+                    {request.salesOrderNumber}
+                  </Link>
+                </dd>
+              </div>
+            )}
+            {request.quotationId && request.quotationNumber && (
+              <div>
+                <dt className="text-xs text-muted-foreground">Quotation</dt>
+                <dd className="font-medium">
+                  <Link to={ROUTES.quotations.detail(request.quotationId)} className="text-primary hover:underline">
+                    {request.quotationNumber}
+                  </Link>
+                </dd>
+              </div>
+            )}
             <div>
               <dt className="text-xs text-muted-foreground">Requested</dt>
               <dd className="font-medium">{formatDate(request.requestedDate)}</dd>
@@ -109,6 +122,40 @@ export function CostingDetailPanel({
             </div>
           </dl>
         </section>
+
+        {request.coatingItems.length > 0 && (
+          <section>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Coating
+            </h3>
+            <div className="overflow-x-auto rounded-md border border-border">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50">
+                  <tr className="text-xs text-muted-foreground">
+                    <th className="px-3 py-2 text-left font-medium">Product</th>
+                    <th className="px-3 py-2 text-left font-medium">Finish</th>
+                    <th className="px-3 py-2 text-left font-medium">Process</th>
+                    <th className="px-3 py-2 text-right font-medium">Qty</th>
+                    <th className="px-3 py-2 text-right font-medium">Unit Cost</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {request.coatingItems.map((item) => (
+                    <tr key={item.id} className="border-t border-border">
+                      <td className="px-3 py-2">{item.productName}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{item.finish}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{item.process}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{item.quantity}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        {formatCurrency(item.unitCost, request.currency)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
 
         <section>
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -167,7 +214,7 @@ export function CostingDetailPanel({
                   className="flex items-center gap-3 rounded-md border border-border bg-muted/30 px-3 py-2"
                 >
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-card text-muted-foreground">
-                    <AttachmentIcon type={attachment.type} />
+                    <AttachmentIcon type={attachment.type} fileName={attachment.name} />
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{attachment.name}</p>
@@ -181,7 +228,7 @@ export function CostingDetailPanel({
           )}
         </section>
 
-         {/* <section>
+         <section>
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Notes
           </h3>
@@ -215,7 +262,7 @@ export function CostingDetailPanel({
               </div>
             )}
           </FormikForm>
-        </section> */}
+        </section>
       </div>
     </div>
   );

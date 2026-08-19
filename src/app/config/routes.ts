@@ -43,6 +43,14 @@ export const ROUTES = {
 
   costing: {
     workspace: "/costing/approval",
+    forOrder: (salesOrderId: string) =>
+      `/costing/approval?salesOrderId=${encodeURIComponent(salesOrderId)}` as const,
+  },
+
+  coating: {
+    workspace: "/operations/coating",
+    forOrder: (salesOrderId: string) =>
+      `/operations/coating?salesOrderId=${encodeURIComponent(salesOrderId)}` as const,
   },
 
   quotations: {

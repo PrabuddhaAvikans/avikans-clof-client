@@ -28,6 +28,7 @@ export interface SalesOrder {
   customerEmail: string;
   quotationId?: string;
   quotationNumber?: string;
+  costingRequestId?: string;
   status: SalesOrderStatusValue;
   priority: PriorityValue;
   lineItems: SalesOrderLineItem[];

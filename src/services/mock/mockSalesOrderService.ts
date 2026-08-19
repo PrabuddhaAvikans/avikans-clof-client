@@ -14,9 +14,16 @@ import { initialCustomers } from "@/services/mock/data/customers";
 import { initialQuotations } from "@/services/mock/data/quotations";
 import { initialUsers } from "@/services/mock/data/users";
 import { initialSalesOrders } from "@/services/mock/data/sales-orders";
+import { initialSalesOrderCostingRequests } from "@/services/mock/data/sales-order-costing";
+import { mockCostingService } from "@/services/mock/mockCostingService";
 import type { SalesOrder, SalesOrderLineItem } from "@/types/sales-order";
 
-let salesOrders = cloneData(initialSalesOrders);
+let salesOrders: SalesOrder[] = cloneData(initialSalesOrders).map((order) => ({
+  ...order,
+  costingRequestId:
+    order.costingRequestId ??
+    initialSalesOrderCostingRequests.find((item) => item.salesOrderId === order.id)?.id,
+}));
 
 function buildLineItems(
   items: Omit<SalesOrderLineItem, "id" | "lineTotal" | "quantityDelivered" | "quantityInManufacturing">[],
@@ -114,6 +121,10 @@ export const mockSalesOrderService: SalesOrderService = {
       updatedAt: timestamp,
     };
     salesOrders.push(order);
+
+    const costing = await mockCostingService.createFromSalesOrder(order);
+    order.costingRequestId = costing.id;
+
     return order;
   },
 
@@ -156,6 +167,15 @@ export const mockSalesOrderService: SalesOrderService = {
     await delay();
     const index = salesOrders.findIndex((o) => o.id === id);
     if (index === -1) notFoundError("SalesOrder", id);
+
+    const costing = await mockCostingService.getBySalesOrderId(id);
+    if (!costing || costing.status !== "approved") {
+      throw {
+        code: "INVALID_STATE",
+        message: "Complete coating and costing approval before confirming this sales order.",
+      };
+    }
+
     salesOrders[index] = {
       ...salesOrders[index],
       status: "confirmed",

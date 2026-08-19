@@ -4,17 +4,35 @@ import {
   notFoundError,
   nowIso,
 } from "@/services/http";
-import type { CostingService } from "@/services/interfaces/costingService";
+import type {
+  CoatingSubmitData,
+  CostingService,
+} from "@/services/interfaces/costingService";
+import {
+  applyCoatingItems,
+  buildCostingFromSalesOrder,
+  normalizeCostingRequest,
+} from "@/services/mock/costingFactory";
 import { applyListQuery, cloneData } from "@/services/mock/helpers";
 import { initialCostingRequests } from "@/services/mock/data/costing";
+import { initialSalesOrderCostingRequests } from "@/services/mock/data/sales-order-costing";
 import type { CostingRequest } from "@/types/costing";
+import type { SalesOrder } from "@/types/sales-order";
 
-let costingRequests = cloneData(initialCostingRequests);
+let costingRequests = cloneData([
+  ...initialCostingRequests.map((item) => normalizeCostingRequest(item as CostingRequest)),
+  ...initialSalesOrderCostingRequests,
+]);
 
 function findRequest(id: string): CostingRequest {
   const request = costingRequests.find((item) => item.id === id);
   if (!request) notFoundError("CostingRequest", id);
   return request;
+}
+
+function nextRequestNumber(): string {
+  const year = new Date().getFullYear();
+  return `CR-${year}-${String(costingRequests.length + 1).padStart(4, "0")}`;
 }
 
 function advanceApprovalLevels(request: CostingRequest, action: "approved" | "rejected"): void {
@@ -57,9 +75,12 @@ export const mockCostingService: CostingService = {
     return applyListQuery(
       costingRequests,
       filters,
-      ["requestNumber", "customerName", "projectName", "requestType"],
+      ["requestNumber", "customerName", "projectName", "requestType", "salesOrderNumber", "quotationNumber"],
       (item) => {
         if (filters.status && item.status !== filters.status) return false;
+        if (filters.coatingStatus && item.coatingStatus !== filters.coatingStatus) return false;
+        if (filters.salesOrderId && item.salesOrderId !== filters.salesOrderId) return false;
+        if (filters.linkedToSalesOrder && !item.salesOrderId) return false;
         return true;
       },
     );
@@ -70,9 +91,56 @@ export const mockCostingService: CostingService = {
     return findRequest(id);
   },
 
+  async getBySalesOrderId(salesOrderId) {
+    await delay();
+    return costingRequests.find((item) => item.salesOrderId === salesOrderId) ?? null;
+  },
+
+  async createFromSalesOrder(order: SalesOrder) {
+    await delay();
+    const existing = costingRequests.find((item) => item.salesOrderId === order.id);
+    if (existing) return existing;
+
+    const request = buildCostingFromSalesOrder(order, {
+      requestNumber: nextRequestNumber(),
+      coatingStatus: "pending",
+      status: "pending",
+    });
+    costingRequests.unshift(request);
+    return request;
+  },
+
+  async submitCoating(id, data: CoatingSubmitData) {
+    await delay();
+    const index = costingRequests.findIndex((item) => item.id === id);
+    if (index === -1) notFoundError("CostingRequest", id);
+
+    const existing = costingRequests[index];
+    const updated = applyCoatingItems(existing, data.items);
+    updated.coatingStatus = "submitted";
+    if (updated.status === "pending" || updated.status === "changes_requested") {
+      updated.status = "in_review";
+    }
+    if (updated.approvalLevels.every((level) => level.status === "waiting")) {
+      updated.approvalLevels[0].status = "pending";
+    }
+    if (data.notes) {
+      updated.notes = data.notes;
+    }
+    addHistoryEntry(updated, "Coating submitted", "Current User");
+    costingRequests[index] = updated;
+    return updated;
+  },
+
   async approve(id, comment) {
     await delay();
     const request = findRequest(id);
+    if (request.coatingStatus === "pending") {
+      throw {
+        code: "INVALID_STATE",
+        message: "Coating must be submitted before costing can be approved.",
+      };
+    }
     advanceApprovalLevels(request, "approved");
 
     const allApproved = request.approvalLevels.every((level) => level.status === "approved");
@@ -99,6 +167,7 @@ export const mockCostingService: CostingService = {
     await delay();
     const request = findRequest(id);
     request.status = "changes_requested";
+    request.coatingStatus = "pending";
     addHistoryEntry(request, "Changes requested", "Current User", comment);
     return request;
   },

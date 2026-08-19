@@ -1,14 +1,31 @@
 import type { PaginatedRequest, PaginatedResponse } from "@/types/common";
-import type { CostingRequest } from "@/types/costing";
-import type { CostingRequestStatusValue } from "@/types/status";
+import type { CoatingLineItem, CostingRequest } from "@/types/costing";
+import type { SalesOrder } from "@/types/sales-order";
+import type { CoatingStatusValue, CostingRequestStatusValue } from "@/types/status";
 
 export interface CostingListFilters extends PaginatedRequest {
   status?: CostingRequestStatusValue;
+  coatingStatus?: CoatingStatusValue;
+  salesOrderId?: string;
+  linkedToSalesOrder?: boolean;
 }
+
+export type CoatingSubmitData = {
+  items: Array<
+    Pick<
+      CoatingLineItem,
+      "id" | "productId" | "productName" | "finish" | "process" | "quantity" | "unitCost"
+    >
+  >;
+  notes?: string;
+};
 
 export interface CostingService {
   list(filters: CostingListFilters): Promise<PaginatedResponse<CostingRequest>>;
   getById(id: string): Promise<CostingRequest>;
+  getBySalesOrderId(salesOrderId: string): Promise<CostingRequest | null>;
+  createFromSalesOrder(order: SalesOrder): Promise<CostingRequest>;
+  submitCoating(id: string, data: CoatingSubmitData): Promise<CostingRequest>;
   approve(id: string, comment?: string): Promise<CostingRequest>;
   reject(id: string, comment: string): Promise<CostingRequest>;
   requestChanges(id: string, comment: string): Promise<CostingRequest>;

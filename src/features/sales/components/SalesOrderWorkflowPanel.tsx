@@ -3,6 +3,7 @@ import {
   Check,
   ExternalLink,
   FileText,
+  Layers,
   Pencil,
   Receipt,
   Truck,
@@ -11,37 +12,17 @@ import {
 import { Link } from "react-router-dom";
 import { ROUTES } from "@/app/config/routes";
 import { Button } from "@/components/ui/Button";
-import { Stepper, type StepItem, type StepStatus } from "@/components/ui/Stepper";
+import { Stepper, type StepItem } from "@/components/ui/Stepper";
 import { cn } from "@/lib/utils";
 import { workspacePanelBody, workspacePanelEmpty, workspacePanelShell } from "@/lib/panelLayout";
+import {
+  buildSalesOrderFlowSteps,
+  canConfirmSalesOrder,
+  getConfirmBlockReason,
+} from "@/features/sales/lib/salesOrderFlow";
+import type { CostingRequest } from "@/types/costing";
 import type { SalesOrder } from "@/types/sales-order";
-import type { SalesOrderStatusValue } from "@/types/status";
 
-const WORKFLOW_ORDER: SalesOrderStatusValue[] = [
-  "draft",
-  "confirmed",
-  "in_manufacturing",
-  "ready_for_delivery",
-  "delivered",
-  "completed",
-];
-
-const WORKFLOW_LABELS: Record<string, string> = {
-  draft: "Draft",
-  confirmed: "Confirmed",
-  in_manufacturing: "Manufacturing",
-  ready_for_delivery: "Ready to Ship",
-  delivered: "Delivered",
-  completed: "Completed",
-};
-
-function normalizeStatus(status: SalesOrderStatusValue): SalesOrderStatusValue {
-  if (status === "pending_review" || status === "submitted") return "draft";
-  if (status === "partially_delivered") return "delivered";
-  return status;
-}
-
-/** Manufacturing progress 0–100, shown only under the Manufacturing step. */
 export function getManufacturingProgress(order: SalesOrder): number {
   if (["ready_for_delivery", "delivered", "completed"].includes(order.status)) {
     return 100;
@@ -66,7 +47,6 @@ export function getManufacturingProgress(order: SalesOrder): number {
     0,
   );
 
-  // Delivered units = complete; units still in manufacturing count as half-done.
   const percent = ((delivered + inMfg * 0.5) / total) * 100;
   return Math.min(99, Math.max(0, Math.round(percent)));
 }
@@ -97,44 +77,23 @@ function ManufacturingProgressBar({ percent }: { percent: number }) {
   );
 }
 
-function buildWorkflowSteps(order: SalesOrder): StepItem[] {
-  const status = order.status;
+function withManufacturingProgress(steps: StepItem[], order: SalesOrder): StepItem[] {
+  const percent = getManufacturingProgress(order);
+  const show =
+    order.status === "in_manufacturing" ||
+    ["ready_for_delivery", "delivered", "completed"].includes(order.status) ||
+    percent > 0;
 
-  if (status === "cancelled") {
-    return [
-      { id: "draft", label: "Draft", status: "completed" },
-      { id: "cancelled", label: "Cancelled", status: "error" },
-      { id: "completed", label: "Completed", status: "pending" },
-    ];
-  }
-
-  const normalized = normalizeStatus(status);
-  const currentIndex = WORKFLOW_ORDER.indexOf(normalized);
-  const manufacturingPercent = getManufacturingProgress(order);
-  const showMfgProgress =
-    normalized === "in_manufacturing" ||
-    currentIndex > WORKFLOW_ORDER.indexOf("in_manufacturing") ||
-    manufacturingPercent > 0;
-
-  return WORKFLOW_ORDER.map((id, index) => {
-    let stepStatus: StepStatus = "pending";
-    if (currentIndex > index) stepStatus = "completed";
-    else if (currentIndex === index) stepStatus = "current";
-
-    return {
-      id,
-      label: WORKFLOW_LABELS[id],
-      status: stepStatus,
-      content:
-        id === "in_manufacturing" && showMfgProgress ? (
-          <ManufacturingProgressBar percent={manufacturingPercent} />
-        ) : undefined,
-    };
-  });
+  return steps.map((step) =>
+    step.id === "in_manufacturing" && show
+      ? { ...step, content: <ManufacturingProgressBar percent={percent} /> }
+      : step,
+  );
 }
 
 export type SalesOrderWorkflowPanelProps = {
   order: SalesOrder | null;
+  costing?: CostingRequest | null;
   onEdit?: () => void;
   onCancel?: () => void;
   onConfirm?: () => void;
@@ -148,6 +107,7 @@ export type SalesOrderWorkflowPanelProps = {
 
 export function SalesOrderWorkflowPanel({
   order,
+  costing = null,
   onEdit,
   onCancel,
   onConfirm,
@@ -159,8 +119,8 @@ export function SalesOrderWorkflowPanel({
   className,
 }: SalesOrderWorkflowPanelProps) {
   const steps = useMemo(
-    () => (order ? buildWorkflowSteps(order) : []),
-    [order],
+    () => (order ? withManufacturingProgress(buildSalesOrderFlowSteps(order, costing), order) : []),
+    [order, costing],
   );
 
   if (!order) {
@@ -173,15 +133,16 @@ export function SalesOrderWorkflowPanel({
 
   const canEdit = order.status === "draft" || order.status === "pending_review";
   const canCancel = !["cancelled", "completed", "delivered"].includes(order.status);
-  const canConfirm =
-    order.status === "draft" ||
-    order.status === "pending_review" ||
-    order.status === "submitted";
+  const canConfirm = canConfirmSalesOrder(order, costing);
+  const confirmBlockReason = getConfirmBlockReason(order, costing);
 
   return (
     <div className={cn(workspacePanelShell, className)}>
       <div className="border-b border-border px-4 py-3">
         <h2 className="text-sm font-semibold text-foreground">Order Workflow</h2>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Quotation → Sales Order → Coating → Approval → Confirm
+        </p>
       </div>
 
       <div className={workspacePanelBody}>
@@ -202,6 +163,12 @@ export function SalesOrderWorkflowPanel({
           </section>
         )}
 
+        {confirmBlockReason && (
+          <p className="rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-warning">
+            {confirmBlockReason}
+          </p>
+        )}
+
         <section>
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Quick Actions
@@ -215,6 +182,16 @@ export function SalesOrderWorkflowPanel({
                 leftIcon={<ExternalLink className="h-4 w-4" />}
               >
                 Open Order Page
+              </Button>
+            </Link>
+            <Link to={ROUTES.coating.forOrder(order.id)} className="block">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start"
+                leftIcon={<Layers className="h-4 w-4" />}
+              >
+                Coating Request
               </Button>
             </Link>
             {canEdit && (
@@ -251,13 +228,14 @@ export function SalesOrderWorkflowPanel({
                 Review Order
               </Button>
             )}
-            {canConfirm && (
+            {["draft", "pending_review", "submitted"].includes(order.status) && (
               <Button
                 variant="primary"
                 size="sm"
                 className="w-full justify-start"
                 leftIcon={<Check className="h-4 w-4" />}
                 loading={isConfirming}
+                disabled={!canConfirm}
                 onClick={onConfirm}
               >
                 Confirm Order
@@ -282,7 +260,6 @@ export function SalesOrderWorkflowPanel({
                 className="w-full justify-start"
                 leftIcon={<Receipt className="h-4 w-4" />}
                 disabled={!canApplyCreditNote}
-               // onClick={onApplyCreditNote}
               >
                 Apply Credit Note
               </Button>

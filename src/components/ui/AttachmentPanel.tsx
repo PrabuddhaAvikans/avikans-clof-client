@@ -1,5 +1,6 @@
-import { Download, File, Paperclip, X } from 'lucide-react';
+import { Download, Paperclip, X } from 'lucide-react';
 import { cn, formatBytes } from '@/lib/utils';
+import { AttachmentIcon } from './AttachmentIcon';
 import { IconButton } from './IconButton';
 
 export type Attachment = {
@@ -7,6 +8,8 @@ export type Attachment = {
   name: string;
   size?: number;
   url?: string;
+  type?: string;
+  mimeType?: string;
 };
 
 export type AttachmentPanelProps = {
@@ -46,7 +49,12 @@ export function AttachmentPanel({
               className="flex items-center justify-between gap-3 px-4 py-3"
             >
               <div className="flex min-w-0 items-center gap-2">
-                <File className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <AttachmentIcon
+                  fileName={attachment.name}
+                  type={attachment.type}
+                  mimeType={attachment.mimeType}
+                  className="shrink-0 text-muted-foreground"
+                />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-foreground">{attachment.name}</p>
                   {attachment.size !== undefined && (

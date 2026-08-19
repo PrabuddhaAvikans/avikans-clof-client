@@ -16,34 +16,42 @@ import {
   setMutationSuccess,
 } from "@/app/store/async/reducers";
 import type { AsyncEntry, MutationEntry } from "@/app/store/async/types";
-import type { CostingListFilters } from "@/services";
+import type { CostingListFilters, CoatingSubmitData } from "@/services";
 import type { CostingRequest } from "@/types/costing";
 import type { PaginatedResponse } from "@/types/common";
+import type { SalesOrder } from "@/types/sales-order";
 
 type ListData = PaginatedResponse<CostingRequest>;
 
 type CommentArg = { id: string; comment: string };
 type ApproveArg = { id: string; comment?: string };
 type NotesArg = { id: string; notes: string };
+type SubmitCoatingArg = { id: string; data: CoatingSubmitData };
 
 export type CostingState = {
   lists: Record<string, AsyncEntry<ListData>>;
   details: Record<string, AsyncEntry<CostingRequest>>;
+  bySalesOrder: Record<string, AsyncEntry<CostingRequest | null>>;
   approve: MutationEntry;
   reject: MutationEntry;
   requestChanges: MutationEntry;
   updateNotes: MutationEntry;
   addComment: MutationEntry;
+  submitCoating: MutationEntry;
+  createFromSalesOrder: MutationEntry;
 };
 
 const initialState: CostingState = {
   lists: emptyCache(),
   details: emptyCache(),
+  bySalesOrder: emptyCache(),
   approve: createMutationEntry(),
   reject: createMutationEntry(),
   requestChanges: createMutationEntry(),
   updateNotes: createMutationEntry(),
   addComment: createMutationEntry(),
+  submitCoating: createMutationEntry(),
+  createFromSalesOrder: createMutationEntry(),
 };
 
 function upsertDetail(state: CostingState, request: CostingRequest): void {
@@ -52,6 +60,13 @@ function upsertDetail(state: CostingState, request: CostingRequest): void {
     status: "succeeded",
     error: null,
   };
+  if (request.salesOrderId) {
+    state.bySalesOrder[request.salesOrderId] = {
+      data: request,
+      status: "succeeded",
+      error: null,
+    };
+  }
 }
 
 const costingSlice = createSlice({
@@ -76,6 +91,19 @@ const costingSlice = createSlice({
     },
     fetchDetailFailure(state, action: PayloadAction<FailurePayload>) {
       setEntryFailure(state.details, action);
+    },
+
+    fetchBySalesOrderRequest(state, action: PayloadAction<RequestPayload<string>>) {
+      if (action.payload.key) setEntryLoading(state.bySalesOrder, action.payload.key);
+    },
+    fetchBySalesOrderSuccess(state, action: PayloadAction<SuccessPayload<CostingRequest | null>>) {
+      setEntrySuccess(state.bySalesOrder, action);
+      if (action.payload.data) {
+        upsertDetail(state, action.payload.data);
+      }
+    },
+    fetchBySalesOrderFailure(state, action: PayloadAction<FailurePayload>) {
+      setEntryFailure(state.bySalesOrder, action);
     },
 
     approveRequest(state, _action: PayloadAction<RequestPayload<ApproveArg>>) {
@@ -136,9 +164,34 @@ const costingSlice = createSlice({
       setMutationFailure(state.addComment, action);
     },
 
+    submitCoatingRequest(state, _action: PayloadAction<RequestPayload<SubmitCoatingArg>>) {
+      setMutationLoading(state.submitCoating);
+    },
+    submitCoatingSuccess(state, action: PayloadAction<SuccessPayload<CostingRequest>>) {
+      setMutationSuccess(state.submitCoating);
+      upsertDetail(state, action.payload.data);
+      invalidateEntries(state.lists);
+    },
+    submitCoatingFailure(state, action: PayloadAction<FailurePayload>) {
+      setMutationFailure(state.submitCoating, action);
+    },
+
+    createFromSalesOrderRequest(state, _action: PayloadAction<RequestPayload<SalesOrder>>) {
+      setMutationLoading(state.createFromSalesOrder);
+    },
+    createFromSalesOrderSuccess(state, action: PayloadAction<SuccessPayload<CostingRequest>>) {
+      setMutationSuccess(state.createFromSalesOrder);
+      upsertDetail(state, action.payload.data);
+      invalidateEntries(state.lists);
+    },
+    createFromSalesOrderFailure(state, action: PayloadAction<FailurePayload>) {
+      setMutationFailure(state.createFromSalesOrder, action);
+    },
+
     invalidateAll(state) {
       invalidateEntries(state.lists);
       invalidateEntries(state.details);
+      invalidateEntries(state.bySalesOrder);
     },
   },
 });

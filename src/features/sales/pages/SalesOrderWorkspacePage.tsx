@@ -11,6 +11,7 @@ import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { ApplyCreditNoteModal } from "@/features/finance/components/ApplyCreditNoteModal";
 import { initialCreditNotes } from "@/features/finance/mock/mockCreditNotes";
 import { initialInvoices } from "@/features/finance/mock/mockInvoices";
+import { SalesOrderCostingPanel } from "@/features/sales/components/SalesOrderCostingPanel";
 import { SalesOrderDetailPanel } from "@/features/sales/components/SalesOrderDetailPanel";
 import { SalesOrderListPanel } from "@/features/sales/components/SalesOrderListPanel";
 import { SalesOrderWorkflowPanel } from "@/features/sales/components/SalesOrderWorkflowPanel";
@@ -20,6 +21,11 @@ import {
   useSalesOrder,
   useSalesOrders,
 } from "@/features/sales/hooks/useSalesOrders";
+import {
+  useCostingBySalesOrder,
+  useCreateCostingFromSalesOrder,
+} from "@/features/costing/hooks/useCosting";
+import { canConfirmSalesOrder, getConfirmBlockReason } from "@/features/sales/lib/salesOrderFlow";
 import type { CreditNote } from "@/types/credit-note";
 import type { Invoice } from "@/types/invoice";
 import type { CreditNoteStatusValue, SalesOrderStatusValue } from "@/types/status";
@@ -55,6 +61,8 @@ export function SalesOrderWorkspacePage() {
 
   const confirmOrder = useConfirmSalesOrder();
   const cancelOrder = useCancelSalesOrder();
+  const { data: orderCosting } = useCostingBySalesOrder(selectedId ?? "");
+  const createCosting = useCreateCostingFromSalesOrder();
 
   useEffect(() => {
     if (!selectedId && data?.items.length) {
@@ -113,9 +121,8 @@ export function SalesOrderWorkspacePage() {
   const canCancel =
     activeOrder &&
     !["cancelled", "completed", "delivered"].includes(activeOrder.status);
-  const canConfirm =
-    activeOrder &&
-    ["draft", "pending_review", "submitted"].includes(activeOrder.status);
+  const canConfirm = canConfirmSalesOrder(activeOrder, orderCosting);
+  const confirmBlockReason = getConfirmBlockReason(activeOrder, orderCosting);
 
   const handleConfirm = useCallback(async () => {
     if (!activeOrder) return;
@@ -123,10 +130,24 @@ export function SalesOrderWorkspacePage() {
       await confirmOrder.mutateAsync(activeOrder.id);
       toast.success(`${activeOrder.orderNumber} confirmed`);
       setConfirmOpen(false);
-    } catch {
-      toast.error("Failed to confirm sales order");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Complete coating and costing approval before confirming.",
+      );
     }
   }, [activeOrder, confirmOrder]);
+
+  const handleCreateCosting = useCallback(async () => {
+    if (!activeOrder) return;
+    try {
+      const created = await createCosting.mutateAsync(activeOrder);
+      toast.success(`Coating request ${created.requestNumber} created`);
+    } catch {
+      toast.error("Failed to create coating request");
+    }
+  }, [activeOrder, createCosting]);
 
   const handleCancel = useCallback(async () => {
     if (!activeOrder) return;
@@ -223,7 +244,7 @@ export function SalesOrderWorkspacePage() {
     <PageContainer maxWidth="full" className="py-3">
       <PageHeader
         title="Sales Orders"
-        description="Manage orders converted from quotations and track fulfillment."
+        description="Quotation → Sales Order → Coating → Costing Approval → Confirm."
         className="mb-2"
         actions={
           <>
@@ -309,13 +330,20 @@ export function SalesOrderWorkspacePage() {
             />
           </div>
 
-          <div className={cn("min-h-[24rem] lg:col-span-6", workspaceGridCol)}>
+          <div className={cn("min-h-[24rem] lg:col-span-5", workspaceGridCol)}>
             <SalesOrderDetailPanel order={activeOrder} className={workspacePanelFill} />
           </div>
 
-          <div className={cn("min-h-[18rem] lg:col-span-3", workspaceGridCol)}>
+          <div className={cn("flex min-h-[18rem] flex-col gap-2 lg:col-span-4", workspaceGridCol)}>
+            <SalesOrderCostingPanel
+              order={activeOrder}
+              costing={orderCosting ?? null}
+              onCreateCosting={() => void handleCreateCosting()}
+              isCreating={createCosting.isPending}
+            />
             <SalesOrderWorkflowPanel
               order={activeOrder}
+              costing={orderCosting ?? null}
               onEdit={() =>
                 activeOrder && navigate(ROUTES.salesOrders.edit(activeOrder.id))
               }
@@ -339,7 +367,7 @@ export function SalesOrderWorkspacePage() {
         onClose={() => setConfirmOpen(false)}
         onConfirm={() => void handleConfirm()}
         title="Confirm Sales Order?"
-        description={`Confirm ${activeOrder?.orderNumber ?? "this order"}? This will move the order into fulfillment.`}
+        description={`Confirm ${activeOrder?.orderNumber ?? "this order"}? ${confirmBlockReason ?? "This will move the order into fulfillment."}`}
         confirmLabel="Confirm Order"
         loading={confirmOrder.isPending}
       />

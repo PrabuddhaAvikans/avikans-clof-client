@@ -175,7 +175,7 @@ export function QuotationWorkspacePage() {
     <PageContainer maxWidth="full" className="py-3">
       <PageHeader
         title="Quotation & Order Conversion"
-        description="Browse quotations, review details, and convert accepted quotes to sales orders."
+        description="Quotation → Sales Order → Coating → Costing Approval → Confirm."
         className="mb-2"
         actions={
           <>

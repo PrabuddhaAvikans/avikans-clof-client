@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Check,
   ChevronDown,
@@ -7,7 +7,6 @@ import {
   MoreHorizontal,
   Plus,
   RefreshCw,
-  Send,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -40,6 +39,8 @@ const STATUS_OPTIONS = Object.entries(CostingRequestStatus).map(([value, def]) =
 
 export function CostingApprovalWorkspacePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const salesOrderIdParam = searchParams.get("salesOrderId");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -53,6 +54,7 @@ export function CostingApprovalWorkspacePage() {
     pageSize,
     search: search || undefined,
     status: appliedStatus || undefined,
+    salesOrderId: salesOrderIdParam || undefined,
   });
 
   const { data: selectedRequest, isLoading: isDetailLoading } = useCostingRequest(
@@ -82,6 +84,7 @@ export function CostingApprovalWorkspacePage() {
   const canDecide = useMemo(
     () =>
       activeRequest &&
+      activeRequest.coatingStatus !== "pending" &&
       (activeRequest.status === "pending" ||
         activeRequest.status === "in_review" ||
         activeRequest.status === "changes_requested"),
@@ -174,7 +177,7 @@ export function CostingApprovalWorkspacePage() {
     <PageContainer maxWidth="full" className="py-3">
       <PageHeader
         title="Costing & Approval Workspace"
-        description="Review costing estimates, validate margins, and manage multi-level approvals."
+        description="Quotation → Sales Order → Coating → Costing Approval → Confirm."
         className="mb-2"
         actions={
           <>
@@ -182,9 +185,9 @@ export function CostingApprovalWorkspacePage() {
               variant="primary"
               size="sm"
               leftIcon={<Plus className="h-4 w-4" />}
-              onClick={() => navigate(ROUTES.quotations.new)}
+              onClick={() => navigate(ROUTES.coating.workspace)}
             >
-              Create Quotation
+              Coating Requests
             </Button>
             {/* <Button
               variant="outline"
@@ -221,7 +224,7 @@ export function CostingApprovalWorkspacePage() {
             >
               Reject
             </Button>
-            {/* <div className="relative">
+            <div className="relative">
               <Button
                 variant="outline"
                 size="sm"
@@ -256,6 +259,26 @@ export function CostingApprovalWorkspacePage() {
                   >
                     View all quotations
                   </button>
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
+                    onClick={() => {
+                      setShowMoreMenu(false);
+                      navigate(ROUTES.coating.workspace);
+                    }}
+                  >
+                    Coating requests
+                  </button>
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
+                    onClick={() => {
+                      setShowMoreMenu(false);
+                      navigate(ROUTES.salesOrders.list);
+                    }}
+                  >
+                    Sales orders
+                  </button>
                 </div>
               )}
             </div>
@@ -269,7 +292,7 @@ export function CostingApprovalWorkspacePage() {
               }}
             >
               Filters
-            </Button> */}
+            </Button>
             <Button
               variant="ghost"
               size="sm"
@@ -342,7 +365,7 @@ export function CostingApprovalWorkspacePage() {
             />
           </div>
 
-          {/* <div className="col-span-1 md:col-span-2 lg:col-span-1 xl:col-span-1">
+          <div className="col-span-1 md:col-span-2 lg:col-span-1 xl:col-span-1">
             <ApprovalWorkflowPanel
               request={isDetailLoading ? activeRequest : selectedRequest ?? activeRequest}
               onApprove={(comment) => selectedId && void handleApprove(selectedId, comment)}
@@ -355,7 +378,7 @@ export function CostingApprovalWorkspacePage() {
               isAddingComment={addCommentMutation.isPending}
               className="min-h-[28rem]"
             />
-          </div> */}
+          </div>
         </div>
       </PageContent>
     </PageContainer>

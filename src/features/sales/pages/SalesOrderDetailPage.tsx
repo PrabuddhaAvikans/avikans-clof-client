@@ -7,45 +7,13 @@ import { PageHeader } from "@/components/feedback/PageHeader";
 import { PageContent } from "@/components/feedback/PageStates";
 import { Button } from "@/components/ui/Button";
 import { SummaryCard } from "@/components/ui/SummaryCard";
-import { Stepper, type StepItem } from "@/components/ui/Stepper";
 import { Tabs, TabList, Tab, TabPanel } from "@/components/ui/Tabs";
 import { DataTable, type ColumnDef } from "@/components/tables/DataTable";
 import { MappedStatusBadge } from "@/features/shared/components/MappedStatusBadge";
 import { useSalesOrder } from "@/features/sales/hooks/useSalesOrders";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { PaymentStatus, SalesOrderStatus, type SalesOrderStatusValue } from "@/types/status";
+import { PaymentStatus, SalesOrderStatus } from "@/types/status";
 import type { SalesOrderLineItem } from "@/types/sales-order";
-
-const PROGRESS_STEPS: { id: string; label: string; statuses: SalesOrderStatusValue[] }[] = [
-  { id: "confirmed", label: "Confirmed", statuses: ["confirmed", "submitted", "pending_review"] },
-  { id: "manufacturing", label: "Manufacturing", statuses: ["in_manufacturing"] },
-  { id: "qc", label: "QC", statuses: ["in_manufacturing"] },
-  { id: "ready", label: "Ready", statuses: ["ready_for_delivery"] },
-  { id: "dispatched", label: "Dispatched", statuses: ["partially_delivered"] },
-  { id: "delivered", label: "Delivered", statuses: ["delivered"] },
-  { id: "completed", label: "Completed", statuses: ["completed"] },
-];
-
-function getStepStatus(
-  stepIndex: number,
-  currentIndex: number,
-): "completed" | "current" | "pending" {
-  if (stepIndex < currentIndex) return "completed";
-  if (stepIndex === currentIndex) return "current";
-  return "pending";
-}
-
-function resolveCurrentStepIndex(status: SalesOrderStatusValue): number {
-  if (status === "draft" || status === "cancelled") return 0;
-  if (["pending_review", "submitted"].includes(status)) return 0;
-  if (status === "confirmed") return 0;
-  if (status === "in_manufacturing") return 2;
-  if (status === "ready_for_delivery") return 3;
-  if (status === "partially_delivered") return 4;
-  if (status === "delivered") return 5;
-  if (status === "completed") return 6;
-  return 0;
-}
 
 export function SalesOrderDetailPage() {
   const { id = "" } = useParams<{ id: string }>();
@@ -53,14 +21,6 @@ export function SalesOrderDetailPage() {
   const [activeTab, setActiveTab] = useState("overview");
 
   const { data: order, isLoading, error } = useSalesOrder(id);
-
-  const currentStepIndex = order ? resolveCurrentStepIndex(order.status) : 0;
-
-  const steps: StepItem[] = PROGRESS_STEPS.map((step, index) => ({
-    id: step.id,
-    label: step.label,
-    status: getStepStatus(index, currentStepIndex),
-  }));
 
   const lineItemColumns = useMemo<ColumnDef<SalesOrderLineItem>[]>(
     () => [
@@ -114,13 +74,6 @@ export function SalesOrderDetailPage() {
                 </>
               }
             />
-
-            <section className="mb-8 rounded-lg border border-border bg-card p-6">
-              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                Order Progress
-              </h2>
-              <Stepper steps={steps} />
-            </section>
 
             <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <SummaryCard title="Order Total" value={formatCurrency(order.totalAmount, order.currency)} />

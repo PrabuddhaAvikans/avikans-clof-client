@@ -17,6 +17,29 @@ const fetchDetailEpic = createAsyncEpic({
   handler: (id) => costingService.getById(id),
 });
 
+const fetchBySalesOrderEpic = createAsyncEpic({
+  request: costingActions.fetchBySalesOrderRequest,
+  success: costingActions.fetchBySalesOrderSuccess,
+  failure: costingActions.fetchBySalesOrderFailure,
+  handler: (salesOrderId) => costingService.getBySalesOrderId(salesOrderId),
+});
+
+const submitCoatingEpic = createAsyncEpic({
+  request: costingActions.submitCoatingRequest,
+  success: costingActions.submitCoatingSuccess,
+  failure: costingActions.submitCoatingFailure,
+  handler: ({ id, data }) => costingService.submitCoating(id, data),
+  mode: "merge",
+});
+
+const createFromSalesOrderEpic = createAsyncEpic({
+  request: costingActions.createFromSalesOrderRequest,
+  success: costingActions.createFromSalesOrderSuccess,
+  failure: costingActions.createFromSalesOrderFailure,
+  handler: (order) => costingService.createFromSalesOrder(order),
+  mode: "merge",
+});
+
 const approveEpic = createAsyncEpic({
   request: costingActions.approveRequest,
   success: costingActions.approveSuccess,
@@ -60,9 +83,12 @@ const addCommentEpic = createAsyncEpic({
 export const costingEpic = combineEpics(
   fetchListEpic,
   fetchDetailEpic,
+  fetchBySalesOrderEpic,
   approveEpic,
   rejectEpic,
   requestChangesEpic,
   updateNotesEpic,
   addCommentEpic,
+  submitCoatingEpic,
+  createFromSalesOrderEpic,
 );

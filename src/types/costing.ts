@@ -1,4 +1,5 @@
 import type {
+  CoatingStatusValue,
   CostingRequestStatusValue,
   CostingRiskFlagValue,
 } from "@/types/status";
@@ -13,6 +14,17 @@ export interface CostingLineItem {
   category: string;
   baseCost: number;
   percentOfCost: number;
+}
+
+export interface CoatingLineItem {
+  id: string;
+  productId: string;
+  productName: string;
+  finish: string;
+  process: string;
+  quantity: number;
+  unitCost: number;
+  lineTotal: number;
 }
 
 export interface CostingAttachment {
@@ -59,19 +71,27 @@ export interface CostingRequest {
   riskFlag: CostingRiskFlagValue;
   slaRemaining: string;
   status: CostingRequestStatusValue;
+  coatingStatus: CoatingStatusValue;
   currency: string;
   paymentTerms: string;
   lineItems: CostingLineItem[];
+  coatingItems: CoatingLineItem[];
   attachments: CostingAttachment[];
   notes: string;
   requester: CostingRequester;
   approvalLevels: ApprovalLevel[];
   history: ApprovalHistoryEntry[];
+  salesOrderId?: string;
+  salesOrderNumber?: string;
+  quotationId?: string;
+  quotationNumber?: string;
 }
 
 export type CostingRequestFilters = {
   status?: CostingRequestStatusValue;
+  coatingStatus?: CoatingStatusValue;
   riskFlag?: CostingRiskFlagValue;
+  salesOrderId?: string;
   search?: string;
   page?: number;
   pageSize?: number;

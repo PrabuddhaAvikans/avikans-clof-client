@@ -65,6 +65,11 @@
       "page": "CostingApprovalWorkspacePage",
       "permission": "quotations:view"
     },
+    {
+      "path": "operations/coating",
+      "page": "CoatingRequestsWorkspacePage",
+      "permission": "quotations:view"
+    },
 
     {
       "path": "sales-orders",

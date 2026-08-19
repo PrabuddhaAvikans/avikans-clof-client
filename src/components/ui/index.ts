@@ -52,6 +52,7 @@ export { SummaryCard, type SummaryCardProps } from './SummaryCard';
 // Upload & media
 export { FileUploader, type FileUploaderProps, type UploadedFile } from './FileUploader';
 export { ImageUploader, type ImageUploaderProps, type UploadedImage } from './ImageUploader';
+export { AttachmentIcon, type AttachmentIconProps } from './AttachmentIcon';
 
 // Panels & lists
 export { FilterPanel, type FilterPanelProps } from './FilterPanel';

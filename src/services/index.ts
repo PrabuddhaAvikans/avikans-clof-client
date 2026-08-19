@@ -25,7 +25,7 @@ export type { DeliveryService, DeliveryListFilters, DeliveryFormData } from "@/s
 export type { UserService, UserListFilters, UserFormData, RoleService, RoleListFilters, RoleFormData, RoleGroupFormData } from "@/services/interfaces/userService";
 export type { NotificationService, NotificationListFilters } from "@/services/interfaces/notificationService";
 export type { DashboardService } from "@/services/interfaces/dashboardService";
-export type { CostingService, CostingListFilters } from "@/services/interfaces/costingService";
+export type { CostingService, CostingListFilters, CoatingSubmitData } from "@/services/interfaces/costingService";
 export type {
   ProductionTrackingService,
   ProductionTrackingFilters,

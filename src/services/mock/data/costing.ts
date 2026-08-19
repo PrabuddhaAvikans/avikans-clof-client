@@ -9,7 +9,7 @@ function lineItems(
   }));
 }
 
-export const initialCostingRequests: CostingRequest[] = [
+export const initialCostingRequests = [
   {
     id: "cr-001",
     requestNumber: "CR-2025-0567",
@@ -446,4 +446,4 @@ export const initialCostingRequests: CostingRequest[] = [
       { id: "h-17", action: "Created", userName: "Dilshan Jayawardena", timestamp: "2025-07-30T08:00:00Z" },
     ],
   },
-];
+] as CostingRequest[];

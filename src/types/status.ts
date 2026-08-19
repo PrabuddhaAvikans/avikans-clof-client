@@ -147,6 +147,14 @@ export const CostingRiskFlag = {
 
 export type CostingRiskFlagValue = keyof typeof CostingRiskFlag;
 
+export const CoatingStatus = {
+  pending: { label: "Awaiting Coating", variant: "warning" },
+  submitted: { label: "Coating Submitted", variant: "info" },
+  skipped: { label: "Not Required", variant: "secondary" },
+} as const satisfies Record<string, StatusDefinition>;
+
+export type CoatingStatusValue = keyof typeof CoatingStatus;
+
 export type StatusMap = Record<string, StatusDefinition>;
 
 const STATUS_MAPS: readonly StatusMap[] = [
@@ -162,6 +170,7 @@ const STATUS_MAPS: readonly StatusMap[] = [
   CreditNoteReason,
   CostingRequestStatus,
   CostingRiskFlag,
+  CoatingStatus,
 ];
 
 export function getStatusLabel(

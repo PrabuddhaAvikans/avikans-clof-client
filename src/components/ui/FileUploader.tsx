@@ -1,6 +1,7 @@
 import { useCallback, useId, useRef, useState } from 'react';
-import { File, Upload, X } from 'lucide-react';
+import { Upload, X } from 'lucide-react';
 import { cn, formatBytes } from '@/lib/utils';
+import { AttachmentIcon } from './AttachmentIcon';
 import { Button } from './Button';
 import { IconButton } from './IconButton';
 
@@ -146,7 +147,11 @@ export function FileUploader({
               className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2"
             >
               <div className="flex min-w-0 items-center gap-2">
-                <File className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <AttachmentIcon
+                  fileName={item.file.name}
+                  mimeType={item.file.type}
+                  className="shrink-0 text-muted-foreground"
+                />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-foreground">{item.file.name}</p>
                   <p className="text-xs text-muted-foreground">{formatBytes(item.file.size)}</p>
