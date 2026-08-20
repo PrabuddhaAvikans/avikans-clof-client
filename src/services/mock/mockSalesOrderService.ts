@@ -172,7 +172,7 @@ export const mockSalesOrderService: SalesOrderService = {
     if (!costing || costing.status !== "approved") {
       throw {
         code: "INVALID_STATE",
-        message: "Complete coating and costing approval before confirming this sales order.",
+        message: "Complete estimation and costing approval before confirming this sales order.",
       };
     }
 

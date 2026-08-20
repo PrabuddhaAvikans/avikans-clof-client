@@ -15,6 +15,7 @@ import { MappedStatusBadge } from "@/features/shared/components/MappedStatusBadg
 import { EntityStatusBadge } from "@/features/shared/components/EntityStatusBadge";
 import { useInventoryItems } from "@/features/inventory/hooks/useInventory";
 import { formatCurrency, formatNumber } from "@/lib/format";
+import { InventoryItemTypeLabels } from "@/types/inventory";
 import { StockStatus } from "@/types/status";
 import type { InventoryItem } from "@/types/inventory";
 import type { StockStatusValue } from "@/types/status";
@@ -48,7 +49,13 @@ export function InventoryListPage() {
     () => [
       { accessorKey: "sku", header: "SKU" },
       { accessorKey: "name", header: "Item" },
+      {
+        accessorKey: "itemType",
+        header: "Type",
+        cell: ({ row }) => InventoryItemTypeLabels[row.original.itemType],
+      },
       { accessorKey: "category", header: "Category" },
+      { accessorKey: "warehouse", header: "Warehouse" },
       { accessorKey: "location", header: "Location" },
       {
         accessorKey: "quantityOnHand",
@@ -68,9 +75,14 @@ export function InventoryListPage() {
         ),
       },
       {
-        accessorKey: "unitCost",
-        header: "Unit Cost",
-        cell: ({ row }) => formatCurrency(row.original.unitCost, "LKR"),
+        accessorKey: "costPrice",
+        header: "Cost Price",
+        cell: ({ row }) => formatCurrency(row.original.costPrice, "LKR"),
+      },
+      {
+        accessorKey: "sellingPrice",
+        header: "Selling Price",
+        cell: ({ row }) => formatCurrency(row.original.sellingPrice, "LKR"),
       },
       {
         accessorKey: "status",

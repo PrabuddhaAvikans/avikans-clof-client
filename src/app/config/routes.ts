@@ -47,10 +47,10 @@ export const ROUTES = {
       `/costing/approval?salesOrderId=${encodeURIComponent(salesOrderId)}` as const,
   },
 
-  coating: {
-    workspace: "/operations/coating",
+  estimation: {
+    workspace: "/operations/estimation",
     forOrder: (salesOrderId: string) =>
-      `/operations/coating?salesOrderId=${encodeURIComponent(salesOrderId)}` as const,
+      `/operations/estimation?salesOrderId=${encodeURIComponent(salesOrderId)}` as const,
   },
 
   quotations: {

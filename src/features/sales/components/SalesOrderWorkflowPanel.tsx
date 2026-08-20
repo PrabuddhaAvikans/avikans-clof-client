@@ -141,7 +141,7 @@ export function SalesOrderWorkflowPanel({
       <div className="border-b border-border px-4 py-3">
         <h2 className="text-sm font-semibold text-foreground">Order Workflow</h2>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          Quotation → Sales Order → Coating → Approval → Confirm
+          Quotation → Sales Order → Product Estimation → Approval → Confirm
         </p>
       </div>
 
@@ -184,14 +184,14 @@ export function SalesOrderWorkflowPanel({
                 Open Order Page
               </Button>
             </Link>
-            <Link to={ROUTES.coating.forOrder(order.id)} className="block">
+            <Link to={ROUTES.estimation.forOrder(order.id)} className="block">
               <Button
                 variant="outline"
                 size="sm"
                 className="w-full justify-start"
                 leftIcon={<Layers className="h-4 w-4" />}
               >
-                Coating Request
+                Product Estimation
               </Button>
             </Link>
             {canEdit && (

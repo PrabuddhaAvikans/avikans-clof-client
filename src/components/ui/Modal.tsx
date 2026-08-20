@@ -69,7 +69,7 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
         className={cn(
-          'relative z-10 flex w-full flex-col rounded-lg border border-border bg-card shadow-lg',
+          'relative z-10 flex max-h-[90vh] w-full flex-col rounded-lg border border-border bg-card shadow-lg',
           sizeClasses[size],
           className,
         )}
@@ -93,7 +93,7 @@ export function Modal({
             className="ml-auto"
           />
         </div>
-        <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
+        <div className="flex-1 overflow-visible px-5 py-4">{children}</div>
         {footer && (
           <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-4">
             {footer}

@@ -8,12 +8,37 @@ export type CostingAttachmentType = "pdf" | "xlsx" | "zip" | "other";
 
 export type ApprovalLevelStatus = "pending" | "approved" | "rejected" | "waiting";
 
+export type EstimationSourceType = "standard" | "customized";
+
 export interface CostingLineItem {
   id: string;
   description: string;
   category: string;
   baseCost: number;
   percentOfCost: number;
+  salesOrderLineItemId?: string;
+  sourceType?: EstimationSourceType;
+}
+
+export interface EstimationMaterial {
+  id: string;
+  inventoryItemId: string;
+  inventoryItemName: string;
+  sku: string;
+  quantity: number;
+  unit: string;
+  wastePercent: number;
+  requiredQuantity: number;
+  unitCost: number;
+  totalCost: number;
+  isRequired: boolean;
+  alternativeItemId?: string;
+  alternativeItemName?: string;
+  notes?: string;
+  salesOrderLineItemId?: string;
+  sourceType?: EstimationSourceType;
+  sourceProductName?: string;
+  productVersionLabel?: string;
 }
 
 export interface CoatingLineItem {
@@ -25,6 +50,32 @@ export interface CoatingLineItem {
   quantity: number;
   unitCost: number;
   lineTotal: number;
+  salesOrderLineItemId?: string;
+  sourceType?: EstimationSourceType;
+  productVersionLabel?: string;
+  productSku?: string;
+}
+
+/** Per sales-order-line estimation summary (standard or quotation customization). */
+export interface EstimationProductLine {
+  id: string;
+  salesOrderLineItemId: string;
+  productId: string;
+  productSku: string;
+  productName: string;
+  productVersionId?: string;
+  productVersionLabel?: string;
+  quantity: number;
+  sourceType: EstimationSourceType;
+  unitPrice: number;
+  estimatedCost: number;
+  materialCost: number;
+  labourCost: number;
+  machineCost: number;
+  coatingCost: number;
+  overheadCost: number;
+  customizationId?: string;
+  customizationStatus?: string;
 }
 
 export interface CostingAttachment {
@@ -76,6 +127,9 @@ export interface CostingRequest {
   paymentTerms: string;
   lineItems: CostingLineItem[];
   coatingItems: CoatingLineItem[];
+  estimationMaterials: EstimationMaterial[];
+  /** One entry per SO line — standard product or quotation customization snapshot. */
+  estimationProductLines: EstimationProductLine[];
   attachments: CostingAttachment[];
   notes: string;
   requester: CostingRequester;

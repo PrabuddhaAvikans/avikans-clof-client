@@ -3,16 +3,33 @@ import type {
   PriorityValue,
 } from "@/types/status";
 
+export type OperationStatus =
+  | "pending"
+  | "in_progress"
+  | "completed"
+  | "skipped"
+  | "blocked"
+  | "rework_required";
+
 export interface Operation {
   id: string;
   name: string;
   sequence: number;
+  description?: string;
   workstation: string;
   estimatedHours: number;
   actualHours?: number;
-  status: "pending" | "in_progress" | "completed" | "skipped";
+  labourCostRate?: number;
+  machineName?: string;
+  machineCost?: number;
+  actualCost?: number;
+  isRequired: boolean;
+  isEnabled: boolean;
+  status: OperationStatus;
   assignedTo?: string;
   assignedToName?: string;
+  operatorId?: string;
+  operatorName?: string;
   startedAt?: string;
   completedAt?: string;
   notes?: string;

@@ -18,6 +18,8 @@ import { Input } from "@/components/ui/Input";
 import { Tabs, TabList, Tab, TabPanel } from "@/components/ui/Tabs";
 import { CustomerSelectorModal } from "@/features/shared/components/CustomerSelectorModal";
 import { ProductSelectorModal } from "@/features/shared/components/ProductSelectorModal";
+import { QuotationConfigureProductModal } from "@/features/sales/components/QuotationConfigureProductModal";
+import { QuotationCustomizeModal } from "@/features/sales/components/QuotationCustomizeModal";
 import { QuotationFormPreview } from "@/features/sales/components/QuotationFormPreview";
 import { QuotationLineItemsTable } from "@/features/sales/components/QuotationLineItemsTable";
 import { QuotationTotalsSummary } from "@/features/sales/components/QuotationTotalsSummary";
@@ -27,15 +29,17 @@ import {
   computeQuotationTotals,
   quotationFormSchema,
   type QuotationFormValues,
+  type QuotationLineItemFormValues,
 } from "@/features/sales/schemas/quotationSchema";
 import {
   useCreateQuotation,
   useQuotation,
   useUpdateQuotation,
 } from "@/features/sales/hooks/useQuotations";
+import { productService } from "@/services";
 import type { Customer } from "@/types/customer";
 import type { Product } from "@/types/product";
-import type { Quotation } from "@/types/quotation";
+import type { Quotation, QuotationProductCustomization } from "@/types/quotation";
 import { Priority } from "@/types/status";
 
 const PRIORITY_OPTIONS = Object.entries(Priority).map(([value, def]) => ({
@@ -101,6 +105,15 @@ export function EstimateFormPage() {
   const [tab, setTab] = useState("overview");
   const [customerModalOpen, setCustomerModalOpen] = useState(false);
   const [productModalOpen, setProductModalOpen] = useState(false);
+  const [configureOpen, setConfigureOpen] = useState(false);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [configureVersionId, setConfigureVersionId] = useState("");
+  const [configureQuantity, setConfigureQuantity] = useState(1);
+  const [configureUnitPrice, setConfigureUnitPrice] = useState(0);
+  const [editingLineIndex, setEditingLineIndex] = useState<number | null>(null);
+  const [existingCustomization, setExistingCustomization] =
+    useState<QuotationProductCustomization | null>(null);
   const [sendModalOpen, setSendModalOpen] = useState(false);
   const [pendingSendQuotation, setPendingSendQuotation] = useState<Quotation | null>(null);
   const [pendingAction, setPendingAction] = useState<"draft" | "preview" | "send">("draft");
@@ -122,10 +135,14 @@ export function EstimateFormPage() {
           productSku: item.productSku,
           productName: item.productName,
           description: item.description,
+          productVersionId: item.productVersionId,
+          productVersionLabel: item.productVersionLabel,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           discountPercent: item.discountPercent,
           taxPercent: item.taxPercent,
+          isCustomized: item.isCustomized,
+          customization: item.customization,
         })),
         discountAmount: quotation.discountAmount,
         notes: quotation.notes ?? "",
@@ -139,6 +156,47 @@ export function EstimateFormPage() {
   }, [quotation, preselectedCustomerId]);
 
   const busy = createQuotation.isPending || updateQuotation.isPending;
+
+  const appendOrReplaceLine = (
+    formik: { values: QuotationFormValues; setFieldValue: (field: string, value: unknown) => unknown },
+    line: QuotationLineItemFormValues,
+  ) => {
+    if (editingLineIndex !== null) {
+      const next = [...formik.values.lineItems];
+      next[editingLineIndex] = {
+        ...next[editingLineIndex],
+        ...line,
+      };
+      void formik.setFieldValue("lineItems", next);
+      setEditingLineIndex(null);
+      return;
+    }
+    void formik.setFieldValue("lineItems", [...formik.values.lineItems, line]);
+  };
+
+  const openCustomizeForLine = async (
+    formik: { values: QuotationFormValues },
+    index: number,
+  ) => {
+    const line = formik.values.lineItems[index];
+    if (!line) return;
+    try {
+      const product = await productService.getById(line.productId);
+      setSelectedProduct(product);
+      setConfigureVersionId(
+        line.productVersionId || product.currentVersionId,
+      );
+      setConfigureQuantity(line.quantity);
+      setConfigureUnitPrice(line.unitPrice);
+      setExistingCustomization(
+        (line.customization as QuotationProductCustomization | undefined) ?? null,
+      );
+      setEditingLineIndex(index);
+      setCustomizeOpen(true);
+    } catch {
+      // Product may have been removed from catalog — ignore
+    }
+  };
 
   const handleSubmit = async (values: QuotationFormValues) => {
     const payload = {
@@ -261,7 +319,12 @@ export function EstimateFormPage() {
                             <FormikSelect name="priority" label="Priority" options={PRIORITY_OPTIONS} required />
                           </div>
                         </SalesFormSection>
-                        <QuotationLineItemsTable onAddProduct={() => setProductModalOpen(true)} />
+                        <QuotationLineItemsTable
+                          onAddProduct={() => setProductModalOpen(true)}
+                          onCustomizeLine={(index) => {
+                            void openCustomizeForLine(formik, index);
+                          }}
+                        />
                       </div>
                       <div className="space-y-3">
                         <SalesFormSection title="Commercial Terms">
@@ -289,7 +352,12 @@ export function EstimateFormPage() {
                 <TabPanel value="lines" className="pt-3">
                   <div className="grid gap-3 lg:grid-cols-3">
                     <div className="lg:col-span-2">
-                      <QuotationLineItemsTable onAddProduct={() => setProductModalOpen(true)} />
+                      <QuotationLineItemsTable
+                        onAddProduct={() => setProductModalOpen(true)}
+                        onCustomizeLine={(index) => {
+                          void openCustomizeForLine(formik, index);
+                        }}
+                      />
                     </div>
                     <QuotationFormPreview />
                   </div>
@@ -342,20 +410,54 @@ export function EstimateFormPage() {
                 open={productModalOpen}
                 onClose={() => setProductModalOpen(false)}
                 onSelect={(product: Product) => {
-                  void formik.setFieldValue("lineItems", [
-                    ...formik.values.lineItems,
-                    {
-                      productId: product.id,
-                      productSku: product.sku,
-                      productName: product.name,
-                      description: product.description,
-                      quantity: 1,
-                      unitPrice: product.basePrice,
-                      discountPercent: 0,
-                      taxPercent: 18,
-                    },
-                  ]);
+                  setSelectedProduct(product);
+                  setEditingLineIndex(null);
+                  setExistingCustomization(null);
                   setProductModalOpen(false);
+                  setConfigureOpen(true);
+                }}
+              />
+              <QuotationConfigureProductModal
+                open={configureOpen}
+                product={selectedProduct}
+                onClose={() => {
+                  setConfigureOpen(false);
+                  setSelectedProduct(null);
+                }}
+                onAddStandard={(line) => {
+                  appendOrReplaceLine(formik, line);
+                  setConfigureOpen(false);
+                  setSelectedProduct(null);
+                }}
+                onCustomize={({ product, versionId, quantity, unitPrice }) => {
+                  setSelectedProduct(product);
+                  setConfigureVersionId(versionId);
+                  setConfigureQuantity(quantity);
+                  setConfigureUnitPrice(unitPrice);
+                  setExistingCustomization(null);
+                  setConfigureOpen(false);
+                  setCustomizeOpen(true);
+                }}
+              />
+              <QuotationCustomizeModal
+                open={customizeOpen}
+                product={selectedProduct}
+                versionId={configureVersionId}
+                quantity={configureQuantity}
+                unitPrice={configureUnitPrice}
+                existingCustomization={existingCustomization}
+                onClose={() => {
+                  setCustomizeOpen(false);
+                  setExistingCustomization(null);
+                  if (editingLineIndex === null) {
+                    setSelectedProduct(null);
+                  }
+                }}
+                onSave={(line) => {
+                  appendOrReplaceLine(formik, line);
+                  setCustomizeOpen(false);
+                  setExistingCustomization(null);
+                  setSelectedProduct(null);
                 }}
               />
             </>

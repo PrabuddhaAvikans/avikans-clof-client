@@ -1,4 +1,5 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, useCallback, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Check, ChevronDown, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FormField } from './FormField';
@@ -48,8 +49,10 @@ export function SearchableSelect({
   const id = idProp ?? generatedId;
   const containerRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
 
   const selected = options.find((o) => o.value === value);
 
@@ -68,7 +71,11 @@ export function SearchableSelect({
     if (!open) return;
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        containerRef.current && !containerRef.current.contains(target) &&
+        dropdownRef.current && !dropdownRef.current.contains(target)
+      ) {
         setOpen(false);
       }
     };
@@ -76,6 +83,22 @@ export function SearchableSelect({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [open]);
+
+  const updateDropdownPosition = useCallback(() => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    setDropdownStyle({
+      position: 'fixed',
+      top: rect.bottom + 4,
+      left: rect.left,
+      width: rect.width,
+      zIndex: 9999,
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (open) updateDropdownPosition();
+  }, [open, updateDropdownPosition]);
 
   useEffect(() => {
     if (open) {
@@ -134,8 +157,8 @@ export function SearchableSelect({
         </span>
       </button>
 
-      {open && (
-        <div className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-popover shadow-md">
+      {open && createPortal(
+        <div ref={dropdownRef} style={dropdownStyle} className="rounded-lg border border-border bg-popover shadow-md">
           <div className="border-b border-border p-2">
             <input
               ref={searchRef}
@@ -184,7 +207,8 @@ export function SearchableSelect({
               </li>
             )}
           </ul>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

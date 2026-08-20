@@ -23,6 +23,7 @@ import type {
 } from "@/services";
 import type {
   InventoryItem,
+  InventoryPriceHistoryEntry,
   StockMovement,
   StockMovementTypeValue,
 } from "@/types/inventory";
@@ -41,6 +42,7 @@ type RecordMovementArg = {
 export type InventoryState = {
   lists: Record<string, AsyncEntry<ListData>>;
   details: Record<string, AsyncEntry<InventoryItem>>;
+  priceHistory: Record<string, AsyncEntry<InventoryPriceHistoryEntry[]>>;
   lowStock: Record<string, AsyncEntry<InventoryItem[]>>;
   movements: Record<string, AsyncEntry<MovementsData>>;
   create: MutationEntry;
@@ -51,6 +53,7 @@ export type InventoryState = {
 const initialState: InventoryState = {
   lists: emptyCache(),
   details: emptyCache(),
+  priceHistory: emptyCache(),
   lowStock: emptyCache(),
   movements: emptyCache(),
   create: createMutationEntry(),
@@ -70,6 +73,14 @@ function invalidateCaches(state: InventoryState): void {
   invalidateEntries(state.lists);
   invalidateEntries(state.lowStock);
   invalidateEntries(state.movements);
+}
+
+function invalidatePriceHistory(state: InventoryState, itemId: string): void {
+  for (const key of Object.keys(state.priceHistory)) {
+    if (key.includes(itemId)) {
+      delete state.priceHistory[key];
+    }
+  }
 }
 
 const inventorySlice = createSlice({
@@ -94,6 +105,19 @@ const inventorySlice = createSlice({
     },
     fetchDetailFailure(state, action: PayloadAction<FailurePayload>) {
       setEntryFailure(state.details, action);
+    },
+
+    fetchPriceHistoryRequest(state, action: PayloadAction<RequestPayload<string>>) {
+      if (action.payload.key) setEntryLoading(state.priceHistory, action.payload.key);
+    },
+    fetchPriceHistorySuccess(
+      state,
+      action: PayloadAction<SuccessPayload<InventoryPriceHistoryEntry[]>>,
+    ) {
+      setEntrySuccess(state.priceHistory, action);
+    },
+    fetchPriceHistoryFailure(state, action: PayloadAction<FailurePayload>) {
+      setEntryFailure(state.priceHistory, action);
     },
 
     fetchLowStockRequest(state, action: PayloadAction<RequestPayload<null>>) {
@@ -126,6 +150,7 @@ const inventorySlice = createSlice({
       setMutationSuccess(state.create);
       upsertDetail(state, action.payload.data);
       invalidateCaches(state);
+      invalidatePriceHistory(state, action.payload.data.id);
     },
     createFailure(state, action: PayloadAction<FailurePayload>) {
       setMutationFailure(state.create, action);
@@ -138,6 +163,7 @@ const inventorySlice = createSlice({
       setMutationSuccess(state.update);
       upsertDetail(state, action.payload.data);
       invalidateCaches(state);
+      invalidatePriceHistory(state, action.payload.data.id);
     },
     updateFailure(state, action: PayloadAction<FailurePayload>) {
       setMutationFailure(state.update, action);
@@ -161,6 +187,7 @@ const inventorySlice = createSlice({
     invalidateAll(state) {
       invalidateCaches(state);
       invalidateEntries(state.details);
+      invalidateEntries(state.priceHistory);
     },
   },
 });

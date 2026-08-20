@@ -26,6 +26,7 @@ import {
   ProofOfDeliveryPage,
 } from "@/features/delivery/pages/DeliveryPages";
 import {
+  InventoryDetailPage,
   InventoryFormPage,
   InventoryListPage,
   LowStockPage,
@@ -66,7 +67,7 @@ import {
 } from "@/features/sales/pages/SalesPages";
 import { FinanceInvoicesPage, FinanceCreditNotesPage } from "@/features/finance/pages/FinancePages";
 import { CostingApprovalWorkspacePage } from "@/features/costing/pages/CostingApprovalWorkspacePage";
-import { CoatingRequestsWorkspacePage } from "@/features/costing/pages/CoatingRequestsWorkspacePage";
+import { EstimationWorkspacePage } from "@/features/costing/pages/EstimationWorkspacePage";
 import { NotFoundPage } from "@/features/shared/pages/NotFoundPage";
 
 export const PAGE_REGISTRY = {
@@ -75,7 +76,7 @@ export const PAGE_REGISTRY = {
   EstimateFormPage,
   QuotationPreviewPage,
   CostingApprovalWorkspacePage,
-  CoatingRequestsWorkspacePage,
+  EstimationWorkspacePage,
   SalesOrderWorkspacePage,
   SalesOrderFormPage,
   SalesOrderReviewPage,
@@ -97,6 +98,7 @@ export const PAGE_REGISTRY = {
   PriceListsPage,
   ProductDetailPage,
   InventoryListPage,
+  InventoryDetailPage,
   InventoryFormPage,
   StockOverviewPage,
   StockMovementsPage,

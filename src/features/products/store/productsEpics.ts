@@ -33,6 +33,32 @@ const updateEpic = createAsyncEpic({
   mode: "merge",
 });
 
+const updateVersionEpic = createAsyncEpic({
+  request: productsActions.updateVersionRequest,
+  success: productsActions.updateVersionSuccess,
+  failure: productsActions.updateVersionFailure,
+  handler: ({ productId, versionId, data }) =>
+    productService.updateVersion(productId, versionId, data),
+  mode: "merge",
+});
+
+const reviseVersionEpic = createAsyncEpic({
+  request: productsActions.reviseVersionRequest,
+  success: productsActions.reviseVersionSuccess,
+  failure: productsActions.reviseVersionFailure,
+  handler: ({ productId, sourceVersionId, revisionNotes }) =>
+    productService.reviseVersion(productId, sourceVersionId, revisionNotes),
+  mode: "merge",
+});
+
+const updateHeaderEpic = createAsyncEpic({
+  request: productsActions.updateHeaderRequest,
+  success: productsActions.updateHeaderSuccess,
+  failure: productsActions.updateHeaderFailure,
+  handler: ({ productId, data }) => productService.updateHeader(productId, data),
+  mode: "merge",
+});
+
 const deleteEpic = createAsyncEpic({
   request: productsActions.deleteRequest,
   success: productsActions.deleteSuccess,
@@ -49,5 +75,8 @@ export const productsEpic = combineEpics(
   fetchDetailEpic,
   createEpic,
   updateEpic,
+  updateVersionEpic,
+  reviseVersionEpic,
+  updateHeaderEpic,
   deleteEpic,
 );

@@ -3,7 +3,12 @@ import { useEpicQuery } from "@/app/store/async/useEpicQuery";
 import type { RootState } from "@/app/store";
 import { productsActions } from "@/features/products/store/productsSlice";
 import type { ProductListFilters } from "@/services";
-import type { Product, ProductFormData } from "@/types/product";
+import type {
+  Product,
+  ProductFormData,
+  ProductHeaderFormData,
+  ProductVersionFormData,
+} from "@/types/product";
 import type { PaginatedResponse } from "@/types/common";
 
 export function useProducts(filters: ProductListFilters) {
@@ -38,6 +43,36 @@ export function useUpdateProduct() {
   >({
     request: productsActions.updateRequest,
     selectMutation: (state: RootState) => state.products.update,
+  });
+}
+
+export function useUpdateProductVersion() {
+  return useEpicMutation<
+    { productId: string; versionId: string; data: ProductVersionFormData },
+    Product
+  >({
+    request: productsActions.updateVersionRequest,
+    selectMutation: (state: RootState) => state.products.updateVersion,
+  });
+}
+
+export function useReviseProductVersion() {
+  return useEpicMutation<
+    { productId: string; sourceVersionId: string; revisionNotes?: string },
+    Product
+  >({
+    request: productsActions.reviseVersionRequest,
+    selectMutation: (state: RootState) => state.products.reviseVersion,
+  });
+}
+
+export function useUpdateProductHeader() {
+  return useEpicMutation<
+    { productId: string; data: ProductHeaderFormData },
+    Product
+  >({
+    request: productsActions.updateHeaderRequest,
+    selectMutation: (state: RootState) => state.products.updateHeader,
   });
 }
 

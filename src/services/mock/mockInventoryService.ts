@@ -5,17 +5,31 @@ import {
   nowIso,
 } from "@/services/http";
 import type {
+  InventoryFormData,
   InventoryService,
   StockMovementFilters,
 } from "@/services/interfaces/inventoryService";
 import { applyListQuery, cloneData } from "@/services/mock/helpers";
 import { initialInventoryItems } from "@/services/mock/data/inventory";
+import { initialInventoryPriceHistory } from "@/services/mock/data/inventory-price-history";
+import {
+  buildInventoryItemFromForm,
+  createPriceHistoryEntry,
+  hasPricingChanged,
+  resolveSellingPrice,
+} from "@/services/mock/inventoryHelpers";
 import { initialStockMovements } from "@/services/mock/data/stock-movements";
-import type { InventoryItem, StockMovement } from "@/types/inventory";
+import type {
+  InventoryItem,
+  InventoryPriceHistoryEntry,
+  StockMovement,
+} from "@/types/inventory";
+import { normalizeInventoryItem } from "@/types/inventory";
 import type { StockStatusValue } from "@/types/status";
 
-let inventoryItems = cloneData(initialInventoryItems);
+let inventoryItems = cloneData(initialInventoryItems).map(normalizeInventoryItem);
 let stockMovements = cloneData(initialStockMovements);
+let priceHistory = cloneData(initialInventoryPriceHistory);
 
 function computeStockStatus(item: InventoryItem): StockStatusValue {
   if (item.quantityAvailable <= 0) return "out_of_stock";
@@ -25,11 +39,46 @@ function computeStockStatus(item: InventoryItem): StockStatusValue {
 }
 
 function refreshStockStatus(item: InventoryItem): InventoryItem {
-  return {
+  return normalizeInventoryItem({
     ...item,
-    quantityAvailable: item.quantityOnHand - item.quantityReserved,
-    stockStatus: computeStockStatus(item),
-  };
+    stockStatus: computeStockStatus({
+      ...item,
+      quantityAvailable: item.quantityOnHand - item.quantityReserved,
+    }),
+  });
+}
+
+function applyFormData(item: InventoryItem, data: Partial<InventoryFormData>): InventoryItem {
+  const merged = { ...item, ...data };
+  const costPrice = data.costPrice ?? item.costPrice;
+  const pricingMethod = data.pricingMethod ?? item.pricingMethod;
+  const markupPercent = data.markupPercent ?? item.markupPercent;
+  const markupFixedAmount = data.markupFixedAmount ?? item.markupFixedAmount;
+  const sellingPrice = resolveSellingPrice({
+    costPrice,
+    pricingMethod,
+    markupPercent,
+    markupFixedAmount,
+    sellingPrice: data.sellingPrice ?? item.sellingPrice,
+  });
+
+  return refreshStockStatus({
+    ...merged,
+    costPrice,
+    unitCost: costPrice,
+    pricingMethod,
+    markupPercent,
+    markupFixedAmount,
+    sellingPrice,
+    pricingEffectiveDate: data.pricingEffectiveDate ?? item.pricingEffectiveDate,
+    updatedAt: nowIso(),
+  });
+}
+
+function recordPriceHistoryIfChanged(previous: InventoryItem, next: InventoryItem): void {
+  if (!hasPricingChanged(previous, next)) return;
+  const timestamp = nowIso();
+  priceHistory.unshift(createPriceHistoryEntry(next, generateId("iph"), timestamp));
 }
 
 export const mockInventoryService: InventoryService = {
@@ -38,12 +87,14 @@ export const mockInventoryService: InventoryService = {
     return applyListQuery(
       inventoryItems,
       filters,
-      ["name", "sku", "description", "category", "location"],
+      ["name", "sku", "description", "category", "location", "warehouse", "brand"],
       (item) => {
         if (filters.category && item.category !== filters.category) return false;
+        if (filters.itemType && item.itemType !== filters.itemType) return false;
         if (filters.stockStatus && item.stockStatus !== filters.stockStatus) return false;
         if (filters.status && item.status !== filters.status) return false;
         if (filters.location && item.location !== filters.location) return false;
+        if (filters.warehouse && item.warehouse !== filters.warehouse) return false;
         return true;
       },
     );
@@ -59,16 +110,14 @@ export const mockInventoryService: InventoryService = {
   async create(data) {
     await delay();
     const timestamp = nowIso();
-    const item = refreshStockStatus({
-      id: generateId("inv"),
-      ...data,
-      quantityReserved: 0,
-      quantityAvailable: data.quantityOnHand,
-      stockStatus: "in_stock",
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    });
+    const item = refreshStockStatus(
+      buildInventoryItemFromForm(generateId("inv"), data, {
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }),
+    );
     inventoryItems.push(item);
+    priceHistory.unshift(createPriceHistoryEntry(item, generateId("iph"), timestamp));
     return item;
   },
 
@@ -76,12 +125,11 @@ export const mockInventoryService: InventoryService = {
     await delay();
     const index = inventoryItems.findIndex((i) => i.id === id);
     if (index === -1) notFoundError("InventoryItem", id);
-    inventoryItems[index] = refreshStockStatus({
-      ...inventoryItems[index],
-      ...data,
-      updatedAt: nowIso(),
-    });
-    return inventoryItems[index];
+    const previous = inventoryItems[index];
+    const next = applyFormData(previous, data);
+    recordPriceHistoryIfChanged(previous, next);
+    inventoryItems[index] = next;
+    return next;
   },
 
   async delete(id) {
@@ -158,5 +206,16 @@ export const mockInventoryService: InventoryService = {
     };
     stockMovements.unshift(movement);
     return movement;
+  },
+
+  async getPriceHistory(inventoryItemId) {
+    await delay();
+    const item = inventoryItems.find((i) => i.id === inventoryItemId);
+    if (!item) notFoundError("InventoryItem", inventoryItemId);
+    return priceHistory
+      .filter((entry) => entry.inventoryItemId === inventoryItemId)
+      .sort(
+        (a, b) => new Date(b.effectiveDate).getTime() - new Date(a.effectiveDate).getTime(),
+      );
   },
 };

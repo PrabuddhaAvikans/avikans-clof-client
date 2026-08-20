@@ -17,6 +17,13 @@ const fetchDetailEpic = createAsyncEpic({
   handler: (id) => inventoryService.getById(id),
 });
 
+const fetchPriceHistoryEpic = createAsyncEpic({
+  request: inventoryActions.fetchPriceHistoryRequest,
+  success: inventoryActions.fetchPriceHistorySuccess,
+  failure: inventoryActions.fetchPriceHistoryFailure,
+  handler: (id) => inventoryService.getPriceHistory(id),
+});
+
 const fetchLowStockEpic = createAsyncEpic({
   request: inventoryActions.fetchLowStockRequest,
   success: inventoryActions.fetchLowStockSuccess,
@@ -59,6 +66,7 @@ const recordMovementEpic = createAsyncEpic({
 export const inventoryEpic = combineEpics(
   fetchListEpic,
   fetchDetailEpic,
+  fetchPriceHistoryEpic,
   fetchLowStockEpic,
   fetchMovementsEpic,
   createEpic,

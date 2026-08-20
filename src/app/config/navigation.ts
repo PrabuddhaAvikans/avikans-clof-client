@@ -62,9 +62,9 @@ export const NAVIGATION: NavItem[] = [
     icon: "ClipboardCheck",
     children: [
       {
-        id: "ops-coating",
-        label: "Coating Requests",
-        path: ROUTES.coating.workspace,
+        id: "ops-estimation",
+        label: "Product Estimation",
+        path: ROUTES.estimation.workspace,
         icon: "Layers",
         permission: "quotations:view",
       },

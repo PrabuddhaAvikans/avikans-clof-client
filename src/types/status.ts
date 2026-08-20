@@ -148,12 +148,41 @@ export const CostingRiskFlag = {
 export type CostingRiskFlagValue = keyof typeof CostingRiskFlag;
 
 export const CoatingStatus = {
-  pending: { label: "Awaiting Coating", variant: "warning" },
-  submitted: { label: "Coating Submitted", variant: "info" },
+  pending: { label: "Awaiting Estimation", variant: "warning" },
+  submitted: { label: "Estimation Submitted", variant: "info" },
   skipped: { label: "Not Required", variant: "secondary" },
 } as const satisfies Record<string, StatusDefinition>;
 
 export type CoatingStatusValue = keyof typeof CoatingStatus;
+
+export const ProductVersionStatus = {
+  draft: { label: "Draft", variant: "secondary" },
+  specification_defined: { label: "Specification Defined", variant: "info" },
+  bom_defined: { label: "BOM Defined", variant: "info" },
+  costing_in_progress: { label: "Costing In Progress", variant: "warning" },
+  costed: { label: "Costed", variant: "info" },
+  pending_approval: { label: "Pending Approval", variant: "warning" },
+  approved: { label: "Approved", variant: "success" },
+  released: { label: "Released", variant: "success" },
+  revision_required: { label: "Revision Required", variant: "warning" },
+  rejected: { label: "Rejected", variant: "destructive" },
+  cancelled: { label: "Cancelled", variant: "destructive" },
+  obsolete: { label: "Obsolete", variant: "outline" },
+} as const satisfies Record<string, StatusDefinition>;
+
+export type ProductVersionStatusValue = keyof typeof ProductVersionStatus;
+
+/** Lifecycle for quotation-level product customizations (does not alter master product). */
+export const QuotationCustomizationStatus = {
+  draft: { label: "Draft", variant: "secondary" },
+  estimated: { label: "Estimated", variant: "info" },
+  pending_approval: { label: "Pending Approval", variant: "warning" },
+  approved: { label: "Approved", variant: "success" },
+  rejected: { label: "Rejected", variant: "destructive" },
+} as const satisfies Record<string, StatusDefinition>;
+
+export type QuotationCustomizationStatusValue =
+  keyof typeof QuotationCustomizationStatus;
 
 export type StatusMap = Record<string, StatusDefinition>;
 
@@ -171,6 +200,8 @@ const STATUS_MAPS: readonly StatusMap[] = [
   CostingRequestStatus,
   CostingRiskFlag,
   CoatingStatus,
+  ProductVersionStatus,
+  QuotationCustomizationStatus,
 ];
 
 export function getStatusLabel(

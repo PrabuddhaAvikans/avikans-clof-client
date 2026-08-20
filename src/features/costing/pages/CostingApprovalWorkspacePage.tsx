@@ -177,7 +177,7 @@ export function CostingApprovalWorkspacePage() {
     <PageContainer maxWidth="full" className="py-3">
       <PageHeader
         title="Costing & Approval Workspace"
-        description="Quotation → Sales Order → Coating → Costing Approval → Confirm."
+        description="Quotation → Sales Order → Product Estimation → Costing Approval → Confirm."
         className="mb-2"
         actions={
           <>
@@ -185,9 +185,9 @@ export function CostingApprovalWorkspacePage() {
               variant="primary"
               size="sm"
               leftIcon={<Plus className="h-4 w-4" />}
-              onClick={() => navigate(ROUTES.coating.workspace)}
+              onClick={() => navigate(ROUTES.estimation.workspace)}
             >
-              Coating Requests
+              Product Estimation
             </Button>
             {/* <Button
               variant="outline"
@@ -264,10 +264,10 @@ export function CostingApprovalWorkspacePage() {
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
                     onClick={() => {
                       setShowMoreMenu(false);
-                      navigate(ROUTES.coating.workspace);
+                      navigate(ROUTES.estimation.workspace);
                     }}
                   >
-                    Coating requests
+                    Product estimation
                   </button>
                   <button
                     type="button"

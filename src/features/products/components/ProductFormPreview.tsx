@@ -26,9 +26,11 @@ function PreviewRow({ label, value }: { label: string; value: string }) {
 export function ProductFormPreview({
   categoryLabel,
   brandLabel,
+  previewImageUrl,
 }: {
   categoryLabel: string;
   brandLabel: string;
+  previewImageUrl?: string;
 }) {
   const { values } = useFormikContext<ProductFormSchemaValues>();
   const statusLabel = values.status === "active" ? "Active" : "Draft";
@@ -36,8 +38,16 @@ export function ProductFormPreview({
   return (
     <aside className="space-y-3">
       <section className="overflow-hidden rounded-md border border-border bg-card">
-        <div className="flex aspect-[4/3] items-center justify-center border-b border-border bg-muted">
-          <ImageIcon className="h-10 w-10 text-muted-foreground" aria-hidden />
+        <div className="flex aspect-[4/3] items-center justify-center overflow-hidden border-b border-border bg-muted">
+          {previewImageUrl ? (
+            <img
+              src={previewImageUrl}
+              alt={values.name || "Product preview"}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <ImageIcon className="h-10 w-10 text-muted-foreground" aria-hidden />
+          )}
         </div>
         <div className="space-y-3 p-3">
           <div>

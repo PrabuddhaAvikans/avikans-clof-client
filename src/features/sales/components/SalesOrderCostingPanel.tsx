@@ -44,7 +44,7 @@ export function SalesOrderCostingPanel({
   return (
     <div className={cn(workspacePanelShell, className)}>
       <div className="border-b border-border px-4 py-3">
-        <h2 className="text-sm font-semibold text-foreground">Coating & Costing</h2>
+        <h2 className="text-sm font-semibold text-foreground">Estimation & Costing</h2>
         <p className="mt-0.5 text-xs text-muted-foreground">
           Required before order confirmation
         </p>
@@ -54,7 +54,7 @@ export function SalesOrderCostingPanel({
         {!costing ? (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              This sales order has no coating or costing request yet.
+              This sales order has no estimation or costing request yet.
             </p>
             <Button
               type="button"
@@ -64,14 +64,14 @@ export function SalesOrderCostingPanel({
               loading={isCreating}
               onClick={onCreateCosting}
             >
-              Create coating request
+              Create estimation request
             </Button>
           </div>
         ) : (
           <>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               <div className="rounded-md border border-border p-3">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">1. Coating</p>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">1. Estimation</p>
                 <div className="mt-1">
                   <MappedStatusBadge statusMap={CoatingStatus} value={costing.coatingStatus} dot />
                 </div>
@@ -113,14 +113,14 @@ export function SalesOrderCostingPanel({
             )}
 
             <div className="flex flex-wrap gap-2">
-              <Link to={ROUTES.coating.forOrder(order.id)}>
+              <Link to={ROUTES.estimation.forOrder(order.id)}>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   leftIcon={<Layers className="h-4 w-4" />}
                 >
-                  Open coating
+                  Open estimation
                 </Button>
               </Link>
               <Link to={ROUTES.costing.forOrder(order.id)}>

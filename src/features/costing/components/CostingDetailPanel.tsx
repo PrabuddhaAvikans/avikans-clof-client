@@ -126,7 +126,7 @@ export function CostingDetailPanel({
         {request.coatingItems.length > 0 && (
           <section>
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Coating
+              Coating / Finishing
             </h3>
             <div className="overflow-x-auto rounded-md border border-border">
               <table className="w-full text-sm">

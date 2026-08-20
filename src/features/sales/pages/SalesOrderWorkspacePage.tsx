@@ -134,7 +134,7 @@ export function SalesOrderWorkspacePage() {
       toast.error(
         error instanceof Error
           ? error.message
-          : "Complete coating and costing approval before confirming.",
+          : "Complete estimation and costing approval before confirming.",
       );
     }
   }, [activeOrder, confirmOrder]);
@@ -143,9 +143,9 @@ export function SalesOrderWorkspacePage() {
     if (!activeOrder) return;
     try {
       const created = await createCosting.mutateAsync(activeOrder);
-      toast.success(`Coating request ${created.requestNumber} created`);
+      toast.success(`Estimation request ${created.requestNumber} created`);
     } catch {
-      toast.error("Failed to create coating request");
+      toast.error("Failed to create estimation request");
     }
   }, [activeOrder, createCosting]);
 
@@ -244,7 +244,7 @@ export function SalesOrderWorkspacePage() {
     <PageContainer maxWidth="full" className="py-3">
       <PageHeader
         title="Sales Orders"
-        description="Quotation → Sales Order → Coating → Costing Approval → Confirm."
+        description="Quotation → Sales Order → Product Estimation → Costing Approval → Confirm."
         className="mb-2"
         actions={
           <>

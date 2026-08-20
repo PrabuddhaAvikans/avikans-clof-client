@@ -64,7 +64,7 @@ function MaterialPreviewSync({
         inventoryItemId: bom.inventoryItemId,
         inventoryItemSku: bom.sku,
         inventoryItemName: bom.inventoryItemName,
-        requiredQuantity: bom.quantity * values.quantity,
+        requiredQuantity: (bom.requiredQuantity ?? bom.quantity) * values.quantity,
         reservedQuantity: 0,
         issuedQuantity: 0,
         unit: bom.unit,

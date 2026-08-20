@@ -1,6 +1,15 @@
-import type { ManufacturingJob } from "@/types/manufacturing";
+import type { ManufacturingJob, Operation } from "@/types/manufacturing";
 
-export const initialManufacturingJobs: ManufacturingJob[] = [
+type PartialOp = Omit<Operation, "isRequired" | "isEnabled"> & {
+  isRequired?: boolean;
+  isEnabled?: boolean;
+};
+
+function withDefaults(ops: PartialOp[]): Operation[] {
+  return ops.map((op) => ({ isRequired: true, isEnabled: true, ...op }));
+}
+
+const rawJobs: (Omit<ManufacturingJob, "operations"> & { operations: PartialOp[] })[] = [
   {
     id: "mj-001",
     jobNumber: "JC-2025-1187",
@@ -456,3 +465,8 @@ export const initialManufacturingJobs: ManufacturingJob[] = [
     updatedAt: "2025-07-29T09:00:00Z",
   },
 ];
+
+export const initialManufacturingJobs: ManufacturingJob[] = rawJobs.map((j) => ({
+  ...j,
+  operations: withDefaults(j.operations),
+}));

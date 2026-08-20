@@ -1,15 +1,19 @@
 import { FieldArray, useFormikContext } from "formik";
-import { Plus, Trash2 } from "lucide-react";
+import { PackagePlus, SlidersHorizontal, Trash2 } from "lucide-react";
 import { FormikInput } from "@/components/forms";
 import { Button } from "@/components/ui/Button";
+import { MappedStatusBadge } from "@/features/shared/components/MappedStatusBadge";
 import { SalesFormSection } from "@/features/sales/components/SalesFormSection";
 import {
   computeLineAmounts,
   computeQuotationTotals,
   type QuotationLineItemFormValues,
 } from "@/features/sales/schemas/quotationSchema";
+import { getChangedSpecDiffs } from "@/lib/quotationCustomization";
 import { getAppCountryConfig } from "@/lib/countryConfig";
 import { formatCurrency } from "@/lib/format";
+import type { QuotationProductCustomization } from "@/types/quotation";
+import { QuotationCustomizationStatus } from "@/types/status";
 
 type LineItemFormValues = {
   lineItems: QuotationLineItemFormValues[];
@@ -18,14 +22,16 @@ type LineItemFormValues = {
 
 interface QuotationLineItemsTableProps {
   onAddProduct: () => void;
+  onCustomizeLine?: (index: number) => void;
   title?: string;
   description?: string;
 }
 
 export function QuotationLineItemsTable({
   onAddProduct,
+  onCustomizeLine,
   title = "Line Items",
-  description = "Add products with quantity, unit price, discounts, and tax rates.",
+  description = "Add products with quantity, unit price, discounts, and tax rates. Use Customize for customer-specific configurations without changing the master product.",
 }: QuotationLineItemsTableProps) {
   const { values, errors } = useFormikContext<LineItemFormValues>();
   const documentTotals = computeQuotationTotals(
@@ -48,8 +54,8 @@ export function QuotationLineItemsTable({
           type="button"
           variant="ghost"
           size="sm"
-          className="h-7 text-[11px] text-blue-600"
-          leftIcon={<Plus className="h-3.5 w-3.5" />}
+          className="h-7 shrink-0 text-[11px] text-blue-600"
+          leftIcon={<PackagePlus className="h-4 w-4" aria-hidden />}
           onClick={onAddProduct}
         >
           Add Product
@@ -62,7 +68,7 @@ export function QuotationLineItemsTable({
       <FieldArray name="lineItems">
         {({ remove }) => (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-[12px]">
+            <table className="w-full min-w-[860px] text-[12px]">
               <thead>
                 <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted-foreground">
                   <th className="py-1.5 pr-2">Product</th>
@@ -86,6 +92,17 @@ export function QuotationLineItemsTable({
                 ) : (
                   values.lineItems.map((item, index) => {
                     const amounts = computeLineAmounts(item);
+                    const customization = item.customization as
+                      | QuotationProductCustomization
+                      | undefined;
+                    const changedSpecs =
+                      item.isCustomized && customization
+                        ? getChangedSpecDiffs(
+                            customization.base.specifications,
+                            customization.customizedSpecifications,
+                          )
+                        : [];
+
                     return (
                       <tr
                         key={`${item.productId}-${index}`}
@@ -93,7 +110,57 @@ export function QuotationLineItemsTable({
                       >
                         <td className="py-1.5 pr-2">
                           <p className="font-medium text-foreground">{item.productName}</p>
-                          <p className="text-[10px] text-muted-foreground">{item.productSku}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {item.productSku}
+                            {item.productVersionLabel
+                              ? ` · ${item.productVersionLabel}`
+                              : ""}
+                          </p>
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                            {item.isCustomized ? (
+                              <>
+                                <MappedStatusBadge
+                                  statusMap={QuotationCustomizationStatus}
+                                  value={customization?.status ?? "draft"}
+                                  dot
+                                />
+                                <span className="text-[10px] text-amber-700">
+                                  Customized
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-[10px] text-muted-foreground">
+                                Standard
+                              </span>
+                            )}
+                            {onCustomizeLine && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-1.5 text-[10px] text-blue-600"
+                                leftIcon={<SlidersHorizontal className="h-3 w-3" />}
+                                onClick={() => onCustomizeLine(index)}
+                              >
+                                {item.isCustomized ? "Edit Customization" : "Customize"}
+                              </Button>
+                            )}
+                          </div>
+                          {changedSpecs.length > 0 && (
+                            <ul className="mt-1 space-y-0.5 text-[10px] text-muted-foreground">
+                              {changedSpecs.slice(0, 4).map((diff) => (
+                                <li key={diff.key}>
+                                  {diff.label}: {diff.originalValue} →{" "}
+                                  <span className="text-foreground">
+                                    {diff.customizedValue}
+                                  </span>
+                                </li>
+                              ))}
+                              {changedSpecs.length > 4 && (
+                                <li>+{changedSpecs.length - 4} more</li>
+                              )}
+                            </ul>
+                          )}
                         </td>
                         <td className="py-1.5 pr-2">
                           <FormikInput

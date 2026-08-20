@@ -6,7 +6,7 @@ import type { SalesOrderStatusValue } from "@/types/status";
 export const SALES_ORDER_FLOW = [
   { id: "quotation", label: "Quotation" },
   { id: "sales_order", label: "Sales Order" },
-  { id: "coating", label: "Coating" },
+  { id: "coating", label: "Product Estimation" },
   { id: "costing_approval", label: "Costing Approval" },
   { id: "confirmed", label: "Confirmed" },
   { id: "in_manufacturing", label: "Manufacturing" },
@@ -48,10 +48,10 @@ export function getConfirmBlockReason(
     return null;
   }
   if (!costing) {
-    return "Create coating and costing for this sales order first.";
+    return "Create estimation and costing for this sales order first.";
   }
   if (costing.coatingStatus === "pending") {
-    return "Submit coating costs before costing approval.";
+    return "Submit product estimation before costing approval.";
   }
   if (costing.status !== "approved") {
     return "Costing must be approved before confirming this order.";
@@ -129,14 +129,14 @@ export function buildSalesOrderFlowSteps(
 
     if (step.id === "coating") {
       if (!costing) description = "Not created";
-      else if (costing.coatingStatus === "pending") description = "Awaiting coating costs";
+      else if (costing.coatingStatus === "pending") description = "Awaiting estimation";
       else if (costing.coatingStatus === "skipped") description = "Not required";
       else description = "Submitted";
     }
 
     if (step.id === "costing_approval") {
-      if (!costing) description = "Waiting for coating";
-      else if (costing.coatingStatus === "pending") description = "Waiting for coating";
+      if (!costing) description = "Waiting for estimation";
+      else if (costing.coatingStatus === "pending") description = "Waiting for estimation";
       else if (costing.status === "approved") description = costing.requestNumber;
       else if (costing.status === "rejected") description = "Rejected";
       else if (costing.status === "changes_requested") description = "Changes requested";

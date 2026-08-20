@@ -1,7 +1,6 @@
 import type { PaginatedRequest, PaginatedResponse } from "@/types/common";
 import type {
   Quotation,
-  QuotationContactEntry,
   QuotationContactType,
   QuotationLineItem,
 } from "@/types/quotation";
@@ -10,6 +9,7 @@ import type {
   QuotationStatusValue,
 } from "@/types/status";
 import type { SalesOrder } from "@/types/sales-order";
+import type { Product } from "@/types/product";
 
 export interface QuotationListFilters extends PaginatedRequest {
   status?: QuotationStatusValue;
@@ -44,4 +44,15 @@ export interface QuotationService {
   send(id: string): Promise<Quotation>;
   convertToSalesOrder(id: string): Promise<SalesOrder>;
   addContactEntry(id: string, data: QuotationContactInput): Promise<Quotation>;
+  /** Explicit optional action — does not run automatically on customization. */
+  promoteCustomizationToProductVersion(
+    quotationId: string,
+    lineItemId: string,
+    revisionNotes?: string,
+  ): Promise<{ quotation: Quotation; product: Product }>;
+  approveLineCustomization(
+    quotationId: string,
+    lineItemId: string,
+    notes?: string,
+  ): Promise<Quotation>;
 }

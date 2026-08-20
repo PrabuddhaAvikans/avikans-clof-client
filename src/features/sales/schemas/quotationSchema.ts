@@ -14,10 +14,15 @@ export const quotationLineItemSchema = yup.object({
   productSku: yup.string().min(1).required(),
   productName: yup.string().min(1).required(),
   description: yup.string().optional(),
+  productVersionId: yup.string().optional(),
+  productVersionLabel: yup.string().optional(),
   quantity: coerceNumber().required().positive('Quantity must be greater than 0'),
   unitPrice: coerceNumber().required().min(0, 'Unit price must be 0 or more'),
   discountPercent: coerceNumber().required().min(0).max(100),
   taxPercent: coerceNumber().required().min(0).max(100),
+  isCustomized: yup.boolean().optional(),
+  /** Full customization snapshot is validated loosely — structure enforced in UI helpers. */
+  customization: yup.mixed().optional(),
 });
 
 export const quotationFormSchema = yup

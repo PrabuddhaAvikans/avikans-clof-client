@@ -8,6 +8,7 @@ import type { ManufacturingService } from "@/services/interfaces/manufacturingSe
 import { applyListQuery, cloneData } from "@/services/mock/helpers";
 import { initialManufacturingJobs } from "@/services/mock/data/manufacturing";
 import { initialProducts } from "@/services/mock/data/products";
+import { migrateLegacyProduct } from "@/services/mock/productHelpers";
 import { initialSalesOrders } from "@/services/mock/data/sales-orders";
 import { initialUsers } from "@/services/mock/data/users";
 import type { ManufacturingJob } from "@/types/manufacturing";
@@ -47,8 +48,9 @@ export const mockManufacturingService: ManufacturingService = {
     await delay();
     const salesOrder = initialSalesOrders.find((o) => o.id === data.salesOrderId);
     if (!salesOrder) notFoundError("SalesOrder", data.salesOrderId);
-    const product = initialProducts.find((p) => p.id === data.productId);
-    if (!product) notFoundError("Product", data.productId);
+    const productSeed = initialProducts.find((p) => p.id === data.productId);
+    if (!productSeed) notFoundError("Product", data.productId);
+    const product = migrateLegacyProduct(productSeed);
 
     const assignee = data.assignedTo
       ? initialUsers.find((u) => u.id === data.assignedTo)
@@ -68,13 +70,28 @@ export const mockManufacturingService: ManufacturingService = {
       quantity: data.quantity,
       status: "draft",
       priority: data.priority,
-      operations: [],
+      operations: product.operations
+        .filter((op) => op.isEnabled)
+        .map((op) => ({
+          id: generateId("op"),
+          name: op.name,
+          sequence: op.sequence,
+          description: op.description,
+          workstation: op.workstation,
+          estimatedHours: op.estimatedHours,
+          labourCostRate: op.labourCostRate,
+          machineName: op.machineName,
+          machineCost: op.machineCost,
+          isRequired: op.isRequired,
+          isEnabled: op.isEnabled,
+          status: "pending" as const,
+        })),
       materialRequirements: product.bom.map((bom) => ({
         id: generateId("mr"),
         inventoryItemId: bom.inventoryItemId,
         inventoryItemSku: bom.sku,
         inventoryItemName: bom.inventoryItemName,
-        requiredQuantity: bom.quantity * data.quantity,
+        requiredQuantity: (bom.requiredQuantity ?? bom.quantity) * data.quantity,
         reservedQuantity: 0,
         issuedQuantity: 0,
         unit: bom.unit,

@@ -2,6 +2,9 @@ import type { PaginatedRequest, PaginatedResponse } from "@/types/common";
 import type { EntityStatus } from "@/types/common";
 import type {
   InventoryItem,
+  InventoryItemTypeValue,
+  InventoryPriceHistoryEntry,
+  PricingMethodValue,
   StockMovement,
   StockMovementTypeValue,
 } from "@/types/inventory";
@@ -9,9 +12,11 @@ import type { StockStatusValue } from "@/types/status";
 
 export interface InventoryListFilters extends PaginatedRequest {
   category?: string;
+  itemType?: InventoryItemTypeValue;
   stockStatus?: StockStatusValue;
   status?: EntityStatus;
   location?: string;
+  warehouse?: string;
 }
 
 export interface InventoryFormData {
@@ -19,13 +24,25 @@ export interface InventoryFormData {
   name: string;
   description?: string;
   category: string;
+  itemType: InventoryItemTypeValue;
   unit: string;
+  brand?: string;
+  supplier?: string;
+  taxCode?: string;
   quantityOnHand: number;
+  warehouse: string;
+  location: string;
+  minStock: number;
+  maxStock: number;
   reorderLevel: number;
   reorderQuantity: number;
-  unitCost: number;
-  location: string;
-  supplier?: string;
+  buyingPrice?: number;
+  costPrice: number;
+  pricingMethod: PricingMethodValue;
+  markupPercent: number;
+  markupFixedAmount: number;
+  sellingPrice: number;
+  pricingEffectiveDate: string;
   status: EntityStatus;
 }
 
@@ -48,4 +65,5 @@ export interface InventoryService {
     quantity: number,
     reference?: { referenceType: string; referenceId: string; notes?: string },
   ): Promise<StockMovement>;
+  getPriceHistory(inventoryItemId: string): Promise<InventoryPriceHistoryEntry[]>;
 }

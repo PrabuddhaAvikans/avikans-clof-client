@@ -39,7 +39,10 @@ import {
   useUpdateProduct,
 } from "@/features/products/hooks/useProducts";
 import { formatCurrency, formatDate } from "@/lib/format";
-import type { Product } from "@/types/product";
+import { getCurrentVersion } from "@/lib/productVersion";
+import { ProductVersionStatusBadge } from "@/features/products/components/ProductVersionStatusBadge";
+import type { Product, ProductTypeValue } from "@/types/product";
+import { ProductTypeLabels } from "@/types/product";
 import type { EntityStatus } from "@/types/common";
 import type { StockStatusValue } from "@/types/status";
 
@@ -145,6 +148,10 @@ export function ProductListPage() {
       description: product.description,
       categoryId: product.categoryId,
       brandId: product.brandId,
+      productType: product.productType,
+      customerId: product.customerId,
+      projectId: product.projectId,
+      projectName: product.projectName,
       basePrice: product.basePrice,
       costPrice: product.costPrice,
       status: "inactive",
@@ -154,6 +161,18 @@ export function ProductListPage() {
       tags: [...product.tags],
       weightKg: product.weightKg,
       dimensions: product.dimensions,
+      bom: product.bom.map((item) => ({
+        inventoryItemId: item.inventoryItemId,
+        inventoryItemName: item.inventoryItemName,
+        sku: item.sku,
+        quantity: item.quantity,
+        unit: item.unit,
+        unitCost: item.unitCost,
+        wastePercent: item.wastePercent,
+        isRequired: item.isRequired,
+        notes: item.notes,
+        alternatives: item.alternatives.map(({ id: _id, ...alt }) => alt),
+      })),
     });
   };
 
@@ -198,7 +217,24 @@ export function ProductListPage() {
       },
       { accessorKey: "sku", header: "SKU" },
       { accessorKey: "categoryName", header: "Category" },
-      { accessorKey: "brandName", header: "Brand" },
+      {
+        id: "productType",
+        header: "Type",
+        cell: ({ row }) => ProductTypeLabels[row.original.productType],
+      },
+      {
+        id: "version",
+        header: "Version",
+        cell: ({ row }) => {
+          const version = getCurrentVersion(row.original);
+          return (
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-medium">{version.label}</span>
+              <ProductVersionStatusBadge status={version.status} dot />
+            </div>
+          );
+        },
+      },
       {
         accessorKey: "basePrice",
         header: "Base Price",

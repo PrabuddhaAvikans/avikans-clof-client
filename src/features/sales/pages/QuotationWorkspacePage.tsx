@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { ArrowRightLeft, Copy, Mail, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
+import {
+  ArrowRightLeft,
+  Copy,
+  Mail,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { ROUTES } from "@/app/config/routes";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -22,6 +31,7 @@ import {
   useQuotations,
   useSendQuotation,
 } from "@/features/sales/hooks/useQuotations";
+import { quotationsActions } from "@/features/sales/store/quotationsSlice";
 import type { QuotationContactInput } from "@/services/interfaces/quotationService";
 import type { Quotation } from "@/types/quotation";
 import type { QuotationStatusValue } from "@/types/status";
@@ -34,6 +44,7 @@ import {
 
 export function QuotationWorkspacePage() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -101,10 +112,20 @@ export function QuotationWorkspacePage() {
             productSku: item.productSku,
             productName: item.productName,
             description: item.description,
+            productVersionId: item.productVersionId,
+            productVersionLabel: item.productVersionLabel,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
             discountPercent: item.discountPercent,
             taxPercent: item.taxPercent,
+            isCustomized: item.isCustomized,
+            customization: item.customization
+              ? {
+                  ...item.customization,
+                  isLocked: false,
+                  promotedProductVersionId: undefined,
+                }
+              : undefined,
           })),
           validUntil: quotation.validUntil,
           priority: quotation.priority,
@@ -175,7 +196,7 @@ export function QuotationWorkspacePage() {
     <PageContainer maxWidth="full" className="py-3">
       <PageHeader
         title="Quotation & Order Conversion"
-        description="Quotation → Sales Order → Coating → Costing Approval → Confirm."
+        description="Quotation → Sales Order → Product Estimation → Costing Approval → Confirm."
         className="mb-2"
         actions={
           <>
@@ -283,6 +304,15 @@ export function QuotationWorkspacePage() {
             <QuotationDetailPanel
               quotation={activeQuotation}
               onOpenContacts={() => setContactsOpen(true)}
+              onQuotationUpdated={(updated) => {
+                dispatch(
+                  quotationsActions.fetchDetailSuccess({
+                    key: updated.id,
+                    data: updated,
+                  }),
+                );
+                void refetch();
+              }}
               className={workspacePanelFill}
             />
           </div>

@@ -66,8 +66,8 @@
       "permission": "quotations:view"
     },
     {
-      "path": "operations/coating",
-      "page": "CoatingRequestsWorkspacePage",
+      "path": "operations/estimation",
+      "page": "EstimationWorkspacePage",
       "permission": "quotations:view"
     },
 
@@ -251,7 +251,7 @@
     },
     {
       "path": "inventory/:id",
-      "page": "InventoryFormPage",
+      "page": "InventoryDetailPage",
       "permission": "inventory:view"
     },
 

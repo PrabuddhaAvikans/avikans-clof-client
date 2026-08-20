@@ -109,6 +109,7 @@ export function CoatingDetailPanel({
                 quantity: item.quantity,
                 unitCost: item.unitCost,
               })),
+              materials: [],
               notes: request.notes,
             }}
             validationSchema={coatingSubmitSchema}

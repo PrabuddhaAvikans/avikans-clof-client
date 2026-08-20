@@ -6,6 +6,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { CostingRatesForm } from "@/features/admin/components/CostingRatesForm";
 import { COUNTRY_CONFIG, getCountryConfig } from "@/lib/countryConfig";
 import { DEFAULT_COUNTRY } from "@/lib/countries";
 
@@ -38,7 +39,8 @@ export function SystemSettingsPage() {
         breadcrumbs={[{ label: "Administration" }, { label: "Settings" }]}
       />
 
-      <div className="mx-auto max-w-xl space-y-4 rounded-lg border border-border bg-card p-6">
+      <div className="mx-auto max-w-xl space-y-6">
+        <div className="space-y-4 rounded-lg border border-border bg-card p-6">
         <Input
           label="Company Name"
           value={companyName}
@@ -78,6 +80,17 @@ export function SystemSettingsPage() {
         <Button variant="primary" leftIcon={<Save className="h-4 w-4" />} onClick={handleSave}>
           Save Settings
         </Button>
+      </div>
+
+      <div className="space-y-4 rounded-lg border border-border bg-card p-6">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Costing rates</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Fixed rates used to calculate labour, machine, coating, and overhead on products.
+          </p>
+        </div>
+        <CostingRatesForm />
+        </div>
       </div>
     </PageContainer>
   );

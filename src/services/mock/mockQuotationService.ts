@@ -9,9 +9,15 @@ import {
   computeLineTotal,
   computeQuotationTotals,
 } from "@/features/sales/schemas/quotationSchema";
+import {
+  deepCloneCustomization,
+  lockCustomization,
+  approveCustomization,
+} from "@/lib/quotationCustomization";
 import { applyListQuery, cloneData } from "@/services/mock/helpers";
 import { initialCustomers } from "@/services/mock/data/customers";
 import { initialQuotations } from "@/services/mock/data/quotations";
+import { mockProductService } from "@/services/mock/mockProductService";
 import { mockSalesOrderService } from "@/services/mock/mockSalesOrderService";
 import type { Quotation, QuotationContactEntry, QuotationLineItem } from "@/types/quotation";
 
@@ -24,6 +30,9 @@ function buildLineItems(
     ...item,
     id: generateId("qli"),
     lineTotal: computeLineTotal(item),
+    customization: item.customization
+      ? deepCloneCustomization(item.customization)
+      : undefined,
   }));
 }
 
@@ -41,6 +50,12 @@ function nextQuotationNumber(): string {
   const year = new Date().getFullYear();
   const count = quotations.length + 1;
   return `QT-${year}-${String(count).padStart(4, "0")}`;
+}
+
+function findLineOrThrow(quotation: Quotation, lineItemId: string): QuotationLineItem {
+  const line = quotation.lineItems.find((item) => item.id === lineItemId);
+  if (!line) notFoundError("QuotationLineItem", lineItemId);
+  return line;
 }
 
 export const mockQuotationService: QuotationService = {
@@ -156,6 +171,21 @@ export const mockQuotationService: QuotationService = {
     const index = quotations.findIndex((q) => q.id === id);
     if (index === -1) notFoundError("Quotation", id);
 
+    const pendingCustom = quotations[index].lineItems.find(
+      (line) =>
+        line.isCustomized &&
+        line.customization &&
+        (line.customization.status === "draft" ||
+          line.customization.status === "pending_approval"),
+    );
+    if (pendingCustom) {
+      throw {
+        code: "INVALID_STATE",
+        message:
+          "Customized lines must be estimated and approved before sending the quotation.",
+      };
+    }
+
     quotations[index] = {
       ...quotations[index],
       status: "sent",
@@ -225,18 +255,32 @@ export const mockQuotationService: QuotationService = {
       };
     }
 
+    // Freeze customization snapshots so SO does not re-read master product values.
+    const frozenLines = quotation.lineItems.map((item) => ({
+      ...item,
+      customization: item.customization
+        ? lockCustomization(deepCloneCustomization(item.customization))
+        : undefined,
+    }));
+
     const salesOrder = await mockSalesOrderService.create({
       customerId: quotation.customerId,
       quotationId: quotation.id,
-      lineItems: quotation.lineItems.map((item) => ({
+      lineItems: frozenLines.map((item) => ({
         productId: item.productId,
         productSku: item.productSku,
         productName: item.productName,
         description: item.description,
+        productVersionId: item.productVersionId,
+        productVersionLabel: item.productVersionLabel,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         discountPercent: item.discountPercent,
         taxPercent: item.taxPercent,
+        isCustomized: item.isCustomized,
+        customization: item.customization
+          ? deepCloneCustomization(item.customization)
+          : undefined,
       })),
       priority: quotation.priority,
       discountAmount: quotation.discountAmount,
@@ -245,11 +289,133 @@ export const mockQuotationService: QuotationService = {
     const qIndex = quotations.findIndex((q) => q.id === id);
     quotations[qIndex] = {
       ...quotations[qIndex],
+      lineItems: frozenLines,
       status: "converted",
       salesOrderId: salesOrder.id,
       updatedAt: nowIso(),
     };
 
     return salesOrder;
+  },
+
+  async approveLineCustomization(quotationId, lineItemId, notes) {
+    await delay();
+    const index = quotations.findIndex((q) => q.id === quotationId);
+    if (index === -1) notFoundError("Quotation", quotationId);
+
+    const quotation = quotations[index];
+    const line = findLineOrThrow(quotation, lineItemId);
+    if (!line.customization) {
+      throw {
+        code: "INVALID_STATE",
+        message: "Line item has no customization to approve.",
+      };
+    }
+
+    const approved = approveCustomization(line.customization, notes);
+    quotations[index] = {
+      ...quotation,
+      lineItems: quotation.lineItems.map((item) =>
+        item.id === lineItemId
+          ? { ...item, customization: approved, isCustomized: true }
+          : item,
+      ),
+      updatedAt: nowIso(),
+    };
+    return quotations[index];
+  },
+
+  async promoteCustomizationToProductVersion(quotationId, lineItemId, revisionNotes) {
+    await delay();
+    const index = quotations.findIndex((q) => q.id === quotationId);
+    if (index === -1) notFoundError("Quotation", quotationId);
+
+    const quotation = quotations[index];
+    const line = findLineOrThrow(quotation, lineItemId);
+    if (!line.customization || !line.isCustomized) {
+      throw {
+        code: "INVALID_STATE",
+        message: "Only customized quotation lines can be promoted to a product version.",
+      };
+    }
+
+    const customization = line.customization;
+    const sourceVersionId = customization.base.productVersionId;
+
+    // Explicit reuse action: create a new draft master version from the base, then apply customization.
+    let product = await mockProductService.reviseVersion(
+      line.productId,
+      sourceVersionId,
+      revisionNotes ??
+        `Promoted from quotation ${quotation.quotationNumber} customization`,
+    );
+
+    const newVersion = product.versions[product.versions.length - 1];
+    product = await mockProductService.updateVersion(line.productId, newVersion.id, {
+      specifications: customization.customizedSpecifications,
+      bom: customization.customizedBom.map((item) => ({
+        inventoryItemId: item.inventoryItemId,
+        inventoryItemName: item.inventoryItemName,
+        sku: item.sku,
+        quantity: item.quantity,
+        unit: item.unit,
+        unitCost: item.unitCost,
+        wastePercent: item.wastePercent,
+        isRequired: item.isRequired,
+        notes: item.notes,
+        sequence: item.sequence,
+        alternatives: item.alternatives.map(({ id: _id, ...alt }) => alt),
+      })),
+      operations: customization.customizedOperations.map((op) => ({
+        name: op.name,
+        sequence: op.sequence,
+        description: op.description,
+        workstation: op.workstation,
+        estimatedHours: op.estimatedHours,
+        labourCostRate: op.labourCostRate,
+        machineName: op.machineName,
+        machineCost: op.machineCost,
+        isRequired: op.isRequired,
+        isEnabled: op.isEnabled,
+        notes: op.notes,
+      })),
+      costBreakdown: customization.estimation.costBreakdown,
+      basePrice: customization.estimation.sellingPrice,
+      costPrice: customization.estimation.costPrice,
+      revisionNotes:
+        revisionNotes ??
+        `Created from quotation ${quotation.quotationNumber} customer customization`,
+    });
+
+    const promotedVersion = product.versions[product.versions.length - 1];
+    const timestamp = nowIso();
+    const updatedCustomization = {
+      ...deepCloneCustomization(customization),
+      promotedProductVersionId: promotedVersion.id,
+      updatedAt: timestamp,
+      history: [
+        {
+          id: generateId("qchx"),
+          at: timestamp,
+          by: "usr-001",
+          byName: "Prabuddha Jayawardhana",
+          action: "promoted_to_version",
+          detail: `Created ${promotedVersion.label} on master product (explicit reuse)`,
+        },
+        ...customization.history,
+      ],
+    };
+
+    quotations[index] = {
+      ...quotation,
+      lineItems: quotation.lineItems.map((item) =>
+        item.id === lineItemId
+          ? { ...item, customization: updatedCustomization }
+          : item,
+      ),
+      updatedAt: timestamp,
+    };
+
+    return { quotation: quotations[index], product };
   },
 };

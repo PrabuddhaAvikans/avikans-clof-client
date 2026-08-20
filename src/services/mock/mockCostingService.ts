@@ -10,9 +10,11 @@ import type {
 } from "@/services/interfaces/costingService";
 import {
   applyCoatingItems,
+  applyEstimationMaterials,
   buildCostingFromSalesOrder,
   normalizeCostingRequest,
 } from "@/services/mock/costingFactory";
+import { resolveSalesOrderLineContexts } from "@/lib/costingFromQuotationLine";
 import { applyListQuery, cloneData } from "@/services/mock/helpers";
 import { initialCostingRequests } from "@/services/mock/data/costing";
 import { initialSalesOrderCostingRequests } from "@/services/mock/data/sales-order-costing";
@@ -101,10 +103,12 @@ export const mockCostingService: CostingService = {
     const existing = costingRequests.find((item) => item.salesOrderId === order.id);
     if (existing) return existing;
 
+    const lineContexts = await resolveSalesOrderLineContexts(order);
     const request = buildCostingFromSalesOrder(order, {
       requestNumber: nextRequestNumber(),
       coatingStatus: "pending",
       status: "pending",
+      lineContexts,
     });
     costingRequests.unshift(request);
     return request;
@@ -116,7 +120,10 @@ export const mockCostingService: CostingService = {
     if (index === -1) notFoundError("CostingRequest", id);
 
     const existing = costingRequests[index];
-    const updated = applyCoatingItems(existing, data.items);
+    let updated = applyCoatingItems(existing, data.items);
+    if (data.materials && data.materials.length > 0) {
+      updated = applyEstimationMaterials(updated, data.materials);
+    }
     updated.coatingStatus = "submitted";
     if (updated.status === "pending" || updated.status === "changes_requested") {
       updated.status = "in_review";

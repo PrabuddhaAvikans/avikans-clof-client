@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { MappedStatusBadge } from "@/features/shared/components/MappedStatusBadge";
 import { QuotationTotalsSummary } from "@/features/sales/components/QuotationTotalsSummary";
 import { computeQuotationTotals } from "@/features/sales/schemas/quotationSchema";
+import { getChangedSpecDiffs } from "@/lib/quotationCustomization";
 import { DEFAULT_COUNTRY } from "@/lib/countries";
 import { formatCurrency, formatDate, formatDateTime, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -17,7 +18,13 @@ import {
 } from "@/lib/panelLayout";
 import type { Address } from "@/types/common";
 import type { Quotation } from "@/types/quotation";
-import { QuotationStatus } from "@/types/status";
+import {
+  QuotationCustomizationStatus,
+  QuotationStatus,
+} from "@/types/status";
+import { quotationService } from "@/services";
+import { useState } from "react";
+
 
 function formatAddress(address: Address): string {
   return [address.line1, address.line2, `${address.city}, ${address.state} ${address.postalCode}`, address.country]
@@ -34,14 +41,18 @@ function daysUntil(date: string): number | null {
 export type QuotationDetailPanelProps = {
   quotation: Quotation | null;
   onOpenContacts?: () => void;
+  onQuotationUpdated?: (quotation: Quotation) => void;
   className?: string;
 };
 
 export function QuotationDetailPanel({
   quotation,
   onOpenContacts,
+  onQuotationUpdated,
   className,
 }: QuotationDetailPanelProps) {
+  const [actionBusy, setActionBusy] = useState<string | null>(null);
+
   if (!quotation) {
     return (
       <div className={cn(workspacePanelEmpty, className)}>
@@ -61,6 +72,42 @@ export function QuotationDetailPanel({
     { id: "att-1", name: "Layout Drawing.pdf", size: 245_000 },
     { id: "att-2", name: "Technical Spec.pdf", size: 180_000 },
   ];
+
+  const handleApprove = async (lineItemId: string) => {
+    setActionBusy(`approve-${lineItemId}`);
+    try {
+      const updated = await quotationService.approveLineCustomization(
+        quotation.id,
+        lineItemId,
+      );
+      onQuotationUpdated?.(updated);
+      toast.success("Customization approved");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to approve customization");
+    } finally {
+      setActionBusy(null);
+    }
+  };
+
+  const handlePromote = async (lineItemId: string) => {
+    setActionBusy(`promote-${lineItemId}`);
+    try {
+      const { quotation: updated, product } =
+        await quotationService.promoteCustomizationToProductVersion(
+          quotation.id,
+          lineItemId,
+        );
+      onQuotationUpdated?.(updated);
+      const version = product.versions[product.versions.length - 1];
+      toast.success(`Created ${product.name} ${version.label} from customization`);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to create product version",
+      );
+    } finally {
+      setActionBusy(null);
+    }
+  };
 
   return (
     <div className={cn(workspacePanelShell, className)}>
@@ -104,7 +151,7 @@ export function QuotationDetailPanel({
               variant="outline"
               size="sm"
               leftIcon={<Phone className="h-4 w-4" />}
-              // onClick={onOpenContacts}
+              onClick={onOpenContacts}
             >
               Calls & Contacts
               {(quotation.contactHistory?.length ?? 0) > 0
@@ -194,7 +241,16 @@ export function QuotationDetailPanel({
             </span>
           </div>
           <ul className="divide-y divide-border rounded-md border border-border">
-            {quotation.lineItems.map((item, index) => (
+            {quotation.lineItems.map((item, index) => {
+              const changedSpecs =
+                item.isCustomized && item.customization
+                  ? getChangedSpecDiffs(
+                      item.customization.base.specifications,
+                      item.customization.customizedSpecifications,
+                    )
+                  : [];
+
+              return (
               <li key={item.id} className="flex gap-3 px-3 py-2.5">
                 <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded bg-muted text-[11px] font-medium text-muted-foreground">
                   {index + 1}
@@ -208,9 +264,69 @@ export function QuotationDetailPanel({
                       <p className="truncate text-sm font-medium text-foreground">
                         {item.productName}
                       </p>
-                      <p className="text-xs text-muted-foreground">{item.productSku}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {item.productSku}
+                        {item.productVersionLabel
+                          ? ` · ${item.productVersionLabel}`
+                          : ""}
+                      </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        {item.isCustomized ? (
+                          <MappedStatusBadge
+                            statusMap={QuotationCustomizationStatus}
+                            value={item.customization?.status ?? "draft"}
+                            dot
+                          />
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground">Standard</span>
+                        )}
+                      </div>
                       {item.description && (
                         <p className="mt-1 text-xs text-muted-foreground">{item.description}</p>
+                      )}
+                      {changedSpecs.length > 0 && (
+                        <ul className="mt-1.5 space-y-0.5 text-[11px] text-muted-foreground">
+                          {changedSpecs.map((diff) => (
+                            <li key={diff.key}>
+                              {diff.label}: {diff.originalValue} →{" "}
+                              <span className="text-foreground">{diff.customizedValue}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {item.isCustomized && item.customization && (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {item.customization.status === "pending_approval" && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-[11px]"
+                              loading={actionBusy === `approve-${item.id}`}
+                              onClick={() => void handleApprove(item.id)}
+                            >
+                              Approve Customization
+                            </Button>
+                          )}
+                          {item.customization.status === "approved" &&
+                            !item.customization.promotedProductVersionId && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 text-[11px]"
+                                loading={actionBusy === `promote-${item.id}`}
+                                onClick={() => void handlePromote(item.id)}
+                              >
+                                Create Product Version
+                              </Button>
+                            )}
+                          {item.customization.promotedProductVersionId && (
+                            <span className="text-[11px] text-teal-700">
+                              Promoted to master version
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
                     <p className="shrink-0 tabular-nums text-sm font-semibold">
@@ -242,7 +358,8 @@ export function QuotationDetailPanel({
                   </div>
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
         </section>
 

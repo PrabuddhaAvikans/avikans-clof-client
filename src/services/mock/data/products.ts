@@ -1,6 +1,47 @@
 import type { Product } from "@/types/product";
+import type { BomAlternative } from "@/types/product";
 
-export const initialProducts: Product[] = [
+export type BomLineSeed = {
+  id?: string;
+  inventoryItemId: string;
+  inventoryItemName: string;
+  sku: string;
+  quantity: number;
+  unit: string;
+  unitCost: number;
+  wastePercent?: number;
+  isRequired?: boolean;
+  notes?: string;
+  sequence?: number;
+  alternatives?: Array<Omit<BomAlternative, "id"> & { id?: string }>;
+};
+
+export type ProductOperationSeed = {
+  id?: string;
+  name: string;
+  sequence?: number;
+  description?: string;
+  workstation: string;
+  estimatedHours: number;
+  labourCostRate?: number;
+  machineName?: string;
+  machineCost?: number;
+  isRequired?: boolean;
+  isEnabled?: boolean;
+  notes?: string;
+};
+
+/** Legacy flat seed data — migrated to versioned products at mock service load. */
+export type ProductSeed = Omit<
+  Product,
+  "versions" | "currentVersionId" | "productType" | "bom" | "operations"
+> & {
+  productType?: Product["productType"];
+  bom?: BomLineSeed[];
+  operations?: ProductOperationSeed[];
+};
+
+export const initialProducts: ProductSeed[] = [
   {
     id: "prd-001",
     sku: "AVK-PND-001",
@@ -23,6 +64,19 @@ export const initialProducts: Product[] = [
         isPrimary: true,
         sortOrder: 0,
       },
+    ],
+    operations: [
+      { name: "Cutting", sequence: 10, description: "Cut aluminium tubes and sheet to size", workstation: "Fab Bay 1", estimatedHours: 0.5, labourCostRate: 500, machineName: "CNC Laser Cutter", machineCost: 200, isRequired: true },
+      { name: "Bending", sequence: 20, description: "Form pendant body curvature", workstation: "Fab Bay 1", estimatedHours: 0.33, labourCostRate: 500, machineName: "Press Brake", machineCost: 150 },
+      { name: "Welding", sequence: 30, description: "TIG weld body joints", workstation: "Welding Bay", estimatedHours: 0.75, labourCostRate: 650, machineName: "TIG Welder", machineCost: 100 },
+      { name: "Grinding", sequence: 40, description: "Smooth weld seams and surface prep", workstation: "Finishing Bay", estimatedHours: 0.33, labourCostRate: 450 },
+      { name: "Powder Coating", sequence: 50, description: "Apply RAL 9005 jet black powder coat", workstation: "Coating Line A", estimatedHours: 2, labourCostRate: 400, machineName: "Powder Booth", machineCost: 300 },
+      { name: "Wiring", sequence: 60, description: "Install LED module, driver and wiring harness", workstation: "Assembly Line 2", estimatedHours: 0.5, labourCostRate: 550 },
+      { name: "Glass Installation", sequence: 70, description: "Mount opal glass diffuser with silicone gasket", workstation: "Assembly Line 2", estimatedHours: 0.33, labourCostRate: 500 },
+      { name: "Mounting Bracket Installation", sequence: 80, description: "Attach ceiling canopy and suspension hardware", workstation: "Assembly Line 2", estimatedHours: 0.25, labourCostRate: 450 },
+      { name: "Final Assembly", sequence: 90, description: "Complete assembly, cable management, label", workstation: "Assembly Line 2", estimatedHours: 0.5, labourCostRate: 500 },
+      { name: "Testing", sequence: 100, description: "Electrical safety test, burn-in, lumen verification", workstation: "Test Lab", estimatedHours: 0.25, labourCostRate: 600, machineName: "Integrating Sphere", machineCost: 50 },
+      { name: "QC", sequence: 110, description: "Final visual and functional quality check", workstation: "QC Station 1", estimatedHours: 0.33, labourCostRate: 500, isRequired: true },
     ],
     bom: [
       {

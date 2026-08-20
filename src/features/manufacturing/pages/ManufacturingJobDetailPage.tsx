@@ -3,10 +3,13 @@ import { Link, useParams } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowLeft,
+  Ban,
   CheckCircle,
   Pause,
   Play,
+  RotateCcw,
   ShieldCheck,
+  SkipForward,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ROUTES } from "@/app/config/routes";
@@ -36,6 +39,17 @@ import { statusLabel, statusVariant } from "@/features/shared/utils/statusBadge"
 import { formatDate, formatDateTime } from "@/lib/format";
 import type { Operation } from "@/types/manufacturing";
 import { ManufacturingJobStatus, Priority } from "@/types/status";
+
+function opStatusVariant(status: string) {
+  switch (status) {
+    case "completed": return "success" as const;
+    case "in_progress": return "info" as const;
+    case "blocked": return "danger" as const;
+    case "rework_required": return "warning" as const;
+    case "skipped": return "outline" as const;
+    default: return "neutral" as const;
+  }
+}
 
 export function ManufacturingJobDetailPage() {
   const { id = "" } = useParams<{ id: string }>();
@@ -83,22 +97,31 @@ export function ManufacturingJobDetailPage() {
 
   const handleOperationAction = async (
     operation: Operation,
-    action: "start" | "pause" | "complete",
+    action: "start" | "pause" | "complete" | "block" | "rework" | "skip",
   ) => {
     if (!job) return;
+    const now = new Date().toISOString();
     const updatedOperations = job.operations.map((op) => {
       if (op.id !== operation.id) return op;
-      if (action === "start") {
-        return { ...op, status: "in_progress" as const, startedAt: new Date().toISOString() };
+      switch (action) {
+        case "start":
+          return { ...op, status: "in_progress" as const, startedAt: op.startedAt ?? now };
+        case "pause":
+          return { ...op, status: "pending" as const };
+        case "complete": {
+          const startMs = op.startedAt ? new Date(op.startedAt).getTime() : Date.now();
+          const actualHours = Math.round(((Date.now() - startMs) / 3_600_000) * 100) / 100;
+          return { ...op, status: "completed" as const, completedAt: now, actualHours: actualHours || op.estimatedHours };
+        }
+        case "block":
+          return { ...op, status: "blocked" as const };
+        case "rework":
+          return { ...op, status: "rework_required" as const, completedAt: undefined };
+        case "skip":
+          return { ...op, status: "skipped" as const };
+        default:
+          return op;
       }
-      if (action === "pause") {
-        return { ...op, status: "pending" as const };
-      }
-      return {
-        ...op,
-        status: "completed" as const,
-        completedAt: new Date().toISOString(),
-      };
     });
 
     try {
@@ -295,11 +318,13 @@ export function ManufacturingJobDetailPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-border bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                        <th className="px-4 py-3">#</th>
+                        <th className="px-4 py-3">Seq</th>
                         <th className="px-4 py-3">Operation</th>
                         <th className="px-4 py-3">Workstation</th>
-                        <th className="px-4 py-3">Assigned</th>
-                        <th className="px-4 py-3">Est. Hours</th>
+                        <th className="px-4 py-3">Operator</th>
+                        <th className="px-4 py-3 text-right">Est.</th>
+                        <th className="px-4 py-3 text-right">Actual</th>
+                        <th className="px-4 py-3">Machine</th>
                         <th className="px-4 py-3">Status</th>
                         <th className="px-4 py-3">Actions</th>
                       </tr>
@@ -307,66 +332,69 @@ export function ManufacturingJobDetailPage() {
                     <tbody>
                       {job.operations.map((op) => (
                         <tr key={op.id} className="border-b border-border last:border-0">
-                          <td className="px-4 py-3">{op.sequence}</td>
-                          <td className="px-4 py-3 font-medium">{op.name}</td>
+                          <td className="px-4 py-3 font-mono text-xs">{op.sequence}</td>
+                          <td className="px-4 py-3">
+                            <div className="font-medium">{op.name}</div>
+                            {op.description && (
+                              <div className="text-xs text-muted-foreground">{op.description}</div>
+                            )}
+                          </td>
                           <td className="px-4 py-3">{op.workstation}</td>
-                          <td className="px-4 py-3">{op.assignedToName ?? "-"}</td>
-                          <td className="px-4 py-3">{op.estimatedHours}h</td>
+                          <td className="px-4 py-3">{op.operatorName ?? op.assignedToName ?? "—"}</td>
+                          <td className="px-4 py-3 text-right">{op.estimatedHours}h</td>
+                          <td className="px-4 py-3 text-right">{op.actualHours != null ? `${op.actualHours}h` : "—"}</td>
+                          <td className="px-4 py-3">{op.machineName ?? "—"}</td>
                           <td className="px-4 py-3">
                             <StatusBadge
-                              variant={
-                                op.status === "completed"
-                                  ? "success"
-                                  : op.status === "in_progress"
-                                    ? "info"
-                                    : "neutral"
-                              }
+                              variant={opStatusVariant(op.status)}
                               size="sm"
                             >
                               {op.status.replace(/_/g, " ")}
                             </StatusBadge>
                           </td>
                           <td className="px-4 py-3">
-                            <div className="flex gap-1">
-                              {op.status === "pending" && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  leftIcon={<Play className="h-3 w-3" />}
-                                  onClick={() => void handleOperationAction(op, "start")}
-                                >
+                            <div className="flex flex-wrap gap-1">
+                              {(op.status === "pending" || op.status === "rework_required") && (
+                                <Button size="sm" variant="outline" leftIcon={<Play className="h-3 w-3" />} onClick={() => void handleOperationAction(op, "start")}>
                                   Start
                                 </Button>
                               )}
                               {op.status === "in_progress" && (
                                 <>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    leftIcon={<Pause className="h-3 w-3" />}
-                                    onClick={() => void handleOperationAction(op, "pause")}
-                                  >
+                                  <Button size="sm" variant="outline" leftIcon={<Pause className="h-3 w-3" />} onClick={() => void handleOperationAction(op, "pause")}>
                                     Pause
                                   </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="success"
-                                    leftIcon={<CheckCircle className="h-3 w-3" />}
-                                    onClick={() => void handleOperationAction(op, "complete")}
-                                  >
+                                  <Button size="sm" variant="success" leftIcon={<CheckCircle className="h-3 w-3" />} onClick={() => void handleOperationAction(op, "complete")}>
                                     Complete
                                   </Button>
                                 </>
                               )}
+                              {op.status !== "completed" && op.status !== "skipped" && (
+                                <Button size="sm" variant="ghost" leftIcon={<Ban className="h-3 w-3" />} onClick={() => void handleOperationAction(op, "block")}>
+                                  Block
+                                </Button>
+                              )}
+                              {op.status === "blocked" && (
+                                <Button size="sm" variant="outline" leftIcon={<Play className="h-3 w-3" />} onClick={() => void handleOperationAction(op, "start")}>
+                                  Unblock
+                                </Button>
+                              )}
+                              {op.status === "completed" && (
+                                <Button size="sm" variant="ghost" leftIcon={<RotateCcw className="h-3 w-3" />} onClick={() => void handleOperationAction(op, "rework")}>
+                                  Rework
+                                </Button>
+                              )}
+                              {op.status === "pending" && !op.isRequired && (
+                                <Button size="sm" variant="ghost" leftIcon={<SkipForward className="h-3 w-3" />} onClick={() => void handleOperationAction(op, "skip")}>
+                                  Skip
+                                </Button>
+                              )}
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => {
-                                  setIssueOperation(op);
-                                  setIssueDialogOpen(true);
-                                }}
+                                onClick={() => { setIssueOperation(op); setIssueDialogOpen(true); }}
                               >
-                                Report Issue
+                                Issue
                               </Button>
                             </div>
                           </td>

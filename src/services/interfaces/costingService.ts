@@ -1,5 +1,5 @@
 import type { PaginatedRequest, PaginatedResponse } from "@/types/common";
-import type { CoatingLineItem, CostingRequest } from "@/types/costing";
+import type { CoatingLineItem, CostingRequest, EstimationMaterial } from "@/types/costing";
 import type { SalesOrder } from "@/types/sales-order";
 import type { CoatingStatusValue, CostingRequestStatusValue } from "@/types/status";
 
@@ -10,6 +10,22 @@ export interface CostingListFilters extends PaginatedRequest {
   linkedToSalesOrder?: boolean;
 }
 
+export type EstimationMaterialInput = Pick<
+  EstimationMaterial,
+  | "id"
+  | "inventoryItemId"
+  | "inventoryItemName"
+  | "sku"
+  | "quantity"
+  | "unit"
+  | "wastePercent"
+  | "unitCost"
+  | "isRequired"
+  | "alternativeItemId"
+  | "alternativeItemName"
+  | "notes"
+>;
+
 export type CoatingSubmitData = {
   items: Array<
     Pick<
@@ -17,6 +33,7 @@ export type CoatingSubmitData = {
       "id" | "productId" | "productName" | "finish" | "process" | "quantity" | "unitCost"
     >
   >;
+  materials?: EstimationMaterialInput[];
   notes?: string;
 };
 

@@ -3,7 +3,18 @@ import type {
   CoatingLineItem,
   CostingLineItem,
   CostingRequest,
+  EstimationMaterial,
+  EstimationProductLine,
 } from "@/types/costing";
+import type { EstimationMaterialInput } from "@/services/interfaces/costingService";
+import type { EstimationLineContext } from "@/lib/costingFromQuotationLine";
+import {
+  buildEstimationNotes,
+  contextsToCoatingItems,
+  contextsToCostingLineItems,
+  contextsToEstimationMaterials,
+  contextsToEstimationProductLines,
+} from "@/lib/costingFromQuotationLine";
 import type { SalesOrder } from "@/types/sales-order";
 import type { CoatingStatusValue, CostingRequestStatusValue } from "@/types/status";
 
@@ -48,7 +59,61 @@ export function normalizeCostingRequest(request: CostingRequest): CostingRequest
     ...request,
     coatingStatus: request.coatingStatus ?? "submitted",
     coatingItems: request.coatingItems ?? [],
+    estimationMaterials: request.estimationMaterials ?? [],
+    estimationProductLines: request.estimationProductLines ?? [],
   };
+}
+
+export function applyEstimationMaterials(
+  request: CostingRequest,
+  materials: EstimationMaterialInput[],
+): CostingRequest {
+  const estimationMaterials: EstimationMaterial[] = materials.map((mat, index) => {
+    const quantity = Number(mat.quantity) || 0;
+    const wastePercent = Number(mat.wastePercent) || 0;
+    const requiredQuantity = round2(quantity * (1 + wastePercent / 100));
+    const unitCost = Number(mat.unitCost) || 0;
+    const totalCost = round2(requiredQuantity * unitCost);
+    return {
+      id: mat.id ?? generateId("emat"),
+      inventoryItemId: mat.inventoryItemId,
+      inventoryItemName: mat.inventoryItemName,
+      sku: mat.sku,
+      quantity,
+      unit: mat.unit,
+      wastePercent,
+      requiredQuantity,
+      unitCost,
+      totalCost,
+      isRequired: mat.isRequired ?? true,
+      alternativeItemId: mat.alternativeItemId,
+      alternativeItemName: mat.alternativeItemName,
+      notes: mat.notes,
+    };
+  });
+
+  const materialTotal = estimationMaterials.reduce((sum, m) => sum + m.totalCost, 0);
+  const withoutMaterials = request.lineItems.filter((li) => li.category !== "Materials (Components)");
+  const lineItems: CostingLineItem[] = [
+    ...withoutMaterials,
+    ...(materialTotal > 0
+      ? [
+          {
+            id: generateId("cli"),
+            description: "Estimation materials & components",
+            category: "Materials (Components)",
+            baseCost: materialTotal,
+            percentOfCost: 0,
+          },
+        ]
+      : []),
+  ];
+
+  return recomputeCostingTotals({
+    ...request,
+    estimationMaterials,
+    lineItems,
+  });
 }
 
 export function buildCoatingItemsFromOrder(order: SalesOrder): CoatingLineItem[] {
@@ -110,19 +175,31 @@ export function buildCostingFromSalesOrder(
     coatingStatus?: CoatingStatusValue;
     status?: CostingRequestStatusValue;
     coatingUnitCost?: number;
+    lineContexts?: EstimationLineContext[];
   },
 ): CostingRequest {
   const coatingStatus = options?.coatingStatus ?? "pending";
   const status = options?.status ?? "pending";
   const coatingUnitCost = options?.coatingUnitCost ?? (coatingStatus === "pending" ? 0 : 1850);
+  const lineContexts = options?.lineContexts;
 
-  const materialItems: CostingLineItem[] = order.lineItems.map((item, index) => ({
-    id: `cli-${order.id}-${index + 1}`,
-    description: `${item.productName} × ${item.quantity}`,
-    category: "Materials",
-    baseCost: round2(item.unitPrice * item.quantity * 0.62),
-    percentOfCost: 0,
-  }));
+  const materialItems: CostingLineItem[] = lineContexts
+    ? contextsToCostingLineItems(lineContexts, order.id)
+    : order.lineItems.map((item, index) => ({
+        id: `cli-${order.id}-${index + 1}`,
+        description: `${item.productName} × ${item.quantity}`,
+        category: "Materials",
+        baseCost: round2(item.unitPrice * item.quantity * 0.62),
+        percentOfCost: 0,
+      }));
+
+  const estimationMaterials: EstimationMaterial[] = lineContexts
+    ? contextsToEstimationMaterials(lineContexts)
+    : [];
+
+  const estimationProductLines: EstimationProductLine[] = lineContexts
+    ? contextsToEstimationProductLines(lineContexts)
+    : [];
 
   const allApproved = status === "approved";
   const approvalLevels = DEFAULT_APPROVERS.map((level, index) => ({
@@ -142,7 +219,7 @@ export function buildCostingFromSalesOrder(
     id: `cr-${order.id}`,
     requestNumber: options?.requestNumber ?? `CR-${order.orderNumber.replace("SO-", "")}`,
     customerName: order.customerName,
-    projectName: `${order.orderNumber} coating & costing`,
+    projectName: `${order.orderNumber} estimation & costing`,
     requestType: "Sales Order Costing",
     requestedDate: order.createdAt,
     totalEstimate: 0,
@@ -157,11 +234,14 @@ export function buildCostingFromSalesOrder(
     paymentTerms: "As per sales order",
     lineItems: materialItems,
     coatingItems: [],
+    estimationMaterials,
+    estimationProductLines,
     attachments: [],
-    notes:
-      coatingStatus === "pending"
-        ? "Enter coating finish, process, and unit cost before submitting for costing approval."
-        : "Coating submitted from sales order workflow.",
+    notes: lineContexts
+      ? buildEstimationNotes(order, lineContexts)
+      : coatingStatus === "pending"
+        ? "Enter finish, process, and unit cost before submitting for costing approval."
+        : "Estimation submitted from sales order workflow.",
     requester: {
       name: order.createdByName,
       title: "Sales",
@@ -177,7 +257,9 @@ export function buildCostingFromSalesOrder(
     history: [
       {
         id: `h-${order.id}-1`,
-        action: "Created from sales order",
+        action: lineContexts
+          ? "Created from quotation sales order (BOM & customization snapshot)"
+          : "Created from sales order",
         userName: order.createdByName,
         timestamp: order.createdAt,
       },
@@ -188,12 +270,20 @@ export function buildCostingFromSalesOrder(
     quotationNumber: order.quotationNumber,
   };
 
-  const coatingInputs = buildCoatingItemsFromOrder(order).map((item) => ({
+  const coatingInputs = (lineContexts
+    ? contextsToCoatingItems(lineContexts, order.id)
+    : buildCoatingItemsFromOrder(order)
+  ).map((item) => ({
     ...item,
     unitCost: coatingUnitCost,
   }));
 
   request = applyCoatingItems(request, coatingInputs);
+
+  if (lineContexts && estimationMaterials.length > 0) {
+    request.estimationMaterials = estimationMaterials;
+    request = recomputeCostingTotals(request);
+  }
 
   if (coatingStatus === "pending") {
     request.coatingItems = request.coatingItems.map((item) => ({
@@ -207,7 +297,7 @@ export function buildCostingFromSalesOrder(
     request.history = [
       {
         id: `h-${order.id}-2`,
-        action: "Coating submitted",
+        action: "Estimation submitted",
         userName: order.createdByName,
         timestamp: order.createdAt,
       },

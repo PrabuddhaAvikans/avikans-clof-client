@@ -7,7 +7,7 @@ import { StatusBadge } from './StatusBadge';
 
 export type UploadedImage = {
   id: string;
-  file: File;
+  file?: File;
   previewUrl: string;
   isPrimary?: boolean;
 };
@@ -174,7 +174,7 @@ export function ImageUploader({
             >
               <img
                 src={image.previewUrl}
-                alt={image.file.name}
+                alt={image.file?.name ?? "Product image"}
                 className="aspect-square w-full object-cover"
               />
               {image.isPrimary && (
@@ -218,7 +218,7 @@ export function ImageUploader({
                     variant="ghost"
                     size="sm"
                     icon={<X className="h-3.5 w-3.5 text-primary-foreground" />}
-                    aria-label={`Remove ${image.file.name}`}
+                    aria-label={`Remove ${image.file?.name ?? "image"}`}
                     onClick={() => removeImage(image.id)}
                     className="text-primary-foreground hover:bg-foreground/20"
                   />

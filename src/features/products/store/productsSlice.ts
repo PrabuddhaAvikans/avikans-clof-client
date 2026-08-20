@@ -17,17 +17,36 @@ import {
 } from "@/app/store/async/reducers";
 import type { AsyncEntry, MutationEntry } from "@/app/store/async/types";
 import type { ProductListFilters } from "@/services";
-import type { Product, ProductFormData } from "@/types/product";
+import type {
+  Product,
+  ProductFormData,
+  ProductHeaderFormData,
+  ProductVersionFormData,
+} from "@/types/product";
 import type { PaginatedResponse } from "@/types/common";
 
 type ListData = PaginatedResponse<Product>;
 type UpdateArg = { id: string; data: Partial<ProductFormData> };
+type UpdateVersionArg = {
+  productId: string;
+  versionId: string;
+  data: ProductVersionFormData;
+};
+type ReviseVersionArg = {
+  productId: string;
+  sourceVersionId: string;
+  revisionNotes?: string;
+};
+type UpdateHeaderArg = { productId: string; data: ProductHeaderFormData };
 
 export type ProductsState = {
   lists: Record<string, AsyncEntry<ListData>>;
   details: Record<string, AsyncEntry<Product>>;
   create: MutationEntry;
   update: MutationEntry;
+  updateVersion: MutationEntry;
+  reviseVersion: MutationEntry;
+  updateHeader: MutationEntry;
   remove: MutationEntry;
 };
 
@@ -36,6 +55,9 @@ const initialState: ProductsState = {
   details: emptyCache(),
   create: createMutationEntry(),
   update: createMutationEntry(),
+  updateVersion: createMutationEntry(),
+  reviseVersion: createMutationEntry(),
+  updateHeader: createMutationEntry(),
   remove: createMutationEntry(),
 };
 
@@ -93,6 +115,42 @@ const productsSlice = createSlice({
     },
     updateFailure(state, action: PayloadAction<FailurePayload>) {
       setMutationFailure(state.update, action);
+    },
+
+    updateVersionRequest(state, _action: PayloadAction<RequestPayload<UpdateVersionArg>>) {
+      setMutationLoading(state.updateVersion);
+    },
+    updateVersionSuccess(state, action: PayloadAction<SuccessPayload<Product>>) {
+      setMutationSuccess(state.updateVersion);
+      upsertDetail(state, action.payload.data);
+      invalidateEntries(state.lists);
+    },
+    updateVersionFailure(state, action: PayloadAction<FailurePayload>) {
+      setMutationFailure(state.updateVersion, action);
+    },
+
+    reviseVersionRequest(state, _action: PayloadAction<RequestPayload<ReviseVersionArg>>) {
+      setMutationLoading(state.reviseVersion);
+    },
+    reviseVersionSuccess(state, action: PayloadAction<SuccessPayload<Product>>) {
+      setMutationSuccess(state.reviseVersion);
+      upsertDetail(state, action.payload.data);
+      invalidateEntries(state.lists);
+    },
+    reviseVersionFailure(state, action: PayloadAction<FailurePayload>) {
+      setMutationFailure(state.reviseVersion, action);
+    },
+
+    updateHeaderRequest(state, _action: PayloadAction<RequestPayload<UpdateHeaderArg>>) {
+      setMutationLoading(state.updateHeader);
+    },
+    updateHeaderSuccess(state, action: PayloadAction<SuccessPayload<Product>>) {
+      setMutationSuccess(state.updateHeader);
+      upsertDetail(state, action.payload.data);
+      invalidateEntries(state.lists);
+    },
+    updateHeaderFailure(state, action: PayloadAction<FailurePayload>) {
+      setMutationFailure(state.updateHeader, action);
     },
 
     deleteRequest(state, _action: PayloadAction<RequestPayload<string>>) {
