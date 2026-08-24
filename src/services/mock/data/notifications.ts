@@ -30,7 +30,7 @@ export const initialNotifications: AppNotification[] = [
   {
     id: "ntf-003",
     title: "Manufacturing Job Started",
-    message: "Job JC-2025-1187 (Aurora LED Pendant ×8) is now in progress.",
+    message: "Job PJ-1001 (Aurora LED Pendant ×10) is now in progress.",
     type: "info",
     category: "manufacturing",
     isRead: true,

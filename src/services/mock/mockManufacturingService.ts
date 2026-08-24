@@ -5,26 +5,46 @@ import {
   nowIso,
 } from "@/services/http";
 import type { ManufacturingService } from "@/services/interfaces/manufacturingService";
-import { applyListQuery, cloneData } from "@/services/mock/helpers";
-import { initialManufacturingJobs } from "@/services/mock/data/manufacturing";
+import { applyListQuery } from "@/services/mock/helpers";
+import {
+  addManufacturingJob,
+  findManufacturingJob,
+  getManufacturingJobs,
+  nextProductionJobNumber,
+  removeManufacturingJob,
+  replaceManufacturingJob,
+} from "@/services/mock/manufacturingStore";
 import { initialProducts } from "@/services/mock/data/products";
 import { migrateLegacyProduct } from "@/services/mock/productHelpers";
 import { initialSalesOrders } from "@/services/mock/data/sales-orders";
 import { initialUsers } from "@/services/mock/data/users";
-import type { ManufacturingJob } from "@/types/manufacturing";
+import type { ManufacturingJob, TaskActionActor } from "@/types/manufacturing";
+import { getApprovedManufacturingVersion } from "@/lib/productVersion";
+import {
+  applyHoldProductionJob,
+  applyStartProductionJob,
+  applyTaskAction,
+  generateTasksFromOperations,
+  isProductionJobCompletable,
+  refreshJobDerivedFields,
+} from "@/lib/manufacturingTasks";
 
-let manufacturingJobs = cloneData(initialManufacturingJobs);
+export const MANUFACTURING_ACTOR: TaskActionActor = {
+  userId: "usr-004",
+  userName: "Nuwan Wickramasinghe",
+};
 
-function nextJobNumber(): string {
-  const year = new Date().getFullYear();
-  return `JC-${year}-${String(1200 + manufacturingJobs.length)}`;
+function requireJob(id: string): ManufacturingJob {
+  const job = findManufacturingJob(id);
+  if (!job) notFoundError("ProductionJob", id);
+  return job;
 }
 
 export const mockManufacturingService: ManufacturingService = {
   async list(filters) {
     await delay();
     return applyListQuery(
-      manufacturingJobs,
+      getManufacturingJobs(),
       filters,
       ["jobNumber", "productName", "productSku", "customerName", "salesOrderNumber"],
       (item) => {
@@ -39,9 +59,7 @@ export const mockManufacturingService: ManufacturingService = {
 
   async getById(id) {
     await delay();
-    const job = manufacturingJobs.find((j) => j.id === id);
-    if (!job) notFoundError("ManufacturingJob", id);
-    return job;
+    return requireJob(id);
   },
 
   async create(data) {
@@ -51,15 +69,29 @@ export const mockManufacturingService: ManufacturingService = {
     const productSeed = initialProducts.find((p) => p.id === data.productId);
     if (!productSeed) notFoundError("Product", data.productId);
     const product = migrateLegacyProduct(productSeed);
+    const version = data.productVersionId
+      ? product.versions.find((item) => item.id === data.productVersionId) ??
+        getApprovedManufacturingVersion(product)
+      : getApprovedManufacturingVersion(product);
 
     const assignee = data.assignedTo
       ? initialUsers.find((u) => u.id === data.assignedTo)
       : undefined;
 
     const timestamp = nowIso();
-    const job: ManufacturingJob = {
-      id: generateId("mj"),
-      jobNumber: nextJobNumber(),
+    const id = generateId("mj");
+    const actor = MANUFACTURING_ACTOR;
+    const tasks = generateTasksFromOperations({
+      jobId: id,
+      quantity: data.quantity,
+      operations: version.operations,
+      actor,
+      createdAt: timestamp,
+    });
+
+    const job: ManufacturingJob = refreshJobDerivedFields({
+      id,
+      jobNumber: nextProductionJobNumber(),
       salesOrderId: salesOrder.id,
       salesOrderNumber: salesOrder.orderNumber,
       customerId: salesOrder.customerId,
@@ -67,26 +99,14 @@ export const mockManufacturingService: ManufacturingService = {
       productId: product.id,
       productSku: product.sku,
       productName: product.name,
+      productVersionId: version.id,
+      productVersionLabel: version.label,
       quantity: data.quantity,
       status: "draft",
       priority: data.priority,
-      operations: product.operations
-        .filter((op) => op.isEnabled)
-        .map((op) => ({
-          id: generateId("op"),
-          name: op.name,
-          sequence: op.sequence,
-          description: op.description,
-          workstation: op.workstation,
-          estimatedHours: op.estimatedHours,
-          labourCostRate: op.labourCostRate,
-          machineName: op.machineName,
-          machineCost: op.machineCost,
-          isRequired: op.isRequired,
-          isEnabled: op.isEnabled,
-          status: "pending" as const,
-        })),
-      materialRequirements: product.bom.map((bom) => ({
+      tasks,
+      reworks: [],
+      materialRequirements: version.bom.map((bom) => ({
         id: generateId("mr"),
         inventoryItemId: bom.inventoryItemId,
         inventoryItemSku: bom.sku,
@@ -99,94 +119,102 @@ export const mockManufacturingService: ManufacturingService = {
       })),
       plannedStartDate: data.plannedStartDate,
       plannedEndDate: data.plannedEndDate,
+      progressPercent: 0,
+      estimatedCost: 0,
+      actualCost: 0,
       assignedTo: assignee?.id,
       assignedToName: assignee?.displayName,
       notes: data.notes,
-      createdBy: "usr-004",
-      createdByName: "Nuwan Wickramasinghe",
+      createdBy: actor.userId,
+      createdByName: actor.userName,
       createdAt: timestamp,
       updatedAt: timestamp,
-    };
-    manufacturingJobs.push(job);
+    });
+    addManufacturingJob(job);
     return job;
   },
 
   async update(id, data) {
     await delay();
-    const index = manufacturingJobs.findIndex((j) => j.id === id);
-    if (index === -1) notFoundError("ManufacturingJob", id);
-
+    const job = requireJob(id);
     const assignee = data.assignedTo
       ? initialUsers.find((u) => u.id === data.assignedTo)
       : undefined;
 
-    manufacturingJobs[index] = {
-      ...manufacturingJobs[index],
+    const updated = refreshJobDerivedFields({
+      ...job,
       ...data,
-      assignedTo: assignee?.id ?? manufacturingJobs[index].assignedTo,
-      assignedToName: assignee?.displayName ?? manufacturingJobs[index].assignedToName,
-      operations: data.operations ?? manufacturingJobs[index].operations,
+      assignedTo: assignee?.id ?? job.assignedTo,
+      assignedToName: assignee?.displayName ?? job.assignedToName,
+      tasks: data.tasks ?? job.tasks,
+      qualityInspection: data.qualityInspection ?? job.qualityInspection,
       updatedAt: nowIso(),
-    };
-    return manufacturingJobs[index];
+    });
+    return replaceManufacturingJob(updated);
   },
 
   async delete(id) {
     await delay();
-    const index = manufacturingJobs.findIndex((j) => j.id === id);
-    if (index === -1) notFoundError("ManufacturingJob", id);
-    if (manufacturingJobs[index].status !== "draft") {
+    const job = requireJob(id);
+    if (job.status !== "draft") {
       throw { code: "INVALID_STATE", message: "Only draft jobs can be deleted." };
     }
-    manufacturingJobs.splice(index, 1);
+    removeManufacturingJob(id);
   },
 
   async reserveMaterials(id) {
     await delay();
-    const index = manufacturingJobs.findIndex((j) => j.id === id);
-    if (index === -1) notFoundError("ManufacturingJob", id);
-
-    const job = manufacturingJobs[index];
+    const job = requireJob(id);
     const updatedRequirements = job.materialRequirements.map((mr) => ({
       ...mr,
       reservedQuantity: mr.requiredQuantity,
       status: "reserved" as const,
     }));
 
-    manufacturingJobs[index] = {
+    const updated = refreshJobDerivedFields({
       ...job,
       materialRequirements: updatedRequirements,
-      status: job.status === "materials_pending" ? "ready_to_start" : job.status,
-      updatedAt: nowIso(),
-    };
-    return manufacturingJobs[index];
+      status: job.status === "materials_pending" || job.status === "draft" || job.status === "planned"
+        ? "ready_to_start"
+        : job.status,
+    });
+    return replaceManufacturingJob(updated);
   },
 
   async startJob(id) {
     await delay();
-    const index = manufacturingJobs.findIndex((j) => j.id === id);
-    if (index === -1) notFoundError("ManufacturingJob", id);
-
-    manufacturingJobs[index] = {
-      ...manufacturingJobs[index],
-      status: "in_progress",
-      actualStartDate: nowIso(),
-      updatedAt: nowIso(),
-    };
-    return manufacturingJobs[index];
+    const updated = applyStartProductionJob(requireJob(id), MANUFACTURING_ACTOR);
+    return replaceManufacturingJob(updated);
   },
 
   async completeJob(id) {
     await delay();
-    const index = manufacturingJobs.findIndex((j) => j.id === id);
-    if (index === -1) notFoundError("ManufacturingJob", id);
-
-    manufacturingJobs[index] = {
-      ...manufacturingJobs[index],
+    const job = requireJob(id);
+    if (!isProductionJobCompletable(job)) {
+      throw {
+        code: "INVALID_STATE",
+        message:
+          "All required manufacturing tasks must be completed and QC must pass before the product can be completed.",
+      };
+    }
+    const updated = refreshJobDerivedFields({
+      ...job,
       status: "completed",
       actualEndDate: nowIso(),
-      updatedAt: nowIso(),
-    };
-    return manufacturingJobs[index];
+      progressPercent: 100,
+    });
+    return replaceManufacturingJob(updated);
+  },
+
+  async holdJob(id, reason) {
+    await delay();
+    const updated = applyHoldProductionJob(requireJob(id), reason, MANUFACTURING_ACTOR);
+    return replaceManufacturingJob(updated);
+  },
+
+  async applyTaskAction(id, action) {
+    await delay();
+    const updated = applyTaskAction(requireJob(id), action, MANUFACTURING_ACTOR);
+    return replaceManufacturingJob(updated);
   },
 };

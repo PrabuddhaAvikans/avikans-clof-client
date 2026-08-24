@@ -128,7 +128,7 @@ export interface CostingRequest {
   lineItems: CostingLineItem[];
   coatingItems: CoatingLineItem[];
   estimationMaterials: EstimationMaterial[];
-  /** One entry per SO line — standard product or quotation customization snapshot. */
+  /** One entry per SO line - standard product or quotation customization snapshot. */
   estimationProductLines: EstimationProductLine[];
   attachments: CostingAttachment[];
   notes: string;

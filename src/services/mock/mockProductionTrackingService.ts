@@ -1,62 +1,40 @@
-import { delay, notFoundError, nowIso } from "@/services/http";
+import { delay, notFoundError } from "@/services/http";
 import type { ProductionTrackingService } from "@/services/interfaces/productionTrackingService";
-import { applyListQuery, cloneData } from "@/services/mock/helpers";
-import { initialProductionSnapshot } from "@/services/mock/data/production-tracking";
-import type { ProductionJob } from "@/types/production-tracking";
-import { PRODUCTION_STAGES, PRODUCTION_STAGE_LABELS } from "@/types/production-tracking";
+import { applyListQuery } from "@/services/mock/helpers";
+import {
+  findManufacturingJob,
+  getManufacturingJobs,
+  replaceManufacturingJob,
+} from "@/services/mock/manufacturingStore";
+import { MANUFACTURING_ACTOR } from "@/services/mock/mockManufacturingService";
+import {
+  applyHoldProductionJob,
+  applyStartProductionJob,
+  applyStartTask,
+  applyCompleteTask,
+  currentTask,
+  remainingQuantity,
+} from "@/lib/manufacturingTasks";
+import {
+  buildProductionTrackingSnapshot,
+  toProductionJobView,
+} from "@/lib/productionTracking";
 
-let snapshot = {
-  ...initialProductionSnapshot,
-  jobs: cloneData(initialProductionSnapshot.jobs),
-  timeline: cloneData(initialProductionSnapshot.timeline),
-  overdue: cloneData(initialProductionSnapshot.overdue),
-  pipeline: cloneData(initialProductionSnapshot.pipeline),
-};
-
-function findJob(id: string): ProductionJob {
-  const job = snapshot.jobs.find((item) => item.id === id);
+function requireJob(id: string) {
+  const job = findManufacturingJob(id);
   if (!job) notFoundError("ProductionJob", id);
   return job;
-}
-
-function advanceStage(job: ProductionJob): void {
-  if (job.status === "on_hold" || job.status === "packed") return;
-  const index = PRODUCTION_STAGES.indexOf(job.status);
-  if (index < 0 || index >= PRODUCTION_STAGES.length - 1) return;
-  const next = PRODUCTION_STAGES[index + 1];
-  job.status = next;
-  job.statusLabel = PRODUCTION_STAGE_LABELS[next];
-  job.stages = job.stages.map((stage) => {
-    const stageIndex = PRODUCTION_STAGES.indexOf(stage.stage);
-    if (stageIndex < index + 1) {
-      return { ...stage, status: "completed", completedAt: stage.completedAt ?? nowIso() };
-    }
-    if (stageIndex === index + 1) {
-      return { ...stage, status: "in_progress" };
-    }
-    return { ...stage, status: "pending", completedAt: undefined };
-  });
-  job.completionPercent = Math.min(100, Math.round(((index + 2) / PRODUCTION_STAGES.length) * 100));
 }
 
 export const mockProductionTrackingService: ProductionTrackingService = {
   async getSnapshot() {
     await delay();
-    return {
-      ...snapshot,
-      jobs: cloneData(snapshot.jobs),
-      timeline: cloneData(snapshot.timeline),
-      overdue: cloneData(snapshot.overdue),
-      pipeline: cloneData(snapshot.pipeline),
-      kpis: { ...snapshot.kpis },
-      lines: [...snapshot.lines],
-      supervisors: [...snapshot.supervisors],
-    };
+    return buildProductionTrackingSnapshot(getManufacturingJobs());
   },
 
   async listJobs(filters) {
     await delay();
-    let items = cloneData(snapshot.jobs);
+    let items = getManufacturingJobs().map(toProductionJobView);
     if (filters.line) {
       items = items.filter((job) => job.line === filters.line);
     }
@@ -74,59 +52,82 @@ export const mockProductionTrackingService: ProductionTrackingService = {
       "supervisorName",
       "line",
       "statusLabel",
+      "currentTaskName",
     ]);
   },
 
   async getJobById(id) {
     await delay();
-    return { ...findJob(id), stages: cloneData(findJob(id).stages) };
+    return toProductionJobView(requireJob(id));
   },
 
   async startProduction(ids) {
     await delay();
     for (const id of ids) {
-      const job = findJob(id);
-      if (job.status === "order_confirmed") {
-        advanceStage(job);
-      }
+      const job = requireJob(id);
+      if (job.status === "completed" || job.status === "cancelled") continue;
+      replaceManufacturingJob(applyStartProductionJob(job, MANUFACTURING_ACTOR));
     }
   },
 
   async updateStage(id) {
     await delay();
-    const job = findJob(id);
-    advanceStage(job);
-    return { ...job, stages: cloneData(job.stages) };
+    const job = requireJob(id);
+    const active = currentTask(job);
+    if (!active) {
+      throw {
+        code: "INVALID_STATE",
+        message: "No manufacturing task is ready to advance.",
+      };
+    }
+    const updated =
+      active.status === "in_progress"
+        ? applyCompleteTask(
+            job,
+            {
+              type: "complete",
+              taskId: active.id,
+              completedQuantity: remainingQuantity(active),
+            },
+            MANUFACTURING_ACTOR,
+          )
+        : applyStartTask(
+            job,
+            { type: "start", taskId: active.id },
+            MANUFACTURING_ACTOR,
+          );
+    replaceManufacturingJob(updated);
+    return toProductionJobView(updated);
   },
 
   async holdJob(id, reason) {
     await delay();
-    const job = findJob(id);
-    job.status = "on_hold";
-    job.statusLabel = "On Hold";
-    if (reason) {
-      job.blockers = [...job.blockers, reason];
-    }
-    return { ...job, stages: cloneData(job.stages) };
+    const updated = applyHoldProductionJob(requireJob(id), reason, MANUFACTURING_ACTOR);
+    replaceManufacturingJob(updated);
+    return toProductionJobView(updated);
   },
 
   async releaseToQc(id) {
     await delay();
-    const job = findJob(id);
-    job.status = "qc";
-    job.statusLabel = PRODUCTION_STAGE_LABELS.qc;
-    job.completionPercent = Math.max(job.completionPercent, 90);
-    job.stages = job.stages.map((stage) => {
-      const stageIndex = PRODUCTION_STAGES.indexOf(stage.stage);
-      const qcIndex = PRODUCTION_STAGES.indexOf("qc");
-      if (stageIndex < qcIndex) {
-        return { ...stage, status: "completed", completedAt: stage.completedAt ?? nowIso() };
-      }
-      if (stage.stage === "qc") {
-        return { ...stage, status: "in_progress" };
-      }
-      return { ...stage, status: "pending" };
-    });
-    return { ...job, stages: cloneData(job.stages) };
+    const job = requireJob(id);
+    const qcTask = job.tasks.find((task) => task.isQcTask && task.isEnabled && !task.isRework);
+    if (!qcTask) {
+      throw {
+        code: "INVALID_STATE",
+        message: "This product version has no QC manufacturing task.",
+      };
+    }
+    if (qcTask.status === "pending") {
+      throw {
+        code: "INVALID_STATE",
+        message: "QC is not ready. Complete required prerequisite tasks first.",
+      };
+    }
+    const updated =
+      qcTask.status === "ready" || qcTask.status === "rework_required"
+        ? applyStartTask(job, { type: "start", taskId: qcTask.id }, MANUFACTURING_ACTOR)
+        : job;
+    replaceManufacturingJob(updated);
+    return toProductionJobView(updated);
   },
 };

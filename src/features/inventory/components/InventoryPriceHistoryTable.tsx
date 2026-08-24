@@ -32,7 +32,7 @@ export function InventoryPriceHistoryTable({
         cell: ({ row }) =>
           row.original.buyingPrice != null
             ? formatCurrency(row.original.buyingPrice, "LKR")
-            : "—",
+            : "-",
       },
       {
         accessorKey: "sellingPrice",

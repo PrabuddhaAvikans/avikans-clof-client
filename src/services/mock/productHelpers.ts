@@ -76,6 +76,8 @@ export function createVersionFromFormData(
       isRequired: op.isRequired ?? true,
       isEnabled: op.isEnabled ?? true,
       notes: op.notes,
+      prerequisiteOperationIds: op.prerequisiteOperationIds,
+      isQualityCheck: op.isQualityCheck,
     })),
     attributes: data.attributes.map((attr, index) => ({
       ...attr,
@@ -105,6 +107,9 @@ export function createVersionFromExisting(
   revisionNotes?: string,
 ): ProductVersion {
   const versionId = generateId("ver");
+  const operationIdMap = new Map(
+    source.operations.map((op, index) => [op.id, `${versionId}-op-${index + 1}`]),
+  );
   return {
     ...source,
     id: versionId,
@@ -117,8 +122,11 @@ export function createVersionFromExisting(
     ),
     operations: source.operations.map((op, index) => ({
       ...op,
-      id: `${versionId}-op-${index + 1}`,
+      id: operationIdMap.get(op.id) ?? `${versionId}-op-${index + 1}`,
       sequence: op.sequence ?? (index + 1) * 10,
+      prerequisiteOperationIds: op.prerequisiteOperationIds
+        ?.map((id) => operationIdMap.get(id) ?? id)
+        .filter(Boolean),
     })),
     attributes: source.attributes.map((attr, index) => ({
       ...attr,
@@ -210,6 +218,8 @@ export function applyVersionFormData(
           isRequired: op.isRequired ?? true,
           isEnabled: op.isEnabled ?? true,
           notes: op.notes,
+          prerequisiteOperationIds: op.prerequisiteOperationIds,
+          isQualityCheck: op.isQualityCheck,
         }))
       : version.operations,
     attributes: data.attributes
@@ -265,7 +275,7 @@ export function migrateLegacyProduct(product: ProductSeed): Product {
   const versionStatus: ProductVersionStatusValue =
     product.status === "active" ? "released" : "draft";
   const version: ProductVersion = {
-    id: generateId("ver"),
+    id: `${product.id}-ver-1`,
     productId: product.id,
     versionNumber: 1,
     label: "V1",
@@ -286,6 +296,8 @@ export function migrateLegacyProduct(product: ProductSeed): Product {
       isRequired: op.isRequired ?? true,
       isEnabled: op.isEnabled ?? true,
       notes: op.notes,
+      prerequisiteOperationIds: op.prerequisiteOperationIds,
+      isQualityCheck: op.isQualityCheck,
     })),
     attributes: product.attributes ?? [],
     images: product.images ?? [],
@@ -357,6 +369,7 @@ export function formDataFromProduct(product: Product): ProductFormData {
       alternatives: item.alternatives.map(({ id: _id, ...alt }) => alt),
     })),
     operations: version.operations.map((op) => ({
+      id: op.id,
       name: op.name,
       sequence: op.sequence,
       description: op.description,
@@ -368,6 +381,8 @@ export function formDataFromProduct(product: Product): ProductFormData {
       isRequired: op.isRequired,
       isEnabled: op.isEnabled,
       notes: op.notes,
+      prerequisiteOperationIds: op.prerequisiteOperationIds,
+      isQualityCheck: op.isQualityCheck,
     })),
     costBreakdown: version.costBreakdown,
     revisionNotes: version.revisionNotes,

@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useFormikContext } from "formik";
 import { useNavigate, useParams } from "react-router-dom";
 import { ROUTES } from "@/app/config/routes";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -8,6 +9,7 @@ import { FormikForm, DynamicForm, FormActions } from "@/components/forms";
 import { Tabs, TabList, Tab, TabPanel } from "@/components/ui";
 import { InventoryPricingSummary } from "@/features/inventory/components/InventoryPricingSummary";
 import {
+  DEFAULT_UNIT_BY_ITEM_TYPE,
   inventoryCostSections,
   inventoryGeneralSections,
   inventoryPricingSections,
@@ -34,6 +36,24 @@ const FORM_TABS = [
   { id: "cost", label: "Cost" },
   { id: "pricing", label: "Pricing" },
 ] as const;
+
+function ItemTypeUnitSync() {
+  const { values, setFieldValue } = useFormikContext<InventoryFormValues>();
+  const previousType = useRef(values.itemType);
+
+  useEffect(() => {
+    if (previousType.current === values.itemType) return;
+
+    const previousDefault = DEFAULT_UNIT_BY_ITEM_TYPE[previousType.current] ?? "pcs";
+    const nextDefault = DEFAULT_UNIT_BY_ITEM_TYPE[values.itemType] ?? "pcs";
+    if (!values.unit || values.unit === previousDefault) {
+      void setFieldValue("unit", nextDefault);
+    }
+    previousType.current = values.itemType;
+  }, [setFieldValue, values.itemType, values.unit]);
+
+  return null;
+}
 
 export function InventoryFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -117,6 +137,7 @@ export function InventoryFormPage() {
             </TabList>
 
             <TabPanel value="general" className="pt-4">
+              <ItemTypeUnitSync />
               <DynamicForm sections={inventoryGeneralSections} />
             </TabPanel>
 

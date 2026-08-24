@@ -20,8 +20,16 @@ import { initialQuotations } from "@/services/mock/data/quotations";
 import { mockProductService } from "@/services/mock/mockProductService";
 import { mockSalesOrderService } from "@/services/mock/mockSalesOrderService";
 import type { Quotation, QuotationContactEntry, QuotationLineItem } from "@/types/quotation";
+import {
+  applyQuotationSaveMode,
+  createQuotationRevision,
+  ensureQuotationRevisions,
+} from "@/lib/quotationRevisions";
 
-let quotations = cloneData(initialQuotations);
+let quotations = cloneData(initialQuotations).map((quotation) => ({
+  ...quotation,
+  revisions: ensureQuotationRevisions(quotation),
+}));
 
 function buildLineItems(
   items: Omit<QuotationLineItem, "id" | "lineTotal">[],
@@ -95,6 +103,12 @@ export const mockQuotationService: QuotationService = {
     const lineItems = buildLineItems(data.lineItems);
     const totals = computeTotals(lineItems, data.discountAmount ?? 0);
     const timestamp = nowIso();
+    const saveMode = data.saveMode ?? "draft";
+    const isDraft = saveMode === "draft";
+    const actor = {
+      id: "usr-001",
+      name: "Prabuddha Jayawardhana",
+    };
 
     const quotation: Quotation = {
       id: generateId("quo"),
@@ -102,7 +116,7 @@ export const mockQuotationService: QuotationService = {
       customerId: customer.id,
       customerName: customer.name,
       customerEmail: customer.email,
-      status: "draft",
+      status: isDraft ? "draft" : "ready_to_send",
       priority: data.priority,
       lineItems,
       ...totals,
@@ -117,14 +131,26 @@ export const mockQuotationService: QuotationService = {
         {
           id: generateId("qch"),
           type: "comment",
-          summary: "Quotation created",
-          contactedBy: "usr-001",
-          contactedByName: "Prabuddha Jayawardhana",
+          summary: isDraft ? "Quotation draft created" : "Quotation saved",
+          contactedBy: actor.id,
+          contactedByName: actor.name,
           contactedAt: timestamp,
         },
       ],
-      createdBy: "usr-001",
-      createdByName: "Prabuddha Jayawardhana",
+      revisions: [
+        createQuotationRevision({
+          versionNumber: 1,
+          isDraft,
+          totalAmount: totals.totalAmount,
+          currency: "LKR",
+          notes: isDraft ? "Initial draft" : "Initial version",
+          createdAt: timestamp,
+          createdBy: actor.id,
+          createdByName: actor.name,
+        }),
+      ],
+      createdBy: actor.id,
+      createdByName: actor.name,
       createdAt: timestamp,
       updatedAt: timestamp,
     };
@@ -138,17 +164,38 @@ export const mockQuotationService: QuotationService = {
     if (index === -1) notFoundError("Quotation", id);
 
     const existing = quotations[index];
-    const lineItems = data.lineItems
-      ? buildLineItems(data.lineItems)
+    const { saveMode: requestedSaveMode, ...rest } = data;
+    const lineItems = rest.lineItems
+      ? buildLineItems(rest.lineItems)
       : existing.lineItems;
-    const totals = computeTotals(lineItems, data.discountAmount ?? existing.discountAmount);
+    const totals = computeTotals(lineItems, rest.discountAmount ?? existing.discountAmount);
+    const timestamp = nowIso();
+    const actor = {
+      at: timestamp,
+      id: "usr-001",
+      name: "Prabuddha Jayawardhana",
+    };
+    const revisions = requestedSaveMode
+      ? applyQuotationSaveMode(
+          ensureQuotationRevisions(existing),
+          requestedSaveMode,
+          { totalAmount: totals.totalAmount, currency: existing.currency },
+          actor,
+        )
+      : ensureQuotationRevisions(existing);
+    const nextStatus =
+      requestedSaveMode === "save" && existing.status === "draft"
+        ? "ready_to_send"
+        : (rest.status ?? existing.status);
 
     quotations[index] = {
       ...existing,
-      ...data,
+      ...rest,
       lineItems,
       ...totals,
-      updatedAt: nowIso(),
+      status: nextStatus,
+      revisions,
+      updatedAt: timestamp,
     };
     return quotations[index];
   },

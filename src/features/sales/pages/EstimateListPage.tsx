@@ -25,10 +25,10 @@ import { SearchBar } from "@/components/ui/SearchBar";
 import { Select } from "@/components/ui/Select";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { MappedStatusBadge } from "@/features/shared/components/MappedStatusBadge";
+import { DuplicateQuotationModal } from "@/features/sales/components/DuplicateQuotationModal";
 import { SendQuotationModal } from "@/features/sales/components/SendQuotationModal";
 import {
   useConvertQuotationToSalesOrder,
-  useCreateQuotation,
   useDeleteQuotation,
   useQuotations,
   useSendQuotation,
@@ -61,6 +61,8 @@ export function EstimateListPage() {
   });
   const [deleteTarget, setDeleteTarget] = useState<Quotation | null>(null);
   const [sendTarget, setSendTarget] = useState<Quotation | null>(null);
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
+  const [duplicateSource, setDuplicateSource] = useState<Quotation | null>(null);
 
   const { data, isLoading, error, refetch } = useQuotations({
     page: 1,
@@ -74,32 +76,11 @@ export function EstimateListPage() {
   const deleteQuotation = useDeleteQuotation();
   const updateQuotation = useUpdateQuotation();
   const convertToOrder = useConvertQuotationToSalesOrder();
-  const createQuotation = useCreateQuotation();
 
-  const handleDuplicate = useCallback(
-    async (quotation: Quotation) => {
-      await createQuotation.mutateAsync({
-        customerId: quotation.customerId,
-        lineItems: quotation.lineItems.map((item) => ({
-          productId: item.productId,
-          productSku: item.productSku,
-          productName: item.productName,
-          description: item.description,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          discountPercent: item.discountPercent,
-          taxPercent: item.taxPercent,
-        })),
-        validUntil: quotation.validUntil,
-        priority: quotation.priority,
-        notes: quotation.notes,
-        termsAndConditions: quotation.termsAndConditions,
-        discountAmount: quotation.discountAmount,
-      });
-      void refetch();
-    },
-    [createQuotation, refetch],
-  );
+  const openDuplicateModal = useCallback((quotation: Quotation) => {
+    setDuplicateSource(quotation);
+    setDuplicateOpen(true);
+  }, []);
 
   const columns = useMemo<ColumnDef<Quotation>[]>(
     () => [
@@ -172,7 +153,7 @@ export function EstimateListPage() {
               label: "Duplicate",
               icon: <Copy className="h-4 w-4" />,
               primary: true,
-              onClick: () => void handleDuplicate(q),
+              onClick: () => openDuplicateModal(q),
             },
           ];
 
@@ -255,7 +236,7 @@ export function EstimateListPage() {
         },
       },
     ],
-    [navigate, convertToOrder, updateQuotation, handleDuplicate],
+    [navigate, convertToOrder, updateQuotation, openDuplicateModal],
   );
 
   return (
@@ -365,6 +346,19 @@ export function EstimateListPage() {
           }}
         />
       )}
+
+      <DuplicateQuotationModal
+        open={duplicateOpen}
+        quotation={duplicateSource}
+        onClose={() => {
+          setDuplicateOpen(false);
+          setDuplicateSource(null);
+        }}
+        onCreated={(created) => {
+          void refetch();
+          navigate(ROUTES.quotations.detail(created.id));
+        }}
+      />
     </PageContainer>
   );
 }

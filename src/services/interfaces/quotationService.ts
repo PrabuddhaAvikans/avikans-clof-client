@@ -26,6 +26,8 @@ export interface QuotationFormData {
   termsAndConditions?: string;
   discountAmount?: number;
   status?: QuotationStatusValue;
+  /** draft = keep as draft without a new version; save = record a revision. */
+  saveMode?: "draft" | "save";
 }
 
 export interface QuotationContactInput {
@@ -44,7 +46,7 @@ export interface QuotationService {
   send(id: string): Promise<Quotation>;
   convertToSalesOrder(id: string): Promise<SalesOrder>;
   addContactEntry(id: string, data: QuotationContactInput): Promise<Quotation>;
-  /** Explicit optional action — does not run automatically on customization. */
+  /** Explicit optional action - does not run automatically on customization. */
   promoteCustomizationToProductVersion(
     quotationId: string,
     lineItemId: string,

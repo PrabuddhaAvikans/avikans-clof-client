@@ -5,13 +5,15 @@ import { useScrollLock } from '@/hooks/useScrollLock';
 import { cn } from '@/lib/utils';
 import { IconButton } from './IconButton';
 
-export type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
+export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
 
 const sizeClasses: Record<ModalSize, string> = {
   sm: 'max-w-sm',
   md: 'max-w-lg',
   lg: 'max-w-2xl',
   xl: 'max-w-4xl',
+  '2xl': 'max-w-6xl',
+  full: 'max-w-[min(96rem,calc(100vw-2rem))]',
 };
 
 export type ModalProps = {
@@ -74,7 +76,7 @@ export function Modal({
           className,
         )}
       >
-        <div className="flex items-start justify-between border-b border-border px-5 py-4">
+        <div className="flex shrink-0 items-start justify-between border-b border-border px-5 py-4">
           {title ? (
             <h2 id={titleId} className="text-lg font-semibold text-foreground">
               {title}
@@ -93,9 +95,9 @@ export function Modal({
             className="ml-auto"
           />
         </div>
-        <div className="flex-1 overflow-visible px-5 py-4">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
         {footer && (
-          <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-4">
+          <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border px-5 py-4">
             {footer}
           </div>
         )}

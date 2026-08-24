@@ -366,6 +366,8 @@ export function SalesOrderFormPage() {
               <ProductSelectorModal
                 open={productModalOpen}
                 onClose={() => setProductModalOpen(false)}
+                customerId={formik.values.customerId}
+                customerName={formik.values.customerName}
                 onSelect={(product: Product) => {
                   void formik.setFieldValue("lineItems", [
                     ...formik.values.lineItems,

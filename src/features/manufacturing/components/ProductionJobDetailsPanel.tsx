@@ -9,10 +9,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { formatCurrency, formatDateTime } from "@/lib/format";
+import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { ProductionJob } from "@/types/production-tracking";
-import { PRODUCTION_STAGE_LABELS } from "@/types/production-tracking";
 
 export type ProductionJobDetailsPanelProps = {
   job: ProductionJob | null;
@@ -21,9 +20,10 @@ export type ProductionJobDetailsPanelProps = {
   className?: string;
 };
 
-function statusVariant(status: ProductionJob["status"]) {
+function statusVariantForJob(status: ProductionJob["status"]) {
   if (status === "on_hold") return "danger" as const;
-  if (status === "packed" || status === "qc") return "success" as const;
+  if (status === "completed") return "success" as const;
+  if (status === "quality_check" || status === "rework") return "warning" as const;
   return "default" as const;
 }
 
@@ -63,7 +63,7 @@ export function ProductionJobDetailsPanel({
           </p>
           <p className="truncate text-sm font-semibold text-foreground">{job.jobNumber}</p>
         </div>
-        <StatusBadge variant={statusVariant(job.status)} size="sm">
+        <StatusBadge variant={statusVariantForJob(job.status)} size="sm">
           {job.statusLabel}
         </StatusBadge>
       </div>
@@ -99,14 +99,14 @@ export function ProductionJobDetailsPanel({
 
         <div>
           <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-            Stages
+            Tasks
           </p>
           <ol className="space-y-1">
             {job.stages.map((stage) => (
-              <li key={stage.stage} className="flex items-center gap-2">
+              <li key={stage.id} className="flex items-center gap-2">
                 {stage.status === "completed" ? (
                   <CheckCircle2 className="h-3 w-3 shrink-0 text-foreground" />
-                ) : stage.status === "in_progress" ? (
+                ) : stage.status === "in_progress" || stage.status === "ready" ? (
                   <Loader2 className="h-3 w-3 shrink-0 animate-spin text-foreground" />
                 ) : (
                   <Circle className="h-3 w-3 shrink-0 text-muted-foreground/50" />
@@ -117,13 +117,11 @@ export function ProductionJobDetailsPanel({
                     stage.status === "pending" ? "text-muted-foreground" : "text-foreground",
                   )}
                 >
-                  {PRODUCTION_STAGE_LABELS[stage.stage]}
+                  {stage.name}
                 </span>
-                {stage.completedAt && (
-                  <span className="shrink-0 text-[9px] tabular-nums text-muted-foreground">
-                    {formatDateTime(stage.completedAt, "dd MMM HH:mm")}
-                  </span>
-                )}
+                <span className="shrink-0 text-[9px] tabular-nums text-muted-foreground">
+                  {stage.completedQuantity}/{stage.plannedQuantity}
+                </span>
               </li>
             ))}
           </ol>
@@ -181,9 +179,9 @@ export function ProductionJobDetailsPanel({
           className="w-full"
           onClick={onUpdateStage}
           loading={updating}
-          disabled={job.status === "packed"}
+          disabled={job.status === "completed" || job.status === "cancelled"}
         >
-          Update Stage
+          Open Tasks
         </Button>
       </div>
     </div>

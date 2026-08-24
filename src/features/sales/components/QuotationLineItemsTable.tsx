@@ -1,5 +1,7 @@
 import { FieldArray, useFormikContext } from "formik";
+import { Link } from "react-router-dom";
 import { PackagePlus, SlidersHorizontal, Trash2 } from "lucide-react";
+import { ROUTES } from "@/app/config/routes";
 import { FormikInput } from "@/components/forms";
 import { Button } from "@/components/ui/Button";
 import { MappedStatusBadge } from "@/features/shared/components/MappedStatusBadge";
@@ -109,7 +111,14 @@ export function QuotationLineItemsTable({
                         className="border-b border-border last:border-0"
                       >
                         <td className="py-1.5 pr-2">
-                          <p className="font-medium text-foreground">{item.productName}</p>
+                          <Link
+                            to={ROUTES.products.detail(item.productId)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-medium text-primary hover:underline"
+                          >
+                            {item.productName}
+                          </Link>
                           <p className="text-[10px] text-muted-foreground">
                             {item.productSku}
                             {item.productVersionLabel
@@ -162,33 +171,37 @@ export function QuotationLineItemsTable({
                             </ul>
                           )}
                         </td>
-                        <td className="py-1.5 pr-2">
+                        <td className="w-24 min-w-[6rem] py-1.5 pr-2">
                           <FormikInput
                             name={`lineItems.${index}.quantity`}
                             type="number"
-                            className="w-20"
+                            size="sm"
+                            inputClassName="text-right tabular-nums"
                           />
                         </td>
-                        <td className="py-1.5 pr-2">
+                        <td className="w-32 min-w-[7.5rem] py-1.5 pr-2">
                           <FormikInput
                             name={`lineItems.${index}.unitPrice`}
                             type="number"
                             step="0.01"
-                            className="w-28"
+                            size="sm"
+                            inputClassName="min-w-[6rem] text-right tabular-nums"
                           />
                         </td>
-                        <td className="py-1.5 pr-2">
+                        <td className="w-24 min-w-[5.5rem] py-1.5 pr-2">
                           <FormikInput
                             name={`lineItems.${index}.discountPercent`}
                             type="number"
-                            className="w-16"
+                            size="sm"
+                            inputClassName="text-right tabular-nums"
                           />
                         </td>
-                        <td className="py-1.5 pr-2">
+                        <td className="w-24 min-w-[5.5rem] py-1.5 pr-2">
                           <FormikInput
                             name={`lineItems.${index}.taxPercent`}
                             type="number"
-                            className="w-16"
+                            size="sm"
+                            inputClassName="text-right tabular-nums"
                           />
                         </td>
                         <td className="py-1.5 pr-2 text-right tabular-nums text-muted-foreground">

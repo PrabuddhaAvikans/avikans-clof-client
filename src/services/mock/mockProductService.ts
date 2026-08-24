@@ -140,7 +140,14 @@ export const mockProductService: ProductService = {
         if (filters.categoryId && item.categoryId !== filters.categoryId) return false;
         if (filters.brandId && item.brandId !== filters.brandId) return false;
         if (filters.status && item.status !== filters.status) return false;
-        if (filters.customerId && item.customerId !== filters.customerId) return false;
+        if (filters.availableForCustomerId !== undefined) {
+          const customerId = filters.availableForCustomerId;
+          const isDefault = !item.customerId;
+          const belongsToCustomer = Boolean(customerId) && item.customerId === customerId;
+          if (!isDefault && !belongsToCustomer) return false;
+        } else if (filters.customerId && item.customerId !== filters.customerId) {
+          return false;
+        }
         if (filters.versionStatus) {
           const current = getCurrentVersion(item);
           if (current.status !== filters.versionStatus) return false;

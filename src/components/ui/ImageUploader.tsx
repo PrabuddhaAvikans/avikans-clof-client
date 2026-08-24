@@ -1,5 +1,6 @@
 import { useCallback, useId, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, ImagePlus, Star, X } from 'lucide-react';
+import { openAttachment } from '@/lib/attachment';
 import { cn, formatBytes } from '@/lib/utils';
 import { Button } from './Button';
 import { IconButton } from './IconButton';
@@ -172,11 +173,26 @@ export function ImageUploader({
               key={image.id}
               className="group relative overflow-hidden rounded-lg border border-border bg-card"
             >
-              <img
-                src={image.previewUrl}
-                alt={image.file?.name ?? "Product image"}
-                className="aspect-square w-full object-cover"
-              />
+              <button
+                type="button"
+                className="block w-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={() =>
+                  openAttachment({
+                    name: image.file?.name ?? "Product image",
+                    url: image.previewUrl,
+                    mimeType: image.file?.type || "image/*",
+                    type: "image",
+                    file: image.file,
+                  })
+                }
+                title="Open image"
+              >
+                <img
+                  src={image.previewUrl}
+                  alt={image.file?.name ?? "Product image"}
+                  className="aspect-square w-full object-cover"
+                />
+              </button>
               {image.isPrimary && (
                 <StatusBadge variant="primary" size="sm" className="absolute left-2 top-2">
                   Primary

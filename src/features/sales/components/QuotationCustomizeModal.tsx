@@ -290,7 +290,7 @@ export function QuotationCustomizeModal({
                           className="h-8"
                           value={customValue === undefined || customValue === null ? "" : String(customValue)}
                           onChange={(e) => updateSpec(key, e.target.value)}
-                          placeholder={diff.originalValue === "—" ? undefined : String(diff.originalValue)}
+                          placeholder={diff.originalValue === "-" ? undefined : String(diff.originalValue)}
                         />
                       </td>
                     </tr>
@@ -332,7 +332,7 @@ export function QuotationCustomizeModal({
                           <p className="text-[10px] text-muted-foreground">{item.sku}</p>
                         </td>
                         <td className="px-3 py-1.5 text-muted-foreground">
-                          {original?.quantity ?? "—"} {item.unit}
+                          {original?.quantity ?? "-"} {item.unit}
                         </td>
                         <td className="px-3 py-1.5">
                           <Input
@@ -387,10 +387,10 @@ export function QuotationCustomizeModal({
                       >
                         <td className="px-3 py-1.5 font-medium">{op.name}</td>
                         <td className="px-3 py-1.5 text-muted-foreground">
-                          {op.workstation || "—"}
+                          {op.workstation || "-"}
                         </td>
                         <td className="px-3 py-1.5 text-muted-foreground">
-                          {original?.estimatedHours ?? "—"}
+                          {original?.estimatedHours ?? "-"}
                         </td>
                         <td className="px-3 py-1.5">
                           <Input

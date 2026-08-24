@@ -9,13 +9,13 @@ import { PageContent } from "@/components/feedback/PageStates";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { DataTable } from "@/components/tables/DataTable";
 import { Button } from "@/components/ui/Button";
-import { Checkbox } from "@/components/ui/Checkbox";
 import { Drawer } from "@/components/ui/Drawer";
+import { Select } from "@/components/ui/Select";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Textarea } from "@/components/ui/Textarea";
 import {
   useManufacturingJobs,
-  useUpdateManufacturingJob,
+  useManufacturingTaskAction,
 } from "@/features/manufacturing/hooks/useManufacturing";
 import { statusLabel, statusVariant } from "@/features/shared/utils/statusBadge";
 import { formatDateTime } from "@/lib/format";
@@ -37,7 +37,7 @@ export function QualityInspectionPage() {
     page: 1,
     pageSize: 100,
   });
-  const updateJob = useUpdateManufacturingJob();
+  const taskAction = useManufacturingTaskAction();
 
   const [selectedJob, setSelectedJob] = useState<ManufacturingJob | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -46,6 +46,7 @@ export function QualityInspectionPage() {
   >([]);
   const [notes, setNotes] = useState("");
   const [result, setResult] = useState<InspectionResult>("passed");
+  const [failedTaskId, setFailedTaskId] = useState("");
 
   const inspectionJobs = useMemo(
     () =>
@@ -53,7 +54,8 @@ export function QualityInspectionPage() {
         (job) =>
           job.status === "quality_check" ||
           job.status === "rework" ||
-          job.qualityInspection,
+          job.qualityInspection ||
+          job.tasks.some((task) => task.isQcTask && (task.status === "ready" || task.status === "in_progress" || task.status === "rework_required")),
       ),
     [data?.items],
   );
@@ -71,6 +73,7 @@ export function QualityInspectionPage() {
     setResult(
       (job.qualityInspection?.status as InspectionResult) ?? "passed",
     );
+    setFailedTaskId("");
     setDrawerOpen(true);
   };
 
@@ -90,27 +93,28 @@ export function QualityInspectionPage() {
       notes,
     };
 
-    const newStatus =
-      result === "passed"
-        ? "completed"
-        : result === "rework"
-          ? "rework"
-          : "quality_check";
-
     try {
-      await updateJob.mutateAsync({
+      await taskAction.mutateAsync({
         id: selectedJob.id,
-        data: {
-          status: newStatus,
+        action: {
+          type: "qc",
+          result: result === "passed" ? "passed" : result === "failed" ? "failed" : "rework",
+          inspection,
+          failedTaskId: result === "passed" ? undefined : failedTaskId || undefined,
+          reason: notes || (result === "passed" ? undefined : "QC failed"),
+          quantity: selectedJob.quantity,
         },
       });
       toast.success(`Inspection ${result} for ${selectedJob.jobNumber}`);
       setDrawerOpen(false);
       void refetch();
-    } catch {
-      toast.error("Failed to save inspection");
+    } catch (err) {
+      const message =
+        typeof err === "object" && err && "message" in err
+          ? String((err as { message: string }).message)
+          : "Failed to save inspection";
+      toast.error(message);
     }
-    void inspection;
   };
 
   const columns = useMemo<ColumnDef<ManufacturingJob>[]>(
@@ -206,7 +210,7 @@ export function QualityInspectionPage() {
             <Button variant="outline" onClick={() => setDrawerOpen(false)}>
               Cancel
             </Button>
-            <Button variant="primary" loading={updateJob.isPending} onClick={() => void handleSubmit()}>
+            <Button variant="primary" loading={taskAction.isPending} onClick={() => void handleSubmit()}>
               Save Inspection
             </Button>
           </>
@@ -296,6 +300,23 @@ export function QualityInspectionPage() {
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
             />
+
+            {result !== "passed" && (
+              <Select
+                label="Problem task"
+                value={failedTaskId}
+                onChange={(event) => setFailedTaskId(event.target.value)}
+                options={[
+                  { value: "", label: "Select the task that needs rework" },
+                  ...selectedJob.tasks
+                    .filter((task) => !task.isRework && !task.isQcTask)
+                    .map((task) => ({
+                      value: task.id,
+                      label: `${task.taskNumber} ${task.name}`,
+                    })),
+                ]}
+              />
+            )}
 
             <Link
               to={ROUTES.manufacturing.jobDetail(selectedJob.id)}

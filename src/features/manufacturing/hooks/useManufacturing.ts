@@ -6,7 +6,7 @@ import type {
   ManufacturingJobFormData,
   ManufacturingListFilters,
 } from "@/services";
-import type { ManufacturingJob } from "@/types/manufacturing";
+import type { ManufacturingJob, ManufacturingTaskAction } from "@/types/manufacturing";
 import type { PaginatedResponse } from "@/types/common";
 
 export function useManufacturingJobs(filters: ManufacturingListFilters) {
@@ -62,5 +62,22 @@ export function useCompleteManufacturingJob() {
   return useEpicMutation<string, ManufacturingJob>({
     request: manufacturingActions.completeRequest,
     selectMutation: (state: RootState) => state.manufacturing.complete,
+  });
+}
+
+export function useHoldManufacturingJob() {
+  return useEpicMutation<{ id: string; reason?: string }, ManufacturingJob>({
+    request: manufacturingActions.holdRequest,
+    selectMutation: (state: RootState) => state.manufacturing.hold,
+  });
+}
+
+export function useManufacturingTaskAction() {
+  return useEpicMutation<
+    { id: string; action: ManufacturingTaskAction },
+    ManufacturingJob
+  >({
+    request: manufacturingActions.taskActionRequest,
+    selectMutation: (state: RootState) => state.manufacturing.taskAction,
   });
 }

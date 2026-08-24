@@ -17,6 +17,7 @@ import { PageHeader } from "@/components/feedback/PageHeader";
 import { PageContent } from "@/components/feedback/PageStates";
 import { Button } from "@/components/ui/Button";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
+import { DuplicateQuotationModal } from "@/features/sales/components/DuplicateQuotationModal";
 import { SendQuotationModal } from "@/features/sales/components/SendQuotationModal";
 import { QuotationContactDrawer } from "@/features/sales/components/QuotationContactHistory";
 import { QuotationDetailPanel } from "@/features/sales/components/QuotationDetailPanel";
@@ -25,7 +26,6 @@ import { QuotationWorkflowPanel } from "@/features/sales/components/QuotationWor
 import {
   useAddQuotationContact,
   useConvertQuotationToSalesOrder,
-  useCreateQuotation,
   useDeleteQuotation,
   useQuotation,
   useQuotations,
@@ -54,6 +54,8 @@ export function QuotationWorkspacePage() {
   const [contactsOpen, setContactsOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [convertOpen, setConvertOpen] = useState(false);
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
+  const [duplicateSource, setDuplicateSource] = useState<Quotation | null>(null);
 
   const { data, isLoading, error, refetch } = useQuotations({
     page,
@@ -68,7 +70,6 @@ export function QuotationWorkspacePage() {
 
   const sendQuotation = useSendQuotation();
   const convertToOrder = useConvertQuotationToSalesOrder();
-  const createQuotation = useCreateQuotation();
   const addContact = useAddQuotationContact();
   const deleteQuotation = useDeleteQuotation();
 
@@ -102,46 +103,10 @@ export function QuotationWorkspacePage() {
     return counts;
   }, [countsData]);
 
-  const handleDuplicate = useCallback(
-    async (quotation: Quotation) => {
-      try {
-        const created = await createQuotation.mutateAsync({
-          customerId: quotation.customerId,
-          lineItems: quotation.lineItems.map((item) => ({
-            productId: item.productId,
-            productSku: item.productSku,
-            productName: item.productName,
-            description: item.description,
-            productVersionId: item.productVersionId,
-            productVersionLabel: item.productVersionLabel,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            discountPercent: item.discountPercent,
-            taxPercent: item.taxPercent,
-            isCustomized: item.isCustomized,
-            customization: item.customization
-              ? {
-                  ...item.customization,
-                  isLocked: false,
-                  promotedProductVersionId: undefined,
-                }
-              : undefined,
-          })),
-          validUntil: quotation.validUntil,
-          priority: quotation.priority,
-          notes: quotation.notes,
-          termsAndConditions: quotation.termsAndConditions,
-          discountAmount: quotation.discountAmount,
-        });
-        toast.success(`Duplicated as ${created.quotationNumber}`);
-        setSelectedId(created.id);
-        void refetch();
-      } catch {
-        toast.error("Failed to duplicate quotation");
-      }
-    },
-    [createQuotation, refetch],
-  );
+  const openDuplicateModal = useCallback((quotation: Quotation) => {
+    setDuplicateSource(quotation);
+    setDuplicateOpen(true);
+  }, []);
 
   const handleConvert = useCallback(async () => {
     if (!activeQuotation) return;
@@ -233,7 +198,7 @@ export function QuotationWorkspacePage() {
               size="sm"
               leftIcon={<Copy className="h-4 w-4" />}
               disabled={!activeQuotation}
-              onClick={() => activeQuotation && void handleDuplicate(activeQuotation)}
+              onClick={() => activeQuotation && openDuplicateModal(activeQuotation)}
             >
               Duplicate
             </Button>
@@ -325,7 +290,7 @@ export function QuotationWorkspacePage() {
               }
               onDelete={() => setDeleteOpen(true)}
               onSend={() => setSendOpen(true)}
-              onDuplicate={() => activeQuotation && void handleDuplicate(activeQuotation)}
+              onDuplicate={() => activeQuotation && openDuplicateModal(activeQuotation)}
               onConvert={() => setConvertOpen(true)}
               onDownloadPdf={() =>
                 activeQuotation && navigate(ROUTES.quotations.preview(activeQuotation.id))
@@ -338,7 +303,7 @@ export function QuotationWorkspacePage() {
             />
           </div>
         </div>
-      </PageContent>     
+      </PageContent>
 
       <QuotationContactDrawer
         open={contactsOpen}
@@ -367,6 +332,19 @@ export function QuotationWorkspacePage() {
         confirmLabel="Delete"
         variant="danger"
         loading={deleteQuotation.isPending}
+      />
+
+      <DuplicateQuotationModal
+        open={duplicateOpen}
+        quotation={duplicateSource}
+        onClose={() => {
+          setDuplicateOpen(false);
+          setDuplicateSource(null);
+        }}
+        onCreated={(created) => {
+          setSelectedId(created.id);
+          void refetch();
+        }}
       />
 
       {activeQuotation && (

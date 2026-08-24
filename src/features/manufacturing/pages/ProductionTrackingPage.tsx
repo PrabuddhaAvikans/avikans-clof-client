@@ -7,18 +7,18 @@ import {
   ShieldCheck,
   Workflow,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { ROUTES } from "@/app/config/routes";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageContent } from "@/components/feedback/PageStates";
 import { Button } from "@/components/ui/Button";
 import { IconButton } from "@/components/ui/IconButton";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { OverdueMilestones } from "@/features/manufacturing/components/OverdueMilestones";
 import { ProductionJobDetailsPanel } from "@/features/manufacturing/components/ProductionJobDetailsPanel";
 import { ProductionJobsTable } from "@/features/manufacturing/components/ProductionJobsTable";
 import { ProductionKpiCards } from "@/features/manufacturing/components/ProductionKpiCards";
-import { ProductionPipeline } from "@/features/manufacturing/components/ProductionPipeline";
 import { ProductionTimeline } from "@/features/manufacturing/components/ProductionTimeline";
 import {
   useHoldProductionJob,
@@ -28,20 +28,20 @@ import {
   useStartProduction,
   useUpdateProductionStage,
 } from "@/features/manufacturing/hooks/useProductionTracking";
-import { PRODUCTION_STAGE_LABELS, PRODUCTION_STAGES } from "@/types/production-tracking";
+import { ManufacturingJobStatus } from "@/types/status";
 
 const STATUS_OPTIONS = [
   { value: "", label: "All status" },
-  { value: "on_hold", label: "On Hold" },
-  ...PRODUCTION_STAGES.map((stage) => ({
-    value: stage,
-    label: PRODUCTION_STAGE_LABELS[stage],
+  ...Object.entries(ManufacturingJobStatus).map(([value, def]) => ({
+    value,
+    label: def.label,
   })),
 ];
 
 const controlClass = "h-8 text-[12px]";
 
 export function ProductionTrackingPage() {
+  const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [line, setLine] = useState("");
@@ -88,7 +88,7 @@ export function ProductionTrackingPage() {
 
   const lineOptions = useMemo(
     () => [
-      { value: "", label: "All lines" },
+      { value: "", label: "All tasks" },
       ...(snapshot?.lines ?? []).map((value) => ({ value, label: value })),
     ],
     [snapshot?.lines],
@@ -127,7 +127,7 @@ export function ProductionTrackingPage() {
     if (!requireSelection() || !selectedId) return;
     try {
       const result = await updateStageMutation.mutateAsync({ id: selectedId });
-      toast.success(`Moved to ${result.statusLabel}`);
+      toast.success(`Advanced to ${result.currentTaskName || result.statusLabel}`);
     } catch {
       toast.error("Failed to update stage");
     }
@@ -210,7 +210,7 @@ export function ProductionTrackingPage() {
                   onClick={() => void handleUpdateStage()}
                   loading={updateStageMutation.isPending}
                 >
-                  Stage
+                  Advance Task
                 </Button>
                 <Button
                   variant="outline"
@@ -293,7 +293,7 @@ export function ProductionTrackingPage() {
                 options={lineOptions}
                 selectClassName={`${controlClass} py-0`}
                 className="w-[118px]"
-                aria-label="Filter by line"
+                aria-label="Filter by current task"
               />
               <Select
                 value={supervisorId}
@@ -328,22 +328,8 @@ export function ProductionTrackingPage() {
                 Reset
               </Button>
               <p className="ml-auto text-[10px] tabular-nums text-muted-foreground">
-                {jobs.length} jobs · {snapshot.overdue.length} overdue
+                {jobs.length} jobs
               </p>
-            </div>
-
-            {/* Pipeline - 3 cols on xl, full on smaller */}
-            <div className="col-span-1 border border-border bg-card p-2 md:col-span-2 lg:col-span-2 xl:col-span-3">
-              <ProductionPipeline stages={snapshot.pipeline} />
-            </div>
-
-            {/* Overdue beside pipeline on wide screens */}
-            <div className="col-span-1 border border-border bg-card p-2 md:col-span-2 lg:col-span-1 xl:col-span-1">
-              <OverdueMilestones
-                items={snapshot.overdue}
-                selectedId={selectedId}
-                onSelect={setSelectedId}
-              />
             </div>
 
             {/* Jobs table - 3 of 4 on xl, 2 of 3 on lg */}
@@ -368,8 +354,10 @@ export function ProductionTrackingPage() {
             <div className="col-span-1 max-h-[480px] overflow-auto border border-border bg-card p-2 md:col-span-2 lg:col-span-1 xl:col-span-1 xl:row-span-2 xl:max-h-[min(720px,calc(100dvh-220px))]">
               <ProductionJobDetailsPanel
                 job={selectedJob}
-                onUpdateStage={() => void handleUpdateStage()}
-                updating={updateStageMutation.isPending}
+                onUpdateStage={() => {
+                  if (selectedId) navigate(ROUTES.manufacturing.jobDetail(selectedId));
+                }}
+                updating={false}
                 className="h-full min-h-[240px]"
               />
             </div>

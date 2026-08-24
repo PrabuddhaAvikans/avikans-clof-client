@@ -1,4 +1,4 @@
-import type { Quotation, QuotationContactEntry } from "@/types/quotation";
+import type { Quotation, QuotationContactEntry, QuotationRevision } from "@/types/quotation";
 
 const contactHistoryById: Record<string, QuotationContactEntry[]> = {
   "quo-001": [
@@ -179,7 +179,9 @@ const contactHistoryById: Record<string, QuotationContactEntry[]> = {
   ],
 };
 
-const rawQuotations: Omit<Quotation, "contactHistory">[] = [
+const rawQuotations: Array<
+  Omit<Quotation, "contactHistory" | "revisions"> & { revisions?: QuotationRevision[] }
+> = [
   {
     id: "quo-001",
     quotationNumber: "QT-2025-0142",
@@ -231,6 +233,34 @@ const rawQuotations: Omit<Quotation, "contactHistory">[] = [
     sentAt: "2025-07-20T10:00:00Z",
     createdAt: "2025-07-18T08:00:00Z",
     updatedAt: "2025-07-20T10:00:00Z",
+    revisions: [
+      {
+        id: "qrev-001-2",
+        versionNumber: 2,
+        label: "v1.1",
+        isCurrent: true,
+        isDraft: false,
+        totalAmount: 3174672,
+        currency: "LKR",
+        notes: "Updated quantities and sent to customer",
+        createdAt: "2025-07-20T15:30:00Z",
+        createdBy: "usr-002",
+        createdByName: "Chamari Perera",
+      },
+      {
+        id: "qrev-001-1",
+        versionNumber: 1,
+        label: "v1.0",
+        isCurrent: false,
+        isDraft: false,
+        totalAmount: 2985000,
+        currency: "LKR",
+        notes: "Initial version",
+        createdAt: "2025-07-18T08:00:00Z",
+        createdBy: "usr-002",
+        createdByName: "Chamari Perera",
+      },
+    ],
   },
   {
     id: "quo-002",
@@ -500,4 +530,5 @@ const rawQuotations: Omit<Quotation, "contactHistory">[] = [
 export const initialQuotations: Quotation[] = rawQuotations.map((quotation) => ({
   ...quotation,
   contactHistory: contactHistoryById[quotation.id] ?? [],
+  revisions: quotation.revisions ?? [],
 }));

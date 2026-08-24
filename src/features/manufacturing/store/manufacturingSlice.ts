@@ -20,11 +20,16 @@ import type {
   ManufacturingJobFormData,
   ManufacturingListFilters,
 } from "@/services";
-import type { ManufacturingJob } from "@/types/manufacturing";
+import type {
+  ManufacturingJob,
+  ManufacturingTaskAction,
+} from "@/types/manufacturing";
 import type { PaginatedResponse } from "@/types/common";
 
 type ListData = PaginatedResponse<ManufacturingJob>;
 type UpdateArg = { id: string; data: Partial<ManufacturingJobFormData> };
+type TaskActionArg = { id: string; action: ManufacturingTaskAction };
+type HoldArg = { id: string; reason?: string };
 
 export type ManufacturingState = {
   lists: Record<string, AsyncEntry<ListData>>;
@@ -34,6 +39,8 @@ export type ManufacturingState = {
   reserveMaterials: MutationEntry;
   start: MutationEntry;
   complete: MutationEntry;
+  hold: MutationEntry;
+  taskAction: MutationEntry;
 };
 
 const initialState: ManufacturingState = {
@@ -44,6 +51,8 @@ const initialState: ManufacturingState = {
   reserveMaterials: createMutationEntry(),
   start: createMutationEntry(),
   complete: createMutationEntry(),
+  hold: createMutationEntry(),
+  taskAction: createMutationEntry(),
 };
 
 function upsertDetail(state: ManufacturingState, job: ManufacturingJob): void {
@@ -148,6 +157,30 @@ const manufacturingSlice = createSlice({
     },
     completeFailure(state, action: PayloadAction<FailurePayload>) {
       setMutationFailure(state.complete, action);
+    },
+
+    holdRequest(state, _action: PayloadAction<RequestPayload<HoldArg>>) {
+      setMutationLoading(state.hold);
+    },
+    holdSuccess(state, action: PayloadAction<SuccessPayload<ManufacturingJob>>) {
+      setMutationSuccess(state.hold);
+      upsertDetail(state, action.payload.data);
+      invalidateEntries(state.lists);
+    },
+    holdFailure(state, action: PayloadAction<FailurePayload>) {
+      setMutationFailure(state.hold, action);
+    },
+
+    taskActionRequest(state, _action: PayloadAction<RequestPayload<TaskActionArg>>) {
+      setMutationLoading(state.taskAction);
+    },
+    taskActionSuccess(state, action: PayloadAction<SuccessPayload<ManufacturingJob>>) {
+      setMutationSuccess(state.taskAction);
+      upsertDetail(state, action.payload.data);
+      invalidateEntries(state.lists);
+    },
+    taskActionFailure(state, action: PayloadAction<FailurePayload>) {
+      setMutationFailure(state.taskAction, action);
     },
 
     invalidateAll(state) {

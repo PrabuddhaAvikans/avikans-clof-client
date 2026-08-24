@@ -1,5 +1,6 @@
 import { useCallback, useId, useRef, useState } from 'react';
-import { Upload, X } from 'lucide-react';
+import { Download, Upload, X } from 'lucide-react';
+import { downloadAttachment, openAttachment } from '@/lib/attachment';
 import { cn, formatBytes } from '@/lib/utils';
 import { AttachmentIcon } from './AttachmentIcon';
 import { Button } from './Button';
@@ -146,26 +147,56 @@ export function FileUploader({
               key={item.id}
               className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2"
             >
-              <div className="flex min-w-0 items-center gap-2">
+              <button
+                type="button"
+                className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+                disabled={disabled}
+                onClick={() =>
+                  openAttachment({
+                    name: item.file.name,
+                    mimeType: item.file.type,
+                    file: item.file,
+                  })
+                }
+                title={`Open ${item.file.name}`}
+              >
                 <AttachmentIcon
                   fileName={item.file.name}
                   mimeType={item.file.type}
                   className="shrink-0 text-muted-foreground"
                 />
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-foreground">{item.file.name}</p>
+                  <p className="cursor-pointer truncate text-sm font-medium text-foreground underline-offset-2 hover:underline">
+                    {item.file.name}
+                  </p>
                   <p className="text-xs text-muted-foreground">{formatBytes(item.file.size)}</p>
                 </div>
-              </div>
-              {!disabled && (
+              </button>
+              <div className="flex shrink-0 items-center gap-1">
                 <IconButton
                   variant="ghost"
                   size="sm"
-                  icon={<X className="h-4 w-4" />}
-                  aria-label={`Remove ${item.file.name}`}
-                  onClick={() => removeFile(item.id)}
+                  icon={<Download className="h-4 w-4" />}
+                  aria-label={`Download ${item.file.name}`}
+                  disabled={disabled}
+                  onClick={() =>
+                    downloadAttachment({
+                      name: item.file.name,
+                      mimeType: item.file.type,
+                      file: item.file,
+                    })
+                  }
                 />
-              )}
+                {!disabled && (
+                  <IconButton
+                    variant="ghost"
+                    size="sm"
+                    icon={<X className="h-4 w-4" />}
+                    aria-label={`Remove ${item.file.name}`}
+                    onClick={() => removeFile(item.id)}
+                  />
+                )}
+              </div>
             </li>
           ))}
         </ul>

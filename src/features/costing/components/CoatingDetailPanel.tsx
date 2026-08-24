@@ -156,11 +156,23 @@ export function CoatingDetailPanel({
                                 options={PROCESS_OPTIONS}
                               />
                             </td>
-                            <td className="w-20 px-2 py-1.5">
-                              <FormikInput name={`items.${index}.quantity`} type="number" min={1} />
+                            <td className="w-24 min-w-[6rem] px-2 py-1.5">
+                              <FormikInput
+                                name={`items.${index}.quantity`}
+                                type="number"
+                                min={1}
+                                size="sm"
+                                inputClassName="text-right tabular-nums"
+                              />
                             </td>
-                            <td className="w-28 px-2 py-1.5">
-                              <FormikInput name={`items.${index}.unitCost`} type="number" min={0} />
+                            <td className="w-32 min-w-[7.5rem] px-2 py-1.5">
+                              <FormikInput
+                                name={`items.${index}.unitCost`}
+                                type="number"
+                                min={0}
+                                size="sm"
+                                inputClassName="text-right tabular-nums"
+                              />
                             </td>
                             <td className="px-2 py-2 text-right tabular-nums">
                               {formatCurrency(

@@ -69,8 +69,8 @@ export function QuotationDetailPanel({
     DEFAULT_COUNTRY;
 
   const attachments = [
-    { id: "att-1", name: "Layout Drawing.pdf", size: 245_000 },
-    { id: "att-2", name: "Technical Spec.pdf", size: 180_000 },
+    { id: "att-1", name: "Layout Drawing.pdf", size: 245_000, type: "pdf" },
+    { id: "att-2", name: "Technical Spec.pdf", size: 180_000, type: "pdf" },
   ];
 
   const handleApprove = async (lineItemId: string) => {
@@ -261,9 +261,12 @@ export function QuotationDetailPanel({
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-foreground">
+                      <Link
+                        to={ROUTES.products.detail(item.productId)}
+                        className="truncate text-sm font-medium text-primary hover:underline"
+                      >
                         {item.productName}
-                      </p>
+                      </Link>
                       <p className="text-xs text-muted-foreground">
                         {item.productSku}
                         {item.productVersionLabel
@@ -392,21 +395,41 @@ export function QuotationDetailPanel({
         <section className="rounded-lg border border-border">
           <div className="border-b border-border px-4 py-3">
             <h3 className="text-sm font-semibold text-foreground">Revision / Version History</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Save records a new version. Save Draft updates the current draft without changing the version number.
+            </p>
           </div>
           <ul className="divide-y divide-border">
-            <li className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm">
-              <div>
-                <p className="font-medium text-foreground">
-                  v1.0 <span className="text-xs font-normal text-primary">Current</span>
+            {(quotation.revisions?.length
+              ? [...quotation.revisions].sort((a, b) => b.versionNumber - a.versionNumber)
+              : []
+            ).map((revision) => (
+              <li
+                key={revision.id}
+                className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm"
+              >
+                <div>
+                  <p className="font-medium text-foreground">
+                    {revision.label}{" "}
+                    {revision.isCurrent && (
+                      <span className="text-xs font-normal text-primary">
+                        {revision.isDraft ? "Current draft" : "Current"}
+                      </span>
+                    )}
+                    {!revision.isCurrent && revision.isDraft && (
+                      <span className="text-xs font-normal text-muted-foreground">Draft</span>
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDateTime(revision.createdAt)} · {revision.createdByName}
+                    {revision.notes ? ` · ${revision.notes}` : ""}
+                  </p>
+                </div>
+                <p className="tabular-nums font-medium">
+                  {formatCurrency(revision.totalAmount, revision.currency)}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  {formatDateTime(quotation.updatedAt)} · {quotation.createdByName}
-                </p>
-              </div>
-              <p className="tabular-nums font-medium">
-                {formatCurrency(quotation.totalAmount, quotation.currency)}
-              </p>
-            </li>
+              </li>
+            ))}
           </ul>
         </section>
       </div>

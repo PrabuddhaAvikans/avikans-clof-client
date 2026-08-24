@@ -1,5 +1,5 @@
 import { useFormikContext } from "formik";
-import { FileText, Send, Eye } from "lucide-react";
+import { Send, Eye } from "lucide-react";
 import { Button, StatusBadge } from "@/components/ui";
 import { QuotationTotalsSummary } from "@/features/sales/components/QuotationTotalsSummary";
 import {
@@ -21,7 +21,13 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function QuotationFormPreview() {
+export type QuotationFormPreviewProps = {
+  showQuickActions?: boolean;
+};
+
+export function QuotationFormPreview({
+  showQuickActions = true,
+}: QuotationFormPreviewProps) {
   const { values } = useFormikContext<QuotationFormValues>();
   const totals = computeQuotationTotals(values.lineItems, values.discountAmount ?? 0);
   const priorityLabel = Priority[values.priority as keyof typeof Priority]?.label ?? values.priority;
@@ -67,7 +73,7 @@ export function QuotationFormPreview() {
                   Qty {item.quantity} · {formatCurrency(lineTotal, "LKR")}
                 </p>
               </li>
-            );
+              );
             })}
             {values.lineItems.length > 5 && (
               <li className="text-[10px] text-muted-foreground">
@@ -78,20 +84,19 @@ export function QuotationFormPreview() {
         )}
       </section>
 
-      <section className="space-y-1.5 rounded-md border border-border bg-card p-3">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Quick Actions
-        </p>
-        <Button type="button" variant="outline" size="sm" className="h-8 w-full justify-start text-[12px]" leftIcon={<Eye className="h-3.5 w-3.5" />}>
-          Preview as Customer
-        </Button>
-        <Button type="button" variant="outline" size="sm" className="h-8 w-full justify-start text-[12px]" leftIcon={<FileText className="h-3.5 w-3.5" />}>
-          Duplicate Quotation
-        </Button>
-        <Button type="button" variant="outline" size="sm" className="h-8 w-full justify-start text-[12px]" leftIcon={<Send className="h-3.5 w-3.5" />}>
-          Email Customer
-        </Button>
-      </section>
+      {showQuickActions && (
+        <section className="space-y-1.5 rounded-md border border-border bg-card p-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Quick Actions
+          </p>
+          <Button type="button" variant="outline" size="sm" className="h-8 w-full justify-start text-[12px]" leftIcon={<Eye className="h-3.5 w-3.5" />}>
+            Preview as Customer
+          </Button>
+          <Button type="button" variant="outline" size="sm" className="h-8 w-full justify-start text-[12px]" leftIcon={<Send className="h-3.5 w-3.5" />}>
+            Email Customer
+          </Button>
+        </section>
+      )}
     </aside>
   );
 }

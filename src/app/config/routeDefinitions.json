@@ -257,7 +257,7 @@
 
     {
       "path": "manufacturing",
-      "redirect": "/manufacturing/tracking"
+      "redirect": "/manufacturing/jobs"
     },
     {
       "path": "manufacturing/tracking",

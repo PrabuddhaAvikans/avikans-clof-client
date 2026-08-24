@@ -24,6 +24,7 @@ import { useSalesOrders } from "@/features/sales/hooks/useSalesOrders";
 import { useProducts } from "@/features/products/hooks/useProducts";
 import { useUsers } from "@/features/admin/hooks/useUsers";
 import { formatDate } from "@/lib/format";
+import { formatDurationHours } from "@/lib/manufacturingTasks";
 import type { MaterialRequirement } from "@/types/manufacturing";
 import { Priority, type PriorityValue } from "@/types/status";
 
@@ -45,8 +46,10 @@ const defaultValues: ManufacturingJobFormValues = {
 
 function MaterialPreviewSync({
   onPreviewChange,
+  onTasksChange,
 }: {
   onPreviewChange: (preview: MaterialRequirement[]) => void;
+  onTasksChange: (tasks: { sequence: number; name: string; isRequired: boolean; estimatedHours: number; dependsOn: string }[]) => void;
 }) {
   const { values } = useFormikContext<ManufacturingJobFormValues>();
   const { data: products } = useProducts({ page: 1, pageSize: 50 });
@@ -56,6 +59,7 @@ function MaterialPreviewSync({
   useEffect(() => {
     if (!selectedProduct) {
       onPreviewChange([]);
+      onTasksChange([]);
       return;
     }
     onPreviewChange(
@@ -71,7 +75,20 @@ function MaterialPreviewSync({
         status: "pending" as const,
       })),
     );
-  }, [selectedProduct, values.quantity, onPreviewChange]);
+    const ops = selectedProduct.operations.filter((op) => op.isEnabled !== false);
+    onTasksChange(
+      ops.map((op) => ({
+        sequence: op.sequence,
+        name: op.name,
+        isRequired: op.isRequired !== false,
+        estimatedHours: op.estimatedHours * values.quantity,
+        dependsOn: (op.prerequisiteOperationIds ?? [])
+          .map((id) => ops.find((item) => item.id === id)?.name)
+          .filter(Boolean)
+          .join(", "),
+      })),
+    );
+  }, [selectedProduct, values.quantity, onPreviewChange, onTasksChange]);
 
   return null;
 }
@@ -113,6 +130,9 @@ export function ManufacturingJobFormPage() {
 
   const [createdJobId, setCreatedJobId] = useState<string | null>(null);
   const [materialPreview, setMaterialPreview] = useState<MaterialRequirement[]>([]);
+  const [taskPreview, setTaskPreview] = useState<
+    { sequence: number; name: string; isRequired: boolean; estimatedHours: number; dependsOn: string }[]
+  >([]);
   const [overrideStart, setOverrideStart] = useState(false);
   const [startDialogOpen, setStartDialogOpen] = useState(false);
 
@@ -171,8 +191,8 @@ export function ManufacturingJobFormPage() {
   return (
     <PageContainer>
       <PageHeader
-        title="Create Manufacturing Job"
-        description="Plan a new production job with material requirements."
+        title="Create Production Job"
+        description="Create a production job. Manufacturing tasks are generated from the approved product version."
         breadcrumbs={[
           { label: "Manufacturing", href: ROUTES.manufacturing.jobs },
           { label: "Jobs", href: ROUTES.manufacturing.jobs },
@@ -195,7 +215,7 @@ export function ManufacturingJobFormPage() {
         {(formik) => (
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="space-y-4 rounded-lg border border-border bg-card p-6 lg:col-span-1">
-              <MaterialPreviewSync onPreviewChange={setMaterialPreview} />
+              <MaterialPreviewSync onPreviewChange={setMaterialPreview} onTasksChange={setTaskPreview} />
               <ManufacturingJobFormFields disabled={Boolean(createdJobId)} />
               {!createdJobId && (
                 <Button
@@ -210,6 +230,7 @@ export function ManufacturingJobFormPage() {
             </div>
 
             <div className="space-y-4 lg:col-span-2">
+              <TaskPreviewPanel tasks={taskPreview} />
               <MaterialRequirementsPanel
                 materialPreview={materialPreview}
                 createdJobId={createdJobId}
@@ -259,6 +280,48 @@ export function ManufacturingJobFormPage() {
         variant="danger"
       />
     </PageContainer>
+  );
+}
+
+function TaskPreviewPanel({
+  tasks,
+}: {
+  tasks: { sequence: number; name: string; isRequired: boolean; estimatedHours: number; dependsOn: string }[];
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-card p-6">
+      <h2 className="mb-4 text-sm font-semibold text-foreground">Manufacturing Tasks</h2>
+      {tasks.length === 0 ? (
+        <p className="py-6 text-center text-sm text-muted-foreground">
+          Select a product to preview tasks from its approved product version operations.
+        </p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <th className="pb-2 pr-4">Seq</th>
+                <th className="pb-2 pr-4">Task</th>
+                <th className="pb-2 pr-4">Required</th>
+                <th className="pb-2 pr-4">Depends on</th>
+                <th className="pb-2 pr-4 text-right">Est. Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tasks.map((task) => (
+                <tr key={`${task.sequence}-${task.name}`} className="border-b border-border last:border-0">
+                  <td className="py-2.5 pr-4 font-mono text-xs">{task.sequence}</td>
+                  <td className="py-2.5 pr-4">{task.name}</td>
+                  <td className="py-2.5 pr-4">{task.isRequired ? "Yes" : "Optional"}</td>
+                  <td className="py-2.5 pr-4 text-muted-foreground">{task.dependsOn || "-"}</td>
+                  <td className="py-2.5 pr-4 text-right">{formatDurationHours(task.estimatedHours)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }
 

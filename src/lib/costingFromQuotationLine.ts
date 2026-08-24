@@ -190,7 +190,7 @@ export function contextsToEstimationMaterials(
         unitCost: item.unitCost,
         totalCost: item.lineCost,
         isRequired: item.isRequired,
-        notes: `${context.productName}${context.sourceType === "customized" ? " (customized)" : ""}${item.notes ? ` — ${item.notes}` : ""}`,
+        notes: `${context.productName}${context.sourceType === "customized" ? " (customized)" : ""}${item.notes ? ` - ${item.notes}` : ""}`,
         salesOrderLineItemId: context.salesOrderLineItemId,
         sourceType: context.sourceType,
         sourceProductName: context.productName,
@@ -255,7 +255,7 @@ export function contextsToCostingLineItems(
     if (context.materialCost > 0) {
       items.push({
         id: `cli-${orderId}-${++index}`,
-        description: `${label} — materials`,
+        description: `${label} - materials`,
         category: "Materials",
         baseCost: context.materialCost,
         percentOfCost: 0,
@@ -266,7 +266,7 @@ export function contextsToCostingLineItems(
     if (context.labourCost > 0) {
       items.push({
         id: `cli-${orderId}-${++index}`,
-        description: `${label} — labour`,
+        description: `${label} - labour`,
         category: "Labour",
         baseCost: context.labourCost,
         percentOfCost: 0,
@@ -277,7 +277,7 @@ export function contextsToCostingLineItems(
     if (context.machineCost > 0) {
       items.push({
         id: `cli-${orderId}-${++index}`,
-        description: `${label} — machine`,
+        description: `${label} - machine`,
         category: "Machine",
         baseCost: context.machineCost,
         percentOfCost: 0,
@@ -288,7 +288,7 @@ export function contextsToCostingLineItems(
     if (context.overheadCost > 0) {
       items.push({
         id: `cli-${orderId}-${++index}`,
-        description: `${label} — overhead`,
+        description: `${label} - overhead`,
         category: "Overhead",
         baseCost: context.overheadCost,
         percentOfCost: 0,

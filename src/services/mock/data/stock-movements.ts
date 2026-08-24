@@ -11,7 +11,7 @@ export const initialStockMovements: StockMovement[] = [
     unit: "pcs",
     referenceType: "manufacturing_job",
     referenceId: "mj-001",
-    notes: "Issued for JC-2025-1187",
+    notes: "Issued for PJ-1001",
     performedBy: "usr-005",
     performedByName: "Chaminda Jayasuriya",
     performedAt: "2025-07-20T08:30:00Z",

@@ -21,7 +21,7 @@ export const quotationLineItemSchema = yup.object({
   discountPercent: coerceNumber().required().min(0).max(100),
   taxPercent: coerceNumber().required().min(0).max(100),
   isCustomized: yup.boolean().optional(),
-  /** Full customization snapshot is validated loosely — structure enforced in UI helpers. */
+  /** Full customization snapshot is validated loosely - structure enforced in UI helpers. */
   customization: yup.mixed().optional(),
 });
 

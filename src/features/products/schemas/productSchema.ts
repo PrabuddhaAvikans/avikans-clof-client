@@ -30,6 +30,8 @@ export const productOperationSchema = yup.object({
   isRequired: yup.boolean().default(true),
   isEnabled: yup.boolean().default(true),
   notes: yup.string().optional(),
+  prerequisiteOperationIds: yup.array(yup.string().required()).optional(),
+  isQualityCheck: yup.boolean().optional(),
 });
 
 export const bomAlternativeSchema = yup.object({

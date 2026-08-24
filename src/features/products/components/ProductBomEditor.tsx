@@ -50,7 +50,7 @@ export function ProductBomEditor({
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground">
-          BOM uses inventory cost price for manufacturing costing — not selling price.
+          BOM uses inventory cost price for manufacturing costing - not selling price.
         </p>
         {onAddItem && (
           <Button
@@ -78,9 +78,9 @@ export function ProductBomEditor({
                   <tr className="border-b border-border bg-muted/30 text-left uppercase tracking-wide text-muted-foreground">
                     <th className="px-2 py-2">#</th>
                     <th className="px-2 py-2">Component</th>
-                    <th className="px-2 py-2">Qty</th>
+                    <th className="w-24 min-w-[6rem] px-2 py-2">Qty</th>
                     <th className="px-2 py-2">Unit</th>
-                    <th className="px-2 py-2">Waste %</th>
+                    <th className="w-24 min-w-[5.5rem] whitespace-nowrap px-2 py-2">Waste %</th>
                     <th className="px-2 py-2">Required Qty</th>
                     <th className="px-2 py-2">Cost Price</th>
                     <th className="px-2 py-2">Line Cost</th>
@@ -104,12 +104,27 @@ export function ProductBomEditor({
                           <div className="font-medium text-foreground">{line.inventoryItemName}</div>
                           <div className="text-muted-foreground">{line.sku}</div>
                         </td>
-                        <td className="px-2 py-2">
-                          <FormikInput name={`bom.${index}.quantity`} type="number" min={0.01} step={0.01} />
+                        <td className="w-24 min-w-[6rem] px-2 py-2">
+                          <FormikInput
+                            name={`bom.${index}.quantity`}
+                            type="number"
+                            min={0.01}
+                            step={0.01}
+                            size="sm"
+                            inputClassName="text-right tabular-nums"
+                          />
                         </td>
                         <td className="px-2 py-2">{line.unit}</td>
-                        <td className="px-2 py-2">
-                          <FormikInput name={`bom.${index}.wastePercent`} type="number" min={0} max={100} step={0.1} />
+                        <td className="w-24 min-w-[5.5rem] px-2 py-2">
+                          <FormikInput
+                            name={`bom.${index}.wastePercent`}
+                            type="number"
+                            min={0}
+                            max={100}
+                            step={0.1}
+                            size="sm"
+                            inputClassName="text-right tabular-nums"
+                          />
                         </td>
                         <td className="px-2 py-2 font-medium">{requiredQty.toFixed(2)}</td>
                         <td className="px-2 py-2">{formatCurrency(line.unitCost ?? 0, currency)}</td>
@@ -201,7 +216,7 @@ export function ProductBomReadOnlyTable({
                   <td className="px-3 py-2 text-right">{formatCurrency(line.unitCost, currency)}</td>
                   <td className="px-3 py-2 text-right font-medium">{formatCurrency(line.lineCost, currency)}</td>
                   <td className="px-3 py-2">{line.isRequired ? "Yes" : "Optional"}</td>
-                  <td className="px-3 py-2 text-muted-foreground">{line.notes ?? "—"}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{line.notes ?? "-"}</td>
                 </tr>
                 {line.alternatives.length > 0 && (
                   <tr className="border-b border-border bg-muted/10">
@@ -218,7 +233,7 @@ export function ProductBomReadOnlyTable({
                               <span className="ml-2 text-muted-foreground">{alt.sku}</span>
                               <span className="ml-2">{formatCurrency(alt.unitCost, currency)}</span>
                               {alt.notes && (
-                                <span className="ml-2 text-muted-foreground">— {alt.notes}</span>
+                                <span className="ml-2 text-muted-foreground">- {alt.notes}</span>
                               )}
                             </div>
                             <div className="flex items-center gap-2">

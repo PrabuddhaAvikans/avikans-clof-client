@@ -312,7 +312,22 @@ export function CustomerDetailPage() {
               </TabPanel>
 
               <TabPanel value="attachments">
-                <AttachmentPanel attachments={[]} />
+                <AttachmentPanel
+                  attachments={[
+                    {
+                      id: "cust-att-1",
+                      name: "Customer Agreement.pdf",
+                      size: 312_000,
+                      type: "pdf",
+                    },
+                    {
+                      id: "cust-att-2",
+                      name: "Credit Application.pdf",
+                      size: 198_000,
+                      type: "pdf",
+                    },
+                  ]}
+                />
               </TabPanel>
 
               <TabPanel value="activity">

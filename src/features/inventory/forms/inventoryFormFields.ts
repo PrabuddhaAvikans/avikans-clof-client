@@ -21,6 +21,33 @@ const PRICING_METHOD_OPTIONS = Object.entries(PricingMethodLabels).map(([value, 
   label,
 }));
 
+export const UNIT_OF_MEASURE_OPTIONS = [
+  { value: "pcs", label: "pcs - Pieces" },
+  { value: "set", label: "set - Set" },
+  { value: "kg", label: "kg - Kilogram" },
+  { value: "g", label: "g - Gram" },
+  { value: "L", label: "L - Litre" },
+  { value: "ml", label: "ml - Millilitre" },
+  { value: "m", label: "m - Metre" },
+  { value: "mm", label: "mm - Millimetre" },
+  { value: "box", label: "box - Box" },
+  { value: "reel", label: "reel - Reel" },
+  { value: "roll", label: "roll - Roll" },
+  { value: "hrs", label: "hrs - Hours" },
+  { value: "job", label: "job - Job" },
+];
+
+export const DEFAULT_UNIT_BY_ITEM_TYPE: Record<string, string> = {
+  raw_material: "kg",
+  component: "pcs",
+  sub_assembly: "pcs",
+  consumable: "pcs",
+  coating: "kg",
+  service: "hrs",
+  packaging: "pcs",
+  finished_product: "pcs",
+};
+
 export const inventoryGeneralSections: DynamicFormSection[] = [
   {
     id: "item-details",
@@ -36,8 +63,20 @@ export const inventoryGeneralSections: DynamicFormSection[] = [
         required: true,
         options: ITEM_TYPE_OPTIONS,
       },
+      {
+        name: "unit",
+        label: "Unit of Measure",
+        type: "select",
+        required: true,
+        options: (values) => {
+          const current = typeof values.unit === "string" ? values.unit : "";
+          if (current && !UNIT_OF_MEASURE_OPTIONS.some((option) => option.value === current)) {
+            return [...UNIT_OF_MEASURE_OPTIONS, { value: current, label: current }];
+          }
+          return UNIT_OF_MEASURE_OPTIONS;
+        },
+      },
       { name: "category", label: "Category", type: "text", required: true },
-      { name: "unit", label: "Unit of Measure", type: "text", required: true },
       { name: "brand", label: "Brand", type: "text" },
       { name: "supplier", label: "Supplier", type: "text" },
       { name: "taxCode", label: "Tax Code", type: "text" },
@@ -86,7 +125,7 @@ export const inventoryCostSections: DynamicFormSection[] = [
   {
     id: "cost-prices",
     title: "Cost Prices",
-    description: "Cost price is used for BOM and manufacturing costing — not the selling price.",
+    description: "Cost price is used for BOM and manufacturing costing - not the selling price.",
     columns: 2,
     fields: [
       {

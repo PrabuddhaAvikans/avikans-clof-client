@@ -237,9 +237,12 @@ export function SalesOrderDetailPanel({ order, className }: SalesOrderDetailPane
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-foreground">
+                      <Link
+                        to={ROUTES.products.detail(item.productId)}
+                        className="truncate text-sm font-medium text-primary hover:underline"
+                      >
                         {item.productName}
-                      </p>
+                      </Link>
                       <p className="text-xs text-muted-foreground">{item.productSku}</p>
                     </div>
                     <p className="shrink-0 tabular-nums text-sm font-semibold">

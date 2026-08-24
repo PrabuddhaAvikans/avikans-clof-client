@@ -56,6 +56,20 @@ export const ManufacturingJobStatus = {
 
 export type ManufacturingJobStatusValue = keyof typeof ManufacturingJobStatus;
 
+export const ManufacturingTaskStatus = {
+  pending: { label: "Pending", variant: "secondary" },
+  ready: { label: "Ready", variant: "info" },
+  in_progress: { label: "In Progress", variant: "default" },
+  completed: { label: "Completed", variant: "success" },
+  on_hold: { label: "On Hold", variant: "warning" },
+  blocked: { label: "Blocked", variant: "destructive" },
+  skipped: { label: "Skipped", variant: "outline" },
+  rework_required: { label: "Rework Required", variant: "warning" },
+  cancelled: { label: "Cancelled", variant: "destructive" },
+} as const satisfies Record<string, StatusDefinition>;
+
+export type ManufacturingTaskStatusValue = keyof typeof ManufacturingTaskStatus;
+
 export const DeliveryStatus = {
   planned: { label: "Planned", variant: "secondary" },
   ready_for_dispatch: { label: "Ready for Dispatch", variant: "info" },
@@ -190,6 +204,7 @@ const STATUS_MAPS: readonly StatusMap[] = [
   QuotationStatus,
   SalesOrderStatus,
   ManufacturingJobStatus,
+  ManufacturingTaskStatus,
   DeliveryStatus,
   StockStatus,
   Priority,

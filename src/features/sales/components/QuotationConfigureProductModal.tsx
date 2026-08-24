@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { SlidersHorizontal } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ExternalLink, SlidersHorizontal } from "lucide-react";
+import { ROUTES } from "@/app/config/routes";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { getCurrentVersion, getVersionById } from "@/lib/productVersion";
+import { getProductScopeLabel, isDefaultCatalogProduct } from "@/lib/productOwner";
 import { formatCurrency } from "@/lib/format";
 import type { Product } from "@/types/product";
 import type { QuotationLineItemFormValues } from "@/features/sales/schemas/quotationSchema";
@@ -112,10 +116,26 @@ export function QuotationConfigureProductModal({
     >
       <div className="space-y-4">
         <div>
-          <p className="text-sm font-medium text-foreground">{product.name}</p>
+          <Link
+            to={ROUTES.products.detail(product.id)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+          >
+            {product.name}
+            <ExternalLink className="h-3 w-3" />
+          </Link>
           <p className="text-[12px] text-muted-foreground">
             {product.sku} · {product.categoryName}
           </p>
+          <div className="mt-1.5">
+            <StatusBadge
+              variant={isDefaultCatalogProduct(product) ? "neutral" : "info"}
+              size="sm"
+            >
+              {getProductScopeLabel(product)}
+            </StatusBadge>
+          </div>
         </div>
 
         <Select

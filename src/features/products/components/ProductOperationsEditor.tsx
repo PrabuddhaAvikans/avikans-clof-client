@@ -31,9 +31,11 @@ export function ProductOperationsEditor({ readOnly = false }: Props) {
   const handleAdd = () => {
     const maxSeq = operations.reduce((max, op) => Math.max(max, op.sequence ?? 0), 0);
     const nextSeq = Math.ceil(maxSeq / 10) * 10 + 10;
+    const previousId = operations[operations.length - 1]?.id;
     setOps([
       ...operations,
       {
+        id: `op-${crypto.randomUUID().slice(0, 8)}`,
         name: "",
         sequence: nextSeq,
         description: "",
@@ -45,6 +47,8 @@ export function ProductOperationsEditor({ readOnly = false }: Props) {
         isRequired: true,
         isEnabled: true,
         notes: "",
+        prerequisiteOperationIds: previousId ? [previousId] : [],
+        isQualityCheck: false,
       },
     ]);
     setExpandedIndex(operations.length);
@@ -97,22 +101,22 @@ export function ProductOperationsEditor({ readOnly = false }: Props) {
               >
                 <td className="py-2.5 pr-4 font-mono text-xs">{op.sequence ?? (index + 1) * 10}</td>
                 <td className="py-2.5 pr-4">
-                  <div>{op.name || "—"}</div>
+                  <div>{op.name || "-"}</div>
                   {op.description && (
                     <div className="text-xs text-muted-foreground">{op.description}</div>
                   )}
                 </td>
-                <td className="py-2.5 pr-4">{op.workstation || "—"}</td>
+                <td className="py-2.5 pr-4">{op.workstation || "-"}</td>
                 <td className="py-2.5 pr-4 text-right">{formatTime(op.estimatedHours)}</td>
                 <td className="py-2.5 pr-4 text-right">
-                  {op.labourCostRate != null ? op.labourCostRate.toLocaleString() : "—"}
+                  {op.labourCostRate != null ? op.labourCostRate.toLocaleString() : "-"}
                 </td>
-                <td className="py-2.5 pr-4">{op.machineName || "—"}</td>
+                <td className="py-2.5 pr-4">{op.machineName || "-"}</td>
                 <td className="py-2.5 pr-4 text-right">
-                  {op.machineCost != null ? op.machineCost.toLocaleString() : "—"}
+                  {op.machineCost != null ? op.machineCost.toLocaleString() : "-"}
                 </td>
-                <td className="py-2.5 pr-4 text-center">{op.isRequired !== false ? "✓" : "—"}</td>
-                <td className="py-2.5 pr-4 text-center">{op.isEnabled !== false ? "✓" : "—"}</td>
+                <td className="py-2.5 pr-4 text-center">{op.isRequired !== false ? "✓" : "-"}</td>
+                <td className="py-2.5 pr-4 text-center">{op.isEnabled !== false ? "✓" : "-"}</td>
               </tr>
             ))}
             {operations.length === 0 && (
@@ -131,8 +135,8 @@ export function ProductOperationsEditor({ readOnly = false }: Props) {
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">
-        Define the manufacturing operations (routing blueprint) for this product version.
-        These are copied to manufacturing jobs when production starts.
+        Define the manufacturing operations for this product version.
+        These become manufacturing tasks when a production job is created. Tasks are not department-based.
       </p>
 
       <div className="space-y-1">
@@ -166,7 +170,7 @@ export function ProductOperationsEditor({ readOnly = false }: Props) {
                 </div>
 
                 <div className="hidden w-32 shrink-0 sm:block">
-                  <FormikInput name={`operations.${index}.workstation`} label={undefined} placeholder="Workstation" />
+                  <FormikInput name={`operations.${index}.workstation`} label={undefined} placeholder="Resource" />
                 </div>
 
                 <div className="hidden w-20 shrink-0 sm:block">
@@ -224,7 +228,7 @@ export function ProductOperationsEditor({ readOnly = false }: Props) {
                     />
                     <FormikInput
                       name={`operations.${index}.workstation`}
-                      label="Workstation / Department"
+                      label="Resource / location (optional)"
                     />
                     <FormikInput
                       name={`operations.${index}.estimatedHours`}
@@ -258,6 +262,44 @@ export function ProductOperationsEditor({ readOnly = false }: Props) {
                         name={`operations.${index}.isEnabled`}
                         label="Enabled"
                       />
+                      <FormikCheckbox
+                        name={`operations.${index}.isQualityCheck`}
+                        label="QC task"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <p className="mb-1.5 text-xs font-medium text-foreground">Depends on</p>
+                    <p className="mb-2 text-[11px] text-muted-foreground">
+                      Leave empty to start independently. Select one or more prior operations for sequence or parallel joins.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {operations.map((other, otherIndex) => {
+                        if (otherIndex === index || !other.id) return null;
+                        const selected = (op.prerequisiteOperationIds ?? []).includes(other.id);
+                        return (
+                          <label
+                            key={other.id}
+                            className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selected}
+                              onChange={(event) => {
+                                const current = op.prerequisiteOperationIds ?? [];
+                                const next = event.target.checked
+                                  ? [...current, other.id!]
+                                  : current.filter((id) => id !== other.id);
+                                void setFieldValue(`operations.${index}.prerequisiteOperationIds`, next);
+                              }}
+                            />
+                            {other.name || `Step ${other.sequence ?? otherIndex + 1}`}
+                          </label>
+                        );
+                      })}
+                      {operations.length <= 1 && (
+                        <span className="text-xs text-muted-foreground">Add more operations to set dependencies.</span>
+                      )}
                     </div>
                   </div>
                   <div className="mt-3">
@@ -290,7 +332,7 @@ export function ProductOperationsEditor({ readOnly = false }: Props) {
 }
 
 function formatTime(hours: number | undefined): string {
-  if (hours == null || hours === 0) return "—";
+  if (hours == null || hours === 0) return "-";
   if (hours < 1) return `${Math.round(hours * 60)} mins`;
   const h = Math.floor(hours);
   const m = Math.round((hours - h) * 60);

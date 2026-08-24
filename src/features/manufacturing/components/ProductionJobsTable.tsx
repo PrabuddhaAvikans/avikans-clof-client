@@ -5,6 +5,8 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { ProductionJob } from "@/types/production-tracking";
+import { ManufacturingJobStatus } from "@/types/status";
+import { statusLabel, statusVariant } from "@/features/shared/utils/statusBadge";
 
 function ProgressBar({ value }: { value: number }) {
   return (
@@ -20,13 +22,6 @@ function ProgressBar({ value }: { value: number }) {
       </span>
     </div>
   );
-}
-
-function statusVariant(status: ProductionJob["status"]) {
-  if (status === "on_hold") return "danger" as const;
-  if (status === "packed" || status === "qc") return "success" as const;
-  if (status === "testing" || status === "coating") return "warning" as const;
-  return "default" as const;
 }
 
 export type ProductionJobsTableProps = {
@@ -81,8 +76,8 @@ export function ProductionJobsTable({
       },
       {
         accessorKey: "line",
-        header: "Line",
-        cell: ({ getValue }) => String(getValue()).replace("Line ", "L"),
+        header: "Task",
+        cell: ({ row }) => row.original.currentTaskName || String(row.original.line),
       },
       {
         accessorKey: "supervisorName",
@@ -106,8 +101,8 @@ export function ProductionJobsTable({
         accessorKey: "statusLabel",
         header: "Status",
         cell: ({ row }) => (
-          <StatusBadge variant={statusVariant(row.original.status)} size="sm">
-            {row.original.statusLabel}
+          <StatusBadge variant={statusVariant(ManufacturingJobStatus, row.original.status)} size="sm">
+            {statusLabel(ManufacturingJobStatus, row.original.status)}
           </StatusBadge>
         ),
       },

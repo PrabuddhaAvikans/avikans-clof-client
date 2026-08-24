@@ -1,5 +1,6 @@
 import { combineEpics } from "redux-observable";
 import { createAsyncEpic } from "@/app/store/async/createAsyncEpic";
+import { manufacturingActions } from "@/features/manufacturing/store/manufacturingSlice";
 import { productionTrackingActions } from "@/features/manufacturing/store/productionTrackingSlice";
 import { productionTrackingService } from "@/services";
 
@@ -30,6 +31,7 @@ const startEpic = createAsyncEpic({
   failure: productionTrackingActions.startFailure,
   handler: (ids) => productionTrackingService.startProduction(ids),
   mode: "merge",
+  onSuccess: () => [manufacturingActions.invalidateAll()],
 });
 
 const updateStageEpic = createAsyncEpic({
@@ -38,6 +40,7 @@ const updateStageEpic = createAsyncEpic({
   failure: productionTrackingActions.updateStageFailure,
   handler: ({ id, comment }) => productionTrackingService.updateStage(id, comment),
   mode: "merge",
+  onSuccess: () => [manufacturingActions.invalidateAll()],
 });
 
 const holdEpic = createAsyncEpic({
@@ -46,6 +49,7 @@ const holdEpic = createAsyncEpic({
   failure: productionTrackingActions.holdFailure,
   handler: ({ id, reason }) => productionTrackingService.holdJob(id, reason),
   mode: "merge",
+  onSuccess: () => [manufacturingActions.invalidateAll()],
 });
 
 const releaseToQcEpic = createAsyncEpic({
@@ -54,6 +58,7 @@ const releaseToQcEpic = createAsyncEpic({
   failure: productionTrackingActions.releaseToQcFailure,
   handler: (id) => productionTrackingService.releaseToQc(id),
   mode: "merge",
+  onSuccess: () => [manufacturingActions.invalidateAll()],
 });
 
 export const productionTrackingEpic = combineEpics(

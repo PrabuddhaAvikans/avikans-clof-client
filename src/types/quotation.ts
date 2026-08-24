@@ -72,7 +72,7 @@ export interface QuotationCustomizationApproval {
 
 /**
  * Quotation-level product customization.
- * Belongs to the quotation line / customer requirement — never mutates the master product.
+ * Belongs to the quotation line / customer requirement - never mutates the master product.
  */
 export interface QuotationProductCustomization {
   id: string;
@@ -85,7 +85,7 @@ export interface QuotationProductCustomization {
   estimation: QuotationCustomizationEstimation;
   approval: QuotationCustomizationApproval;
   notes?: string;
-  /** Set when quotation is accepted/converted — configuration must not change. */
+  /** Set when quotation is accepted/converted - configuration must not change. */
   isLocked: boolean;
   /** Optional explicit promote-to-master-version action result. */
   promotedProductVersionId?: string;
@@ -101,6 +101,20 @@ export interface QuotationCustomizationHistoryEntry {
   byName: string;
   action: string;
   detail?: string;
+}
+
+export interface QuotationRevision {
+  id: string;
+  versionNumber: number;
+  label: string;
+  isCurrent: boolean;
+  isDraft: boolean;
+  totalAmount: number;
+  currency: string;
+  notes?: string;
+  createdAt: string;
+  createdBy: string;
+  createdByName: string;
 }
 
 export interface QuotationLineItem {
@@ -144,6 +158,7 @@ export interface Quotation {
   termsAndConditions?: string;
   salesOrderId?: string;
   contactHistory: QuotationContactEntry[];
+  revisions: QuotationRevision[];
   createdBy: string;
   createdByName: string;
   sentAt?: string;

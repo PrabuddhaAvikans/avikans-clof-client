@@ -29,9 +29,11 @@ export type ProductOperationSeed = {
   isRequired?: boolean;
   isEnabled?: boolean;
   notes?: string;
+  prerequisiteOperationIds?: string[];
+  isQualityCheck?: boolean;
 };
 
-/** Legacy flat seed data — migrated to versioned products at mock service load. */
+/** Legacy flat seed data - migrated to versioned products at mock service load. */
 export type ProductSeed = Omit<
   Product,
   "versions" | "currentVersionId" | "productType" | "bom" | "operations"
@@ -52,6 +54,8 @@ export const initialProducts: ProductSeed[] = [
     categoryName: "Pendant Lights",
     brandId: "brd-001",
     brandName: "Avikans Signature",
+    customerId: "cus-001",
+    customerName: "Colombo Grand Hotel",
     basePrice: 28500,
     costPrice: 14200,
     currency: "LKR",
@@ -66,17 +70,17 @@ export const initialProducts: ProductSeed[] = [
       },
     ],
     operations: [
-      { name: "Cutting", sequence: 10, description: "Cut aluminium tubes and sheet to size", workstation: "Fab Bay 1", estimatedHours: 0.5, labourCostRate: 500, machineName: "CNC Laser Cutter", machineCost: 200, isRequired: true },
-      { name: "Bending", sequence: 20, description: "Form pendant body curvature", workstation: "Fab Bay 1", estimatedHours: 0.33, labourCostRate: 500, machineName: "Press Brake", machineCost: 150 },
-      { name: "Welding", sequence: 30, description: "TIG weld body joints", workstation: "Welding Bay", estimatedHours: 0.75, labourCostRate: 650, machineName: "TIG Welder", machineCost: 100 },
-      { name: "Grinding", sequence: 40, description: "Smooth weld seams and surface prep", workstation: "Finishing Bay", estimatedHours: 0.33, labourCostRate: 450 },
-      { name: "Powder Coating", sequence: 50, description: "Apply RAL 9005 jet black powder coat", workstation: "Coating Line A", estimatedHours: 2, labourCostRate: 400, machineName: "Powder Booth", machineCost: 300 },
-      { name: "Wiring", sequence: 60, description: "Install LED module, driver and wiring harness", workstation: "Assembly Line 2", estimatedHours: 0.5, labourCostRate: 550 },
-      { name: "Glass Installation", sequence: 70, description: "Mount opal glass diffuser with silicone gasket", workstation: "Assembly Line 2", estimatedHours: 0.33, labourCostRate: 500 },
-      { name: "Mounting Bracket Installation", sequence: 80, description: "Attach ceiling canopy and suspension hardware", workstation: "Assembly Line 2", estimatedHours: 0.25, labourCostRate: 450 },
-      { name: "Final Assembly", sequence: 90, description: "Complete assembly, cable management, label", workstation: "Assembly Line 2", estimatedHours: 0.5, labourCostRate: 500 },
-      { name: "Testing", sequence: 100, description: "Electrical safety test, burn-in, lumen verification", workstation: "Test Lab", estimatedHours: 0.25, labourCostRate: 600, machineName: "Integrating Sphere", machineCost: 50 },
-      { name: "QC", sequence: 110, description: "Final visual and functional quality check", workstation: "QC Station 1", estimatedHours: 0.33, labourCostRate: 500, isRequired: true },
+      { id: "prd-001-op-10", name: "Cutting", sequence: 10, description: "Cut aluminium tubes and sheet to size", workstation: "Fab Bay 1", estimatedHours: 0.5, labourCostRate: 500, machineName: "CNC Laser Cutter", machineCost: 200, isRequired: true, prerequisiteOperationIds: [] },
+      { id: "prd-001-op-20", name: "Bending", sequence: 20, description: "Form pendant body curvature", workstation: "Fab Bay 1", estimatedHours: 0.33, labourCostRate: 500, machineName: "Press Brake", machineCost: 150, prerequisiteOperationIds: ["prd-001-op-10"] },
+      { id: "prd-001-op-30", name: "Welding", sequence: 30, description: "TIG weld body joints", workstation: "Welding Bay", estimatedHours: 0.75, labourCostRate: 650, machineName: "TIG Welder", machineCost: 100, prerequisiteOperationIds: ["prd-001-op-20"] },
+      { id: "prd-001-op-40", name: "Grinding", sequence: 40, description: "Smooth weld seams and surface prep", workstation: "Finishing Bay", estimatedHours: 0.33, labourCostRate: 450, prerequisiteOperationIds: ["prd-001-op-30"] },
+      { id: "prd-001-op-50", name: "Powder Coating", sequence: 50, description: "Apply RAL 9005 jet black powder coat", workstation: "Coating Line A", estimatedHours: 2, labourCostRate: 400, machineName: "Powder Booth", machineCost: 300, prerequisiteOperationIds: ["prd-001-op-40"] },
+      { id: "prd-001-op-60", name: "Wiring", sequence: 60, description: "Install LED module, driver and wiring harness", workstation: "Assembly Line 2", estimatedHours: 0.5, labourCostRate: 550, prerequisiteOperationIds: ["prd-001-op-50"] },
+      { id: "prd-001-op-70", name: "Glass Installation", sequence: 70, description: "Mount opal glass diffuser with silicone gasket", workstation: "Assembly Line 2", estimatedHours: 0.33, labourCostRate: 500, prerequisiteOperationIds: ["prd-001-op-50"] },
+      { id: "prd-001-op-80", name: "Mounting Bracket Installation", sequence: 80, description: "Attach ceiling canopy and suspension hardware", workstation: "Assembly Line 2", estimatedHours: 0.25, labourCostRate: 450, prerequisiteOperationIds: ["prd-001-op-50"] },
+      { id: "prd-001-op-90", name: "Final Assembly", sequence: 90, description: "Complete assembly, cable management, label", workstation: "Assembly Line 2", estimatedHours: 0.5, labourCostRate: 500, prerequisiteOperationIds: ["prd-001-op-60", "prd-001-op-70", "prd-001-op-80"] },
+      { id: "prd-001-op-100", name: "Testing", sequence: 100, description: "Electrical safety test, burn-in, lumen verification", workstation: "Test Lab", estimatedHours: 0.25, labourCostRate: 600, machineName: "Integrating Sphere", machineCost: 50, prerequisiteOperationIds: ["prd-001-op-90"] },
+      { id: "prd-001-op-110", name: "QC", sequence: 110, description: "Final visual and functional quality check", workstation: "QC Station 1", estimatedHours: 0.33, labourCostRate: 500, isRequired: true, isQualityCheck: true, prerequisiteOperationIds: ["prd-001-op-100"] },
     ],
     bom: [
       {
@@ -132,6 +136,8 @@ export const initialProducts: ProductSeed[] = [
     categoryName: "Residential",
     brandId: "brd-001",
     brandName: "Avikans Signature",
+    customerId: "cus-002",
+    customerName: "Haritha Architects",
     basePrice: 18500,
     costPrice: 9200,
     currency: "LKR",

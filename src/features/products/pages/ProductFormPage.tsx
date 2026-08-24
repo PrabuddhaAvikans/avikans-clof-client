@@ -198,7 +198,9 @@ function toFormValues(
   product: NonNullable<ReturnType<typeof useProduct>["data"]>,
 ): ProductFormSchemaValues {
   const version = getEditableVersion(product) ?? getCurrentVersion(product);
-  const dims = version.specifications.dimensions?.match(/(\d+)\s*[Ã—x]\s*(\d+)\s*[Ã—x]\s*(\d+)/i);
+  const dims = version.specifications.dimensions?.match(
+    /(\d+)\s*(?:x|\u00d7)\s*(\d+)\s*(?:x|\u00d7)\s*(\d+)/i,
+  );
   return {
     ...defaultValues,
     name: product.name,
@@ -244,6 +246,8 @@ function toFormValues(
       isRequired: op.isRequired,
       isEnabled: op.isEnabled,
       notes: op.notes,
+      prerequisiteOperationIds: op.prerequisiteOperationIds ?? [],
+      isQualityCheck: op.isQualityCheck,
     })),
     costBreakdown: {
       materialCost: version.costBreakdown.materialCost,
@@ -315,7 +319,7 @@ function toProductPayload(
 ): ProductFormData {
   const dimensions =
     values.lengthMm || values.widthMm || values.heightMm
-      ? `${values.lengthMm ?? 0} Ã— ${values.widthMm ?? 0} Ã— ${values.heightMm ?? 0} mm`
+      ? `${values.lengthMm ?? 0} \u00d7 ${values.widthMm ?? 0} \u00d7 ${values.heightMm ?? 0} mm`
       : values.dimensions;
 
   return {
@@ -1598,7 +1602,7 @@ function CostBreakdownSection() {
     {
       key: "labour",
       label: "Labour",
-      basis: `${labourHours.toFixed(2)} h Ã— ${formatCurrency(rates.labourRatePerHour, "LKR")}/h`,
+      basis: `${labourHours.toFixed(2)} h \u00d7 ${formatCurrency(rates.labourRatePerHour, "LKR")}/h`,
       computed: computed.labourCost,
       amountName: "costBreakdown.labourCost" as const,
       overrideName: "costBreakdown.overrideLabour" as const,

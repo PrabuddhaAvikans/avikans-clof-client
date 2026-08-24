@@ -21,7 +21,7 @@ export interface SalesOrderLineItem {
   lineTotal: number;
   quantityDelivered: number;
   quantityInManufacturing: number;
-  /** Preserved from accepted quotation — do not re-read master product. */
+  /** Preserved from accepted quotation - do not re-read master product. */
   isCustomized?: boolean;
   customization?: QuotationProductCustomization;
 }

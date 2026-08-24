@@ -98,7 +98,7 @@ export interface InventoryItem {
   pricingMethod: PricingMethodValue;
   markupPercent: number;
   markupFixedAmount: number;
-  /** Direct inventory sales price — separate from cost price */
+  /** Direct inventory sales price - separate from cost price */
   sellingPrice: number;
   pricingEffectiveDate: string;
   stockStatus: StockStatusValue;

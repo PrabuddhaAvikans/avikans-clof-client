@@ -1,5 +1,10 @@
 import type { PaginatedRequest, PaginatedResponse } from "@/types/common";
-import type { ManufacturingJob, Operation } from "@/types/manufacturing";
+import type {
+  ManufacturingJob,
+  ManufacturingTask,
+  ManufacturingTaskAction,
+  QualityInspection,
+} from "@/types/manufacturing";
 import type {
   ManufacturingJobStatusValue,
   PriorityValue,
@@ -15,6 +20,7 @@ export interface ManufacturingListFilters extends PaginatedRequest {
 export interface ManufacturingJobFormData {
   salesOrderId: string;
   productId: string;
+  productVersionId?: string;
   quantity: number;
   priority: PriorityValue;
   plannedStartDate: string;
@@ -22,7 +28,8 @@ export interface ManufacturingJobFormData {
   assignedTo?: string;
   notes?: string;
   status?: ManufacturingJobStatusValue;
-  operations?: Operation[];
+  tasks?: ManufacturingTask[];
+  qualityInspection?: QualityInspection;
 }
 
 export interface ManufacturingService {
@@ -34,4 +41,6 @@ export interface ManufacturingService {
   reserveMaterials(id: string): Promise<ManufacturingJob>;
   startJob(id: string): Promise<ManufacturingJob>;
   completeJob(id: string): Promise<ManufacturingJob>;
+  holdJob(id: string, reason?: string): Promise<ManufacturingJob>;
+  applyTaskAction(id: string, action: ManufacturingTaskAction): Promise<ManufacturingJob>;
 }

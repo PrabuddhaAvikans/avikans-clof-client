@@ -305,11 +305,23 @@ export function EstimationDetailPanel({
                               <td className="px-2 py-1.5">
                                 <FormikSelect name={`items.${index}.process`} options={PROCESS_OPTIONS} />
                               </td>
-                              <td className="w-20 px-2 py-1.5">
-                                <FormikInput name={`items.${index}.quantity`} type="number" min={1} />
+                              <td className="w-24 min-w-[6rem] px-2 py-1.5">
+                                <FormikInput
+                                  name={`items.${index}.quantity`}
+                                  type="number"
+                                  min={1}
+                                  size="sm"
+                                  inputClassName="text-right tabular-nums"
+                                />
                               </td>
-                              <td className="w-28 px-2 py-1.5">
-                                <FormikInput name={`items.${index}.unitCost`} type="number" min={0} />
+                              <td className="w-32 min-w-[7.5rem] px-2 py-1.5">
+                                <FormikInput
+                                  name={`items.${index}.unitCost`}
+                                  type="number"
+                                  min={0}
+                                  size="sm"
+                                  inputClassName="text-right tabular-nums"
+                                />
                               </td>
                               <td className="px-2 py-2 text-right tabular-nums">
                                 {formatCurrency(
@@ -358,17 +370,17 @@ export function EstimationDetailPanel({
                       </div>
                     ) : (
                       <div className="overflow-x-auto rounded-md border border-border">
-                        <table className="w-full min-w-[56rem] text-sm">
+                        <table className="w-full min-w-[68rem] text-sm">
                           <thead className="bg-muted/50">
                             <tr className="text-xs text-muted-foreground">
                               <th className="px-2 py-2 text-left font-medium">Item</th>
                               <th className="px-2 py-2 text-left font-medium">SKU</th>
-                              <th className="w-20 px-2 py-2 text-right font-medium">Qty</th>
+                              <th className="w-24 min-w-[6rem] px-2 py-2 text-right font-medium">Qty</th>
                               <th className="w-16 px-2 py-2 text-left font-medium">Unit</th>
-                              <th className="w-16 px-2 py-2 text-right font-medium">Waste %</th>
-                              <th className="w-20 px-2 py-2 text-right font-medium">Req'd Qty</th>
-                              <th className="w-24 px-2 py-2 text-right font-medium">Unit Cost</th>
-                              <th className="px-2 py-2 text-right font-medium">Total</th>
+                              <th className="w-24 min-w-[5.5rem] px-2 py-2 text-right font-medium whitespace-nowrap">Waste %</th>
+                              <th className="w-24 min-w-[6rem] px-2 py-2 text-right font-medium whitespace-nowrap">Req'd Qty</th>
+                              <th className="w-32 min-w-[7.5rem] px-2 py-2 text-right font-medium whitespace-nowrap">Unit Cost</th>
+                              <th className="min-w-[7rem] px-2 py-2 text-right font-medium">Total</th>
                               <th className="w-12 px-2 py-2 text-center font-medium">Req</th>
                               <th className="w-10 px-2 py-2" />
                             </tr>
@@ -386,16 +398,38 @@ export function EstimationDetailPanel({
                                     <tr key={mat.id} className="border-t border-border">
                                       <td className="px-2 py-1.5 font-medium">{mat.inventoryItemName}</td>
                                       <td className="px-2 py-1.5 text-muted-foreground">{mat.sku}</td>
-                                      <td className="px-2 py-1.5">
-                                        <FormikInput name={`materials.${index}.quantity`} type="number" min={0.01} step={0.01} />
+                                      <td className="w-24 min-w-[6rem] px-2 py-1.5">
+                                        <FormikInput
+                                          name={`materials.${index}.quantity`}
+                                          type="number"
+                                          min={0.01}
+                                          step={0.01}
+                                          size="sm"
+                                          inputClassName="text-right tabular-nums"
+                                        />
                                       </td>
                                       <td className="px-2 py-1.5 text-muted-foreground">{mat.unit}</td>
-                                      <td className="px-2 py-1.5">
-                                        <FormikInput name={`materials.${index}.wastePercent`} type="number" min={0} max={100} />
+                                      <td className="w-24 min-w-[5.5rem] px-2 py-1.5">
+                                        <FormikInput
+                                          name={`materials.${index}.wastePercent`}
+                                          type="number"
+                                          min={0}
+                                          max={100}
+                                          step={0.1}
+                                          size="sm"
+                                          inputClassName="text-right tabular-nums"
+                                        />
                                       </td>
-                                      <td className="px-2 py-1.5 text-right tabular-nums">{reqQty}</td>
-                                      <td className="px-2 py-1.5">
-                                        <FormikInput name={`materials.${index}.unitCost`} type="number" min={0} step={0.01} />
+                                      <td className="w-24 min-w-[6rem] px-2 py-1.5 text-right tabular-nums">{reqQty}</td>
+                                      <td className="w-32 min-w-[7.5rem] px-2 py-1.5">
+                                        <FormikInput
+                                          name={`materials.${index}.unitCost`}
+                                          type="number"
+                                          min={0}
+                                          step={0.01}
+                                          size="sm"
+                                          inputClassName="min-w-[6rem] text-right tabular-nums"
+                                        />
                                       </td>
                                       <td className="px-2 py-1.5 text-right tabular-nums font-medium">
                                         {formatCurrency(total, request.currency)}
@@ -615,16 +649,6 @@ export function EstimationDetailPanel({
             )}
           </>
         )}
-
-        <section className="rounded-md border border-border bg-muted/30 p-3">
-          <div className="flex items-start gap-2">
-            <FileText className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-            <p className="text-xs text-muted-foreground">
-              Flow: Quotation → Sales Order → Product Estimation → Costing Approval → Confirm Order.
-              Confirm is blocked until costing is fully approved.
-            </p>
-          </div>
-        </section>
       </div>
     </div>
   );

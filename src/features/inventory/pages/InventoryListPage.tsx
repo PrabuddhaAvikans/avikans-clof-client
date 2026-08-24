@@ -54,6 +54,7 @@ export function InventoryListPage() {
         header: "Type",
         cell: ({ row }) => InventoryItemTypeLabels[row.original.itemType],
       },
+      { accessorKey: "unit", header: "UoM" },
       { accessorKey: "category", header: "Category" },
       { accessorKey: "warehouse", header: "Warehouse" },
       { accessorKey: "location", header: "Location" },

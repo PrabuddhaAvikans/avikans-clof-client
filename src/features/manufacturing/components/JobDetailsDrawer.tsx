@@ -10,12 +10,14 @@ import { ROUTES } from "@/app/config/routes";
 import { AttachmentIcon } from "@/components/ui/AttachmentIcon";
 import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Drawer";
+import { IconButton } from "@/components/ui/IconButton";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import {
   calculateJobProgress,
   isJobDelayed,
 } from "@/features/manufacturing/utils/jobUtils";
 import { statusLabel, statusVariant } from "@/features/shared/utils/statusBadge";
+import { downloadAttachment, openAttachment } from "@/lib/attachment";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { ManufacturingJob } from "@/types/manufacturing";
@@ -115,12 +117,12 @@ export function JobDetailsDrawer({ job, open, onClose }: JobDetailsDrawerProps) 
 
         <div>
           <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-            Process Steps
+            Process Tasks
           </p>
           <ol className="space-y-2">
-            {job.operations.map((op) => {
-              const done = op.status === "completed";
-              const current = op.status === "in_progress";
+          {job.tasks.map((op) => {
+              const done = op.status === "completed" || op.status === "skipped";
+              const current = op.status === "in_progress" || op.status === "ready";
               return (
                 <li key={op.id} className="flex items-start gap-2">
                   {done ? (
@@ -133,8 +135,8 @@ export function JobDetailsDrawer({ job, open, onClose }: JobDetailsDrawerProps) 
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-foreground">{op.name}</p>
                     <p className="text-[11px] text-muted-foreground">
-                      {op.workstation}
-                      {op.completedAt ? ` · ${formatDate(op.completedAt)}` : ""}
+                      {op.workstation || op.machineName || "-"}
+                      {op.completedAt ? ` · ${formatDate(op.completedAt)}` : ` · ${op.completedQuantity}/${op.plannedQuantity}`}
                     </p>
                   </div>
                 </li>
@@ -198,20 +200,35 @@ export function JobDetailsDrawer({ job, open, onClose }: JobDetailsDrawerProps) 
           </p>
           <div className="space-y-1.5">
             {[
-              { name: "Spec Sheet", type: "pdf" },
-              { name: "Drawing", type: "pdf" },
+              { id: "job-att-spec", name: "Spec Sheet.pdf", type: "pdf" },
+              { id: "job-att-drawing", name: "Drawing.pdf", type: "pdf" },
             ].map((attachment) => (
               <div
-                key={attachment.name}
+                key={attachment.id}
                 className="flex items-center gap-2 rounded-md border border-border px-2.5 py-2"
               >
-                <AttachmentIcon
-                  type={attachment.type}
-                  fileName={attachment.name}
-                  className="h-3.5 w-3.5 text-muted-foreground"
+                <button
+                  type="button"
+                  className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  onClick={() => openAttachment(attachment)}
+                  title={`Open ${attachment.name}`}
+                >
+                  <AttachmentIcon
+                    type={attachment.type}
+                    fileName={attachment.name}
+                    className="h-3.5 w-3.5 text-muted-foreground"
+                  />
+                  <span className="cursor-pointer truncate text-foreground underline-offset-2 hover:underline">
+                    {attachment.name}
+                  </span>
+                </button>
+                <IconButton
+                  variant="ghost"
+                  size="sm"
+                  icon={<Download className="h-3.5 w-3.5" />}
+                  aria-label={`Download ${attachment.name}`}
+                  onClick={() => downloadAttachment(attachment)}
                 />
-                <span className="flex-1 text-foreground">{attachment.name}</span>
-                <Download className="h-3.5 w-3.5 text-muted-foreground" />
               </div>
             ))}
           </div>

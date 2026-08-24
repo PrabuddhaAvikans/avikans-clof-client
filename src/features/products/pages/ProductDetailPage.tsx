@@ -1,11 +1,12 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Lock, Pencil } from "lucide-react";
+import { ArrowLeft, Copy, Lock, Pencil } from "lucide-react";
 import { ROUTES } from "@/app/config/routes";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/feedback/PageHeader";
 import { PageContent } from "@/components/feedback/PageStates";
 import { Button, StatusBadge, Tabs, TabList, Tab, TabPanel } from "@/components/ui";
+import { DuplicateProductModal } from "@/features/products/components/DuplicateProductModal";
 import { ProductVersionsPanel } from "@/features/products/components/ProductVersionsPanel";
 import { ProductBomPanel } from "@/features/products/components/ProductBomPanel";
 import { ProductVersionStatusBadge } from "@/features/products/components/ProductVersionStatusBadge";
@@ -46,6 +47,7 @@ export function ProductDetailPage() {
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get("tab") ?? "general";
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
 
   const { data: product, isLoading, isError, refetch } = useProduct(id);
 
@@ -84,6 +86,13 @@ export function ProductDetailPage() {
                 onClick={() => navigate(ROUTES.products.list)}
               >
                 Back
+              </Button>
+              <Button
+                variant="outline"
+                leftIcon={<Copy className="h-4 w-4" />}
+                onClick={() => setDuplicateOpen(true)}
+              >
+                Duplicate
               </Button>
               {selectedVersion && !isVersionLocked(selectedVersion) && (
                 <Link to={ROUTES.products.edit(product.id)}>
@@ -150,8 +159,8 @@ export function ProductDetailPage() {
                       <DetailField label="Product Type" value={ProductTypeLabels[product.productType]} />
                       <DetailField label="Category" value={product.categoryName} />
                       <DetailField label="Brand" value={product.brandName} />
-                      <DetailField label="Customer" value={product.customerName ?? "—"} />
-                      <DetailField label="Project" value={product.projectName ?? "—"} />
+                      <DetailField label="Customer" value={product.customerName ?? "Default"} />
+                      <DetailField label="Project" value={product.projectName ?? "-"} />
                       <DetailField label="Description" value={product.description} />
                     </DetailSection>
                     <DetailSection title={`Current View: ${selectedVersion.label}`}>
@@ -181,50 +190,50 @@ export function ProductDetailPage() {
               </TabPanel>
 
               <TabPanel value="specifications" className="pt-4">
-                <DetailSection title={`Specifications — ${selectedVersion.label}`}>
+                <DetailSection title={`Specifications - ${selectedVersion.label}`}>
                   <DetailField
                     label="Dimensions"
-                    value={selectedVersion.specifications.dimensions ?? "—"}
+                    value={selectedVersion.specifications.dimensions ?? "-"}
                   />
                   <DetailField
                     label="Weight"
                     value={
                       selectedVersion.specifications.weightKg != null
                         ? `${selectedVersion.specifications.weightKg} kg`
-                        : "—"
+                        : "-"
                     }
                   />
-                  <DetailField label="Shape" value={selectedVersion.specifications.shape ?? "—"} />
-                  <DetailField label="Design" value={selectedVersion.specifications.design ?? "—"} />
-                  <DetailField label="Finish" value={selectedVersion.specifications.finish ?? "—"} />
-                  <DetailField label="Colour" value={selectedVersion.specifications.colour ?? "—"} />
+                  <DetailField label="Shape" value={selectedVersion.specifications.shape ?? "-"} />
+                  <DetailField label="Design" value={selectedVersion.specifications.design ?? "-"} />
+                  <DetailField label="Finish" value={selectedVersion.specifications.finish ?? "-"} />
+                  <DetailField label="Colour" value={selectedVersion.specifications.colour ?? "-"} />
                   <DetailField
                     label="Mounting Type"
-                    value={selectedVersion.specifications.mountingType ?? "—"}
+                    value={selectedVersion.specifications.mountingType ?? "-"}
                   />
                   <DetailField
                     label="Voltage"
-                    value={selectedVersion.specifications.voltage ?? selectedVersion.specifications.inputVoltage ?? "—"}
+                    value={selectedVersion.specifications.voltage ?? selectedVersion.specifications.inputVoltage ?? "-"}
                   />
                   <DetailField
                     label="Wattage"
                     value={
                       selectedVersion.specifications.wattage != null
                         ? `${selectedVersion.specifications.wattage} W`
-                        : "—"
+                        : "-"
                     }
                   />
                   <DetailField
                     label="LED Type"
-                    value={selectedVersion.specifications.ledType ?? "—"}
+                    value={selectedVersion.specifications.ledType ?? "-"}
                   />
                   <DetailField
                     label="Colour Temperature"
-                    value={selectedVersion.specifications.colorTemperature ?? "—"}
+                    value={selectedVersion.specifications.colorTemperature ?? "-"}
                   />
-                  <DetailField label="Driver" value={selectedVersion.specifications.driver ?? "—"} />
-                  <DetailField label="IP Rating" value={selectedVersion.specifications.ipRating ?? "—"} />
-                  <DetailField label="Dimming" value={selectedVersion.specifications.dimming ?? "—"} />
+                  <DetailField label="Driver" value={selectedVersion.specifications.driver ?? "-"} />
+                  <DetailField label="IP Rating" value={selectedVersion.specifications.ipRating ?? "-"} />
+                  <DetailField label="Dimming" value={selectedVersion.specifications.dimming ?? "-"} />
                 </DetailSection>
 
                 {selectedVersion.attributes.length > 0 && (
@@ -268,12 +277,21 @@ export function ProductDetailPage() {
           </div>
         )}
       </PageContent>
+
+      <DuplicateProductModal
+        open={duplicateOpen}
+        product={product ?? null}
+        onClose={() => setDuplicateOpen(false)}
+        onCreated={(created) => {
+          navigate(ROUTES.products.edit(created.id));
+        }}
+      />
     </PageContainer>
   );
 }
 
 function formatOpTime(hours: number | undefined): string {
-  if (hours == null || hours === 0) return "—";
+  if (hours == null || hours === 0) return "-";
   if (hours < 1) return `${Math.round(hours * 60)} mins`;
   const h = Math.floor(hours);
   const m = Math.round((hours - h) * 60);
@@ -289,7 +307,7 @@ function OperationsDetailPanel({ version }: { version: ProductVersion }) {
   return (
     <section className="rounded-lg border border-border bg-card p-5 shadow-xs">
       <h3 className="mb-4 text-sm font-semibold text-foreground">
-        Manufacturing Operations — {version.label}
+        Manufacturing Operations - {version.label}
       </h3>
       {ops.length === 0 ? (
         <p className="text-sm text-muted-foreground">No operations defined.</p>
@@ -302,6 +320,7 @@ function OperationsDetailPanel({ version }: { version: ProductVersion }) {
                   <th className="pb-2 pr-4">Seq</th>
                   <th className="pb-2 pr-4">Operation</th>
                   <th className="pb-2 pr-4">Workstation</th>
+                  <th className="pb-2 pr-4">Depends on</th>
                   <th className="pb-2 pr-4 text-right">Est. Time</th>
                   <th className="pb-2 pr-4 text-right">Labour</th>
                   <th className="pb-2 pr-4">Machine</th>
@@ -323,23 +342,29 @@ function OperationsDetailPanel({ version }: { version: ProductVersion }) {
                         <div className="text-xs text-muted-foreground">{op.description}</div>
                       )}
                     </td>
-                    <td className="py-2.5 pr-4">{op.workstation || "—"}</td>
+                    <td className="py-2.5 pr-4">{op.workstation || "-"}</td>
+                    <td className="py-2.5 pr-4 text-xs text-muted-foreground">
+                      {(op.prerequisiteOperationIds ?? [])
+                        .map((id) => ops.find((item) => item.id === id)?.name)
+                        .filter(Boolean)
+                        .join(", ") || "-"}
+                    </td>
                     <td className="py-2.5 pr-4 text-right">{formatOpTime(op.estimatedHours)}</td>
                     <td className="py-2.5 pr-4 text-right">
-                      {op.labourCostRate != null ? op.labourCostRate.toLocaleString() : "—"}
+                      {op.labourCostRate != null ? op.labourCostRate.toLocaleString() : "-"}
                     </td>
-                    <td className="py-2.5 pr-4">{op.machineName || "—"}</td>
+                    <td className="py-2.5 pr-4">{op.machineName || "-"}</td>
                     <td className="py-2.5 pr-4 text-right">
-                      {op.machineCost != null ? op.machineCost.toLocaleString() : "—"}
+                      {op.machineCost != null ? op.machineCost.toLocaleString() : "-"}
                     </td>
-                    <td className="py-2.5 pr-4 text-center">{op.isRequired !== false ? "✓" : "—"}</td>
-                    <td className="py-2.5 pr-4 text-center">{op.isEnabled !== false ? "✓" : "—"}</td>
+                    <td className="py-2.5 pr-4 text-center">{op.isRequired !== false ? "✓" : "-"}</td>
+                    <td className="py-2.5 pr-4 text-center">{op.isEnabled !== false ? "✓" : "-"}</td>
                   </tr>
                 ))}
               </tbody>
               <tfoot className="border-t-2 border-border">
                 <tr>
-                  <td colSpan={3} className="py-2.5 pr-4 font-semibold">
+                  <td colSpan={4} className="py-2.5 pr-4 font-semibold">
                     Total ({ops.filter((o) => o.isEnabled !== false).length} operations)
                   </td>
                   <td className="py-2.5 pr-4 text-right font-semibold">{formatOpTime(totalHours)}</td>
@@ -418,7 +443,7 @@ function CostingProfitabilityPanel({
 
       <section className="rounded-lg border border-border bg-card p-5 shadow-xs">
         <h3 className="mb-4 text-sm font-semibold text-foreground">
-          Cost Breakdown — {version.label}
+          Cost Breakdown - {version.label}
         </h3>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

@@ -144,7 +144,7 @@ export const initialDashboardSummary: DashboardSummary = {
   jobsRequiringAttention: [
     {
       id: "job-001",
-      reference: "JC-2025-1187",
+      reference: "PJ-1001",
       title: "Aurora Pendant batch – delayed materials",
       status: "on_hold",
       date: "2025-07-30T08:00:00Z",
@@ -203,7 +203,7 @@ export const initialDashboardSummary: DashboardSummary = {
     },
     {
       id: "act-002",
-      description: "Job JC-2025-1187 moved to In Progress",
+      description: "Job PJ-1001 moved to In Progress",
       timestamp: "2025-07-20T08:00:00Z",
       type: "manufacturing",
       user: "Kamal Silva",
@@ -242,7 +242,7 @@ export const initialDashboardSummary: DashboardSummary = {
     {
       id: "notif-002",
       title: "Job delayed",
-      message: "JC-2025-1187 is past scheduled completion date",
+      message: "PJ-1001 is past scheduled completion date",
       type: "error",
       createdAt: "2025-07-30T17:00:00Z",
       isRead: false,

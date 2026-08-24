@@ -1,11 +1,15 @@
-import type { ManufacturingJob } from "@/types/manufacturing";
+import type { ManufacturingJob, ManufacturingTask } from "@/types/manufacturing";
+import {
+  calculateTaskProgressPercent,
+  currentTask,
+  remainingQuantity,
+} from "@/lib/manufacturingTasks";
 
 export function calculateJobProgress(job: ManufacturingJob): number {
-  if (job.operations.length === 0) {
-    return job.status === "completed" ? 100 : 0;
+  if (typeof job.progressPercent === "number") {
+    return job.progressPercent;
   }
-  const completed = job.operations.filter((op) => op.status === "completed").length;
-  return Math.round((completed / job.operations.length) * 100);
+  return calculateTaskProgressPercent(job.tasks ?? []);
 }
 
 export function areMaterialsReady(job: ManufacturingJob): boolean {
@@ -28,14 +32,28 @@ export function isJobDelayed(job: ManufacturingJob): boolean {
 }
 
 export function getJobWorkshops(job: ManufacturingJob): string[] {
-  return [...new Set(job.operations.map((op) => op.workstation))];
+  return [
+    ...new Set(
+      job.tasks
+        .map((task) => task.workstation || task.machineName)
+        .filter((value): value is string => Boolean(value)),
+    ),
+  ];
 }
 
 export function getPrimaryWorkshop(job: ManufacturingJob): string {
-  const inProgress = job.operations.find((op) => op.status === "in_progress");
-  if (inProgress) {
-    return inProgress.workstation;
-  }
-  const pending = job.operations.find((op) => op.status === "pending");
-  return pending?.workstation ?? job.operations[0]?.workstation ?? "-";
+  const active = currentTask(job);
+  return active?.workstation || active?.machineName || job.tasks[0]?.workstation || "-";
+}
+
+export function getCurrentTaskName(job: ManufacturingJob): string {
+  return currentTask(job)?.name ?? "-";
+}
+
+export function taskQuantityLabel(task: ManufacturingTask): string {
+  return `${task.completedQuantity}/${task.plannedQuantity}`;
+}
+
+export function taskRemainingLabel(task: ManufacturingTask): string {
+  return String(remainingQuantity(task));
 }

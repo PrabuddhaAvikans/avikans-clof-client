@@ -28,6 +28,15 @@ export function getReleasedVersion(product: Product): ProductVersion | undefined
   return product.versions.find((version) => version.status === "released");
 }
 
+/** Prefer released, then approved, then the current version for manufacturing. */
+export function getApprovedManufacturingVersion(product: Product): ProductVersion {
+  return (
+    product.versions.find((version) => version.status === "released") ??
+    product.versions.find((version) => version.status === "approved") ??
+    getCurrentVersion(product)
+  );
+}
+
 export function getEditableVersion(product: Product): ProductVersion | undefined {
   return product.versions.find((version) => isVersionEditable(version));
 }

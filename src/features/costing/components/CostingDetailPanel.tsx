@@ -1,12 +1,14 @@
-import { Save } from "lucide-react";
+import { Download, Save } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ROUTES } from "@/app/config/routes";
 import { FormikForm } from "@/components/forms/FormikForm";
 import { FormikTextarea } from "@/components/forms/FormikTextarea";
 import { AttachmentIcon } from "@/components/ui/AttachmentIcon";
 import { Button } from "@/components/ui/Button";
+import { IconButton } from "@/components/ui/IconButton";
 import { MappedStatusBadge } from "@/features/shared/components/MappedStatusBadge";
 import { notesSchema } from "@/features/costing/schemas/costingSchema";
+import { downloadAttachment, openAttachment } from "@/lib/attachment";
 import { formatCurrency, formatDate, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { workspacePanelBody, workspacePanelEmpty, workspacePanelShell } from "@/lib/panelLayout";
@@ -213,14 +215,32 @@ export function CostingDetailPanel({
                   key={attachment.id}
                   className="flex items-center gap-3 rounded-md border border-border bg-muted/30 px-3 py-2"
                 >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-card text-muted-foreground">
-                    <AttachmentIcon type={attachment.type} fileName={attachment.name} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{attachment.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatFileSize(attachment.size)} · {attachment.type.toUpperCase()}
-                    </p>
+                  <button
+                    type="button"
+                    className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-md text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    onClick={() => openAttachment(attachment)}
+                    title={`Open ${attachment.name}`}
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-card text-muted-foreground">
+                      <AttachmentIcon type={attachment.type} fileName={attachment.name} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="cursor-pointer truncate text-sm font-medium underline-offset-2 hover:underline">
+                        {attachment.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatFileSize(attachment.size)} · {attachment.type.toUpperCase()}
+                      </p>
+                    </div>
+                  </button>
+                  <div className="flex shrink-0 items-center gap-0.5">
+                    <IconButton
+                      variant="ghost"
+                      size="sm"
+                      icon={<Download className="h-4 w-4" />}
+                      aria-label={`Download ${attachment.name}`}
+                      onClick={() => downloadAttachment(attachment)}
+                    />
                   </div>
                 </div>
               ))}

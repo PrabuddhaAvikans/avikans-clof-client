@@ -64,7 +64,7 @@ export interface SpecFieldDiff {
 export function formatSpecValue(
   value: string | number | undefined | null,
 ): string {
-  if (value === undefined || value === null || value === "") return "—";
+  if (value === undefined || value === null || value === "") return "-";
   return String(value);
 }
 
@@ -167,6 +167,7 @@ function opSignature(op: ProductOperation) {
     labourCostRate: op.labourCostRate,
     machineCost: op.machineCost,
     isEnabled: op.isEnabled,
+    prerequisiteOperationIds: op.prerequisiteOperationIds ?? [],
   };
 }
 
@@ -427,7 +428,7 @@ export function finalizeCustomizationEstimation(
       decidedByName: "Prabuddha Jayawardhana",
     },
     history: [
-      historyEntry("approved", "Auto-approved — no approval threshold breached"),
+      historyEntry("approved", "Auto-approved - no approval threshold breached"),
       historyEntry("estimated", "Estimation recalculated from customized BOM/ops"),
       ...updated.history.filter((h) => h.action !== "estimated"),
     ],

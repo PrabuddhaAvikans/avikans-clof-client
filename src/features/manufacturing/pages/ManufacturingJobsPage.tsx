@@ -38,7 +38,7 @@ import {
 } from "@/features/manufacturing/hooks/useManufacturing";
 import {
   calculateJobProgress,
-  getPrimaryWorkshop,
+  getCurrentTaskName,
   isJobDelayed,
 } from "@/features/manufacturing/utils/jobUtils";
 import { statusLabel, statusVariant } from "@/features/shared/utils/statusBadge";
@@ -89,7 +89,7 @@ export function ManufacturingJobsPage() {
   const workshops = useMemo(() => {
     const set = new Set<string>();
     data?.items.forEach((job) => {
-      job.operations.forEach((op) => set.add(op.workstation));
+      job.tasks.forEach((task) => set.add(task.name));
     });
     return [...set].sort();
   }, [data?.items]);
@@ -98,7 +98,7 @@ export function ManufacturingJobsPage() {
     let items = data?.items ?? [];
     if (workshop) {
       items = items.filter((job) =>
-        job.operations.some((op) => op.workstation === workshop),
+        job.tasks.some((task) => task.name === workshop),
       );
     }
     if (delayedOnly) {
@@ -195,8 +195,8 @@ export function ManufacturingJobsPage() {
       },
       {
         id: "workshop",
-        header: "Workshop",
-        cell: ({ row }) => getPrimaryWorkshop(row.original),
+        header: "Current Task",
+        cell: ({ row }) => getCurrentTaskName(row.original),
       },
       {
         id: "progress",
@@ -296,7 +296,7 @@ export function ManufacturingJobsPage() {
   const areaOverview = useMemo(() => {
     const map = new Map<string, { active: number; queue: number }>();
     allJobs.forEach((job) => {
-      const ws = getPrimaryWorkshop(job);
+      const ws = getCurrentTaskName(job);
       const entry = map.get(ws) ?? { active: 0, queue: 0 };
       if (job.status === "in_progress") entry.active += 1;
       else if (["planned", "ready_to_start", "materials_pending", "draft"].includes(job.status)) {
@@ -304,11 +304,6 @@ export function ManufacturingJobsPage() {
       }
       map.set(ws, entry);
     });
-    if (map.size === 0) {
-      ["Surface Prep", "Coating Booth", "Drying", "Assembly", "Inspection", "Packing"].forEach(
-        (name) => map.set(name, { active: 0, queue: 0 }),
-      );
-    }
     return [...map.entries()].slice(0, 6).map(([name, stats]) => ({
       name,
       ...stats,
@@ -319,13 +314,13 @@ export function ManufacturingJobsPage() {
   return (
     <PageContainer maxWidth="wide">
       <PageHeader
-        title="Workshop Process & Scheduling"
-        description="Monitor job queue, workstation capacity, and production progress."
+        title="Production Jobs"
+        description="Track manufacturing tasks generated from each product version."
         actions={
           <div className="flex flex-wrap gap-2">
             <Link to={ROUTES.manufacturing.jobsNew}>
               <Button variant="outline" size="sm" leftIcon={<Plus className="h-3.5 w-3.5" />}>
-                Create Job Card
+                Create Production Job
               </Button>
             </Link>
             <Button variant="outline" size="sm" leftIcon={<UserPlus className="h-3.5 w-3.5" />}>
@@ -351,7 +346,7 @@ export function ManufacturingJobsPage() {
           icon={<Factory className="h-4 w-4" />}
         />
         <SummaryCard
-          title="Workshop Capacity"
+          title="Task Load"
           value={`${capacityPct}%`}
           trend={5.6}
           icon={<Gauge className="h-4 w-4" />}
@@ -402,11 +397,11 @@ export function ManufacturingJobsPage() {
               placeholder="All priorities"
             />
             <Select
-              label="Workshop"
+              label="Current Task"
               value={workshop}
               onChange={(e) => setWorkshop(e.target.value)}
               options={workshops.map((w) => ({ value: w, label: w }))}
-              placeholder="All workshops"
+              placeholder="All tasks"
             />
           </div>
           <FormField label="Show delayed only">
@@ -507,7 +502,7 @@ export function ManufacturingJobsPage() {
           }
           void handleStart();
         }}
-        title="Start Manufacturing Job"
+        title="Start Production Job"
         description={
           materialsNotReady && !overrideMaterials
             ? "Materials are not fully reserved. Reserve materials first or confirm override to start anyway."

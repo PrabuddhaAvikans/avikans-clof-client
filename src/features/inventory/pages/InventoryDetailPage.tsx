@@ -121,14 +121,14 @@ export function InventoryDetailPage() {
                   <DetailField label="Item Code (SKU)" value={item.sku} />
                   <DetailField label="Item Name" value={item.name} />
                   <DetailField label="Item Type" value={InventoryItemTypeLabels[item.itemType]} />
-                  <DetailField label="Category" value={item.category} />
                   <DetailField label="Unit of Measure" value={item.unit} />
-                  <DetailField label="Brand" value={item.brand ?? "—"} />
-                  <DetailField label="Supplier" value={item.supplier ?? "—"} />
-                  <DetailField label="Tax Code" value={item.taxCode ?? "—"} />
+                  <DetailField label="Category" value={item.category} />
+                  <DetailField label="Brand" value={item.brand ?? "-"} />
+                  <DetailField label="Supplier" value={item.supplier ?? "-"} />
+                  <DetailField label="Tax Code" value={item.taxCode ?? "-"} />
                   <DetailField
                     label="Description"
-                    value={item.description ?? "—"}
+                    value={item.description ?? "-"}
                   />
                 </DetailSection>
               </TabPanel>
@@ -152,7 +152,7 @@ export function InventoryDetailPage() {
                     <DetailField label="Location / Bin" value={item.location} />
                     <DetailField
                       label="Last Restocked"
-                      value={item.lastRestockedAt ? formatDate(item.lastRestockedAt) : "—"}
+                      value={item.lastRestockedAt ? formatDate(item.lastRestockedAt) : "-"}
                     />
                   </DetailSection>
                 </div>

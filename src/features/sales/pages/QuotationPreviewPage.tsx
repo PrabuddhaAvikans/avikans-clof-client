@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Download, Mail, Pencil } from "lucide-react";
+import { Copy, Pencil } from "lucide-react";
 import { ROUTES } from "@/app/config/routes";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/feedback/PageHeader";
 import { PageContent } from "@/components/feedback/PageStates";
 import { Button } from "@/components/ui/Button";
 import { MappedStatusBadge } from "@/features/shared/components/MappedStatusBadge";
+import { DuplicateQuotationModal } from "@/features/sales/components/DuplicateQuotationModal";
 import { SendQuotationModal } from "@/features/sales/components/SendQuotationModal";
 import { QuotationTotalsSummary } from "@/features/sales/components/QuotationTotalsSummary";
 import { computeLineAmounts, computeQuotationTotals } from "@/features/sales/schemas/quotationSchema";
@@ -20,6 +21,7 @@ export function QuotationPreviewPage() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [sendOpen, setSendOpen] = useState(false);
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
 
   const { data: quotation, isLoading, error } = useQuotation(id);
   const totals = quotation
@@ -50,12 +52,13 @@ export function QuotationPreviewPage() {
                       Edit
                     </Button>
                   )}
-                  {/* <Button variant="secondary" leftIcon={<Mail className="h-4 w-4" />} onClick={() => setSendOpen(true)}>
-                    Send
-                  </Button> */}
-                  {/* <Button variant="outline" leftIcon={<Download className="h-4 w-4" />} onClick={() => window.print()}>
-                    Download PDF
-                  </Button> */}
+                  <Button
+                    variant="outline"
+                    leftIcon={<Copy className="h-4 w-4" />}
+                    onClick={() => setDuplicateOpen(true)}
+                  >
+                    Duplicate
+                  </Button>
                 </>
               }
             />
@@ -184,6 +187,15 @@ export function QuotationPreviewPage() {
               onClose={() => setSendOpen(false)}
               quotation={quotation}
               onSent={() => setSendOpen(false)}
+            />
+
+            <DuplicateQuotationModal
+              open={duplicateOpen}
+              quotation={quotation}
+              onClose={() => setDuplicateOpen(false)}
+              onCreated={(created) => {
+                navigate(ROUTES.quotations.detail(created.id));
+              }}
             />
           </>
         )}
