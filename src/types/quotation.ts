@@ -1,4 +1,4 @@
-import type { Address } from "@/types/common";
+import type { Address, Attachment } from "@/types/common";
 import type {
   BomItem,
   CostBreakdown,
@@ -31,7 +31,6 @@ export interface QuotationContactEntry {
   outcome?: string;
 }
 
-/** Snapshot of base product values at the time of customization (immutable reference). */
 export interface QuotationCustomizationBaseSnapshot {
   productId: string;
   productSku: string;
@@ -70,24 +69,17 @@ export interface QuotationCustomizationApproval {
   notes?: string;
 }
 
-/**
- * Quotation-level product customization.
- * Belongs to the quotation line / customer requirement - never mutates the master product.
- */
 export interface QuotationProductCustomization {
   id: string;
   status: QuotationCustomizationStatusValue;
   base: QuotationCustomizationBaseSnapshot;
-  /** Customer-specific overrides relative to the base product version. */
   customizedSpecifications: ProductSpecifications;
   customizedBom: BomItem[];
   customizedOperations: ProductOperation[];
   estimation: QuotationCustomizationEstimation;
   approval: QuotationCustomizationApproval;
   notes?: string;
-  /** Set when quotation is accepted/converted - configuration must not change. */
   isLocked: boolean;
-  /** Optional explicit promote-to-master-version action result. */
   promotedProductVersionId?: string;
   history: QuotationCustomizationHistoryEntry[];
   createdAt: string;
@@ -123,7 +115,6 @@ export interface QuotationLineItem {
   productSku: string;
   productName: string;
   description?: string;
-  /** Product version used as the base for this line (standard or customize). */
   productVersionId?: string;
   productVersionLabel?: string;
   quantity: number;
@@ -131,7 +122,6 @@ export interface QuotationLineItem {
   discountPercent: number;
   taxPercent: number;
   lineTotal: number;
-  /** False/undefined = use master product as-is; true = quotation-level customization. */
   isCustomized?: boolean;
   customization?: QuotationProductCustomization;
 }
@@ -156,6 +146,7 @@ export interface Quotation {
   shippingAddress?: Address;
   notes?: string;
   termsAndConditions?: string;
+  attachments: Attachment[];
   salesOrderId?: string;
   contactHistory: QuotationContactEntry[];
   revisions: QuotationRevision[];

@@ -3,6 +3,7 @@ import type {
   ManufacturingJob,
   ManufacturingTask,
   ManufacturingTaskAction,
+  ProductionCompletionInput,
   QualityInspection,
 } from "@/types/manufacturing";
 import type {
@@ -40,7 +41,7 @@ export interface ManufacturingService {
   delete(id: string): Promise<void>;
   reserveMaterials(id: string): Promise<ManufacturingJob>;
   startJob(id: string): Promise<ManufacturingJob>;
-  completeJob(id: string): Promise<ManufacturingJob>;
+  completeJob(id: string, completion?: ProductionCompletionInput): Promise<ManufacturingJob>;
   holdJob(id: string, reason?: string): Promise<ManufacturingJob>;
   applyTaskAction(id: string, action: ManufacturingTaskAction): Promise<ManufacturingJob>;
 }

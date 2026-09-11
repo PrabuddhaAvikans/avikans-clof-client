@@ -505,8 +505,8 @@ export function ProductFormPage() {
             <>
               {isLockedEdit && (
                 <div className="mb-3 rounded-md border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-foreground">
-                  This product has no editable draft version. Create a revision from the product
-                  detail page before making specification or BOM changes.
+                  This product cannot be edited yet. Open the product and click Copy to edit
+                  before changing specifications or BOM.
                 </div>
               )}
               <TagsSyncEffect onTagsInputChange={setTagsInput} />
@@ -850,7 +850,6 @@ function BomTreePanel({
   return (
     <SectionCard title="Product Structure" description="Visual BOM tree for this product.">
       <div className="space-y-1">
-        {/* Root node */}
         <div className="flex items-center gap-2 rounded-md bg-primary/10 px-3 py-2">
           <Package className="h-4 w-4 text-primary" />
           <span className="text-sm font-semibold text-foreground truncate">{productName}</span>
@@ -871,7 +870,6 @@ function BomTreePanel({
 
               return (
                 <div key={`${line.inventoryItemId}-${index}`} className="relative">
-                  {/* Connector line */}
                   <div className="absolute -left-1 top-3.5 h-px w-3 bg-border" />
 
                   <div className="ml-3">
@@ -928,7 +926,6 @@ function BomTreePanel({
           </div>
         )}
 
-        {/* Total footer */}
         {bom.length > 0 && (
           <div className="mt-2 flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2 text-xs">
             <span className="text-muted-foreground">{bom.length} component{bom.length !== 1 ? "s" : ""}</span>

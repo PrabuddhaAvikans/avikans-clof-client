@@ -235,7 +235,6 @@ export interface Product {
   status: EntityStatus;
   currentVersionId: string;
   versions: ProductVersion[];
-  /** Mirrored from current version for list views and backward compatibility */
   basePrice: number;
   costPrice: number;
   images: ProductImage[];

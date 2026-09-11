@@ -15,10 +15,7 @@ export interface ProductListFilters extends PaginatedRequest {
   status?: EntityStatus;
   versionStatus?: ProductVersionStatusValue;
   customerId?: string;
-  /**
-   * Products available for a quotation/order: assigned to this customer,
-   * plus default catalog products (no customer). Pass "" to show only defaults.
-   */
+  /** Includes catalog defaults. Pass "" for defaults only. */
   availableForCustomerId?: string;
   tags?: string[];
 }

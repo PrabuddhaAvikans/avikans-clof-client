@@ -67,7 +67,6 @@ export function CustomerSelectorModal({
   const showRegisterCTA = !isLoading && !error && (data?.items.length ?? 0) === 0;
 
   useEffect(() => {
-    // Reset internal state whenever the selector is opened/closed.
     setSearch("");
     setRegisterOpen(false);
   }, [open]);

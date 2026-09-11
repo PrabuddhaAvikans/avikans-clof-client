@@ -188,7 +188,7 @@ export const mockProductService: ProductService = {
     const existing = products[index];
     const editableVersion = existing.versions.find((version) => isVersionEditable(version));
     if (!editableVersion) {
-      throw new Error("No editable product version. Create a revision to make changes.");
+      throw new Error("This product cannot be edited yet. Click Copy to edit on the product to make changes.");
     }
 
     const mergedForm = { ...formDataFromProduct(existing), ...data };
@@ -251,7 +251,7 @@ export const mockProductService: ProductService = {
     const version = getVersionById(product, versionId);
     if (!version) notFoundError("ProductVersion", versionId);
     if (!isVersionEditable(version)) {
-      throw new Error("This product version is locked. Create a new revision to make changes.");
+      throw new Error("This product version is locked. Click Copy to edit to make changes.");
     }
 
     const updated = updateVersionInProduct(

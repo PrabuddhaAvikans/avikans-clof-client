@@ -33,7 +33,6 @@ export type ProductOperationSeed = {
   isQualityCheck?: boolean;
 };
 
-/** Legacy flat seed data - migrated to versioned products at mock service load. */
 export type ProductSeed = Omit<
   Product,
   "versions" | "currentVersionId" | "productType" | "bom" | "operations"

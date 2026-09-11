@@ -1,4 +1,5 @@
 import * as yup from 'yup';
+import type { UploadedFile } from '@/components/ui/FileUploader';
 
 function coerceNumber() {
   return yup.number().transform((value, originalValue) => {
@@ -21,7 +22,6 @@ export const quotationLineItemSchema = yup.object({
   discountPercent: coerceNumber().required().min(0).max(100),
   taxPercent: coerceNumber().required().min(0).max(100),
   isCustomized: yup.boolean().optional(),
-  /** Full customization snapshot is validated loosely - structure enforced in UI helpers. */
   customization: yup.mixed().optional(),
 });
 
@@ -39,6 +39,7 @@ export const quotationFormSchema = yup
     discountAmount: coerceNumber().min(0).optional(),
     notes: yup.string().optional(),
     termsAndConditions: yup.string().optional(),
+    attachments: yup.array(yup.mixed<UploadedFile>().required()).default([]),
   })
   .test('valid-until-after-quote-date', 'Valid until must be after quote date', (values) => {
     if (!values?.validUntil || !values.quoteDate) {
@@ -81,7 +82,6 @@ export function computeLineAmounts(item: {
   return { gross, lineDiscount, net, tax, total: net + tax };
 }
 
-/** Line amount after line discount, before tax. */
 export function computeLineNet(item: {
   quantity: number;
   unitPrice: number;
@@ -91,7 +91,6 @@ export function computeLineNet(item: {
   return computeLineAmounts(item).net;
 }
 
-/** Line amount including tax (stored on persisted line items). */
 export function computeLineTotal(item: {
   quantity: number;
   unitPrice: number;

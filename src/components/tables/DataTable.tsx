@@ -26,12 +26,13 @@ export type DataTableProps<TData> = {
   enableColumnVisibility?: boolean;
   bulkActions?: (selectedRows: TData[]) => ReactNode;
   renderMobileCard?: (row: Row<TData>) => ReactNode;
-  /** Always show the table with horizontal scroll (skip mobile card stacking). */
   forceTable?: boolean;
   density?: 'comfortable' | 'compact';
   className?: string;
   emptyMessage?: string;
   getRowId?: (row: TData) => string;
+  onRowClick?: (row: TData) => void;
+  getRowClassName?: (row: TData) => string | undefined;
 };
 
 export function DataTable<TData>({
@@ -48,6 +49,8 @@ export function DataTable<TData>({
   className,
   emptyMessage = 'No results found',
   getRowId,
+  onRowClick,
+  getRowClassName,
 }: DataTableProps<TData>) {
   const useMobileCards = Boolean(renderMobileCard) && !forceTable;
   const isCompact = density === 'compact';
@@ -166,7 +169,6 @@ export function DataTable<TData>({
         </div>
       )}
 
-      {/* Table - horizontal scroll on narrow viewports instead of stacked cards when forceTable */}
       <div
         className={cn(
           'overflow-hidden rounded-md border border-border bg-card',
@@ -228,9 +230,12 @@ export function DataTable<TData>({
                 table.getRowModel().rows.map((row) => (
                   <tr
                     key={row.id}
+                    onClick={onRowClick ? () => onRowClick(row.original) : undefined}
                     className={cn(
                       'border-b border-border last:border-0 hover:bg-muted/40',
+                      onRowClick && 'cursor-pointer',
                       row.getIsSelected() && 'bg-muted',
+                      getRowClassName?.(row.original),
                     )}
                   >
                     {row.getVisibleCells().map((cell) => (
@@ -246,7 +251,6 @@ export function DataTable<TData>({
         </div>
       </div>
 
-      {/* Optional mobile card view */}
       {useMobileCards && renderMobileCard && (
         <div className="space-y-2 md:hidden">
           {table.getRowModel().rows.length === 0 ? (
@@ -255,9 +259,12 @@ export function DataTable<TData>({
             table.getRowModel().rows.map((row) => (
               <div
                 key={row.id}
+                onClick={onRowClick ? () => onRowClick(row.original) : undefined}
                 className={cn(
                   'rounded-md border border-border bg-card p-3',
+                  onRowClick && 'cursor-pointer',
                   row.getIsSelected() && 'ring-1 ring-foreground/20',
+                  getRowClassName?.(row.original),
                 )}
               >
                 {enableRowSelection && (

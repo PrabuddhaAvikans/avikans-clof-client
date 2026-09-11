@@ -52,9 +52,13 @@ export function useLowStockItems() {
   });
 }
 
-export function useStockMovements(filters: StockMovementFilters) {
+export function useStockMovements(
+  filters: StockMovementFilters,
+  options?: { enabled?: boolean },
+) {
   return useEpicQuery<StockMovementFilters, PaginatedResponse<StockMovement>>({
     arg: filters,
+    enabled: options?.enabled ?? true,
     request: inventoryActions.fetchMovementsRequest,
     selectEntry: (state, key) => state.inventory.movements[key],
   });

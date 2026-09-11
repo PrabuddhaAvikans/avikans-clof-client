@@ -147,7 +147,6 @@ export function ProductOperationsEditor({ readOnly = false }: Props) {
               key={op.id ?? `${index}`}
               className={`rounded-lg border ${op.isEnabled === false ? "border-border/50 bg-muted/30 opacity-60" : "border-border bg-card"}`}
             >
-              {/* Compact row */}
               <div className="flex items-center gap-2 px-3 py-2">
                 <button
                   type="button"
@@ -211,7 +210,6 @@ export function ProductOperationsEditor({ readOnly = false }: Props) {
                 </div>
               </div>
 
-              {/* Expanded details */}
               {isExpanded && (
                 <div className="border-t border-border px-3 pb-3 pt-3">
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

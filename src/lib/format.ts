@@ -3,7 +3,6 @@ import { getAppCountryConfig } from "@/lib/countryConfig";
 
 const appCountry = getAppCountryConfig();
 const DEFAULT_LOCALE = appCountry.locale;
-/** Application-wide currency - driven by country config (`DEFAULT_COUNTRY`). */
 export const APP_CURRENCY = appCountry.currency;
 const DEFAULT_CURRENCY = APP_CURRENCY;
 

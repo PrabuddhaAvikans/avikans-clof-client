@@ -228,7 +228,6 @@ export function DashboardPage() {
       >
         {data && (
           <div className="space-y-3">
-            {/* Summary cards */}
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               <SummaryCard
                 title="Total Customers"
@@ -288,7 +287,6 @@ export function DashboardPage() {
               />
             </div>
 
-            {/* Quick actions */}
             {/* <div className="flex flex-wrap gap-2 rounded-lg border border-border bg-muted/30 p-4">
               <span className="mr-2 self-center text-sm font-medium text-muted-foreground">
                 Quick actions:
@@ -310,7 +308,6 @@ export function DashboardPage() {
               </Link>
             </div> */}
 
-            {/* Charts row 1 */}
             {/* <div className="grid gap-2 lg:grid-cols-2">
               <ChartCard title="Monthly Quotation Value">
                 <ResponsiveContainer width="100%" height={260}>
@@ -329,7 +326,6 @@ export function DashboardPage() {
               </ChartCard>
             </div> */}
 
-            {/* Charts row 2 */}
             {/* <div className="grid gap-2 lg:grid-cols-3">
               <ChartCard title="Orders by Status">
                 <DonutChart data={data.ordersByStatus} />
@@ -342,7 +338,6 @@ export function DashboardPage() {
               </ChartCard>
             </div> */}
 
-            {/* Charts row 3 */}
             {/* <div className="grid gap-2 lg:grid-cols-2">
               <ChartCard title="Revenue Trend">
                 <ResponsiveContainer width="100%" height={260}>
@@ -377,7 +372,6 @@ export function DashboardPage() {
               </ChartCard>
             </div> */}
 
-            {/* Tables row */}
             {/* <div className="grid gap-2 xl:grid-cols-2">
               <DashboardTable
                 title="Recent Quotations"
@@ -410,7 +404,6 @@ export function DashboardPage() {
               />
             </div> */}
 
-            {/* Activity & notifications */}
             {/* <div className="grid gap-2 lg:grid-cols-2">
               <div className="rounded-lg border border-border bg-card p-5 shadow-xs">
                 <div className="mb-4 flex items-center justify-between">

@@ -56,6 +56,10 @@ export function QuotationFormPreview({
           <Row label="Quote Date" value={values.quoteDate} />
           <Row label="Valid Until" value={values.validUntil} />
           <Row label="Priority" value={priorityLabel} />
+          <Row
+            label="Attachments"
+            value={String(values.attachments?.length ?? 0)}
+          />
         </dl>
 
         <div className="mt-3 border-t border-border pt-3">

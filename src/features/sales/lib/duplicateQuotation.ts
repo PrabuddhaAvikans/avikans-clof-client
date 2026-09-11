@@ -5,16 +5,17 @@ import {
 } from "@/features/sales/schemas/quotationSchema";
 import { deepCloneCustomization } from "@/lib/quotationCustomization";
 import { generateId } from "@/services/http";
+import {
+  quotationAttachmentsFromForm,
+  quotationAttachmentsToForm,
+} from "@/features/sales/lib/quotationAttachments";
 import type { QuotationFormData } from "@/services/interfaces/quotationService";
+import type { Attachment } from "@/types/common";
 import type {
   Quotation,
   QuotationProductCustomization,
 } from "@/types/quotation";
 
-/**
- * Copy quotation-level customization into a fresh draft snapshot.
- * Does not mutate the original; strips lock / promote / approval / audit history.
- */
 export function cloneCustomizationForDuplicate(
   customization: QuotationProductCustomization,
 ): QuotationProductCustomization {
@@ -46,7 +47,6 @@ export function cloneCustomizationForDuplicate(
   };
 }
 
-/** Map a source quotation into editable form values for the Duplicate modal. */
 export function buildDuplicateQuotationFormValues(
   quotation: Quotation,
 ): QuotationFormValues {
@@ -79,12 +79,19 @@ export function buildDuplicateQuotationFormValues(
     discountAmount: quotation.discountAmount,
     notes: quotation.notes ?? "",
     termsAndConditions: quotation.termsAndConditions ?? "",
+    attachments: quotationAttachmentsToForm(quotation.attachments).map((item) => ({
+      ...item,
+      id: generateId("qatt"),
+    })),
   };
 }
 
-/** Build create payload for a new DRAFT quotation (never copies history / status / numbers). */
-export function buildDuplicateQuotationCreatePayload(
+export function buildQuotationFormPayload(
   values: QuotationFormValues,
+  options: {
+    saveMode?: "draft" | "save";
+    existingAttachments?: Attachment[];
+  } = {},
 ): QuotationFormData {
   return {
     customerId: values.customerId,
@@ -109,8 +116,18 @@ export function buildDuplicateQuotationCreatePayload(
     notes: values.notes,
     termsAndConditions: values.termsAndConditions,
     discountAmount: values.discountAmount ?? 0,
-    saveMode: "draft",
+    attachments: quotationAttachmentsFromForm(
+      values.attachments,
+      options.existingAttachments,
+    ),
+    saveMode: options.saveMode ?? "draft",
   };
+}
+
+export function buildDuplicateQuotationCreatePayload(
+  values: QuotationFormValues,
+): QuotationFormData {
+  return buildQuotationFormPayload(values, { saveMode: "draft" });
 }
 
 export function summarizeDuplicateQuotation(values: QuotationFormValues) {

@@ -1,4 +1,3 @@
-/** Shared chrome height so sidebar brand bar and top header borders align. */
 export const APP_HEADER_HEIGHT = "h-[57px]" as const;
 
 export const COMPACT_KPI_GRID =

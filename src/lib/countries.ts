@@ -1,7 +1,4 @@
-/** Operating / default country for new addresses and app locale/currency. */
 export const DEFAULT_COUNTRY = "Sri Lanka";
-
-/** See `lib/countryConfig.ts` for currency, tax name, and tax-split per country. */
 
 export const COUNTRY_OPTIONS = [
   { value: "Afghanistan", label: "Afghanistan" },

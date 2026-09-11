@@ -127,6 +127,7 @@ export const mockQuotationService: QuotationService = {
       shippingAddress: shippingActive,
       notes: data.notes,
       termsAndConditions: data.termsAndConditions,
+      attachments: data.attachments ?? [],
       contactHistory: [
         {
           id: generateId("qch"),
@@ -193,6 +194,7 @@ export const mockQuotationService: QuotationService = {
       ...rest,
       lineItems,
       ...totals,
+      attachments: rest.attachments ?? existing.attachments,
       status: nextStatus,
       revisions,
       updatedAt: timestamp,

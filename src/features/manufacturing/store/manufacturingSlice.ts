@@ -23,6 +23,7 @@ import type {
 import type {
   ManufacturingJob,
   ManufacturingTaskAction,
+  ProductionCompletionInput,
 } from "@/types/manufacturing";
 import type { PaginatedResponse } from "@/types/common";
 
@@ -30,6 +31,7 @@ type ListData = PaginatedResponse<ManufacturingJob>;
 type UpdateArg = { id: string; data: Partial<ManufacturingJobFormData> };
 type TaskActionArg = { id: string; action: ManufacturingTaskAction };
 type HoldArg = { id: string; reason?: string };
+type CompleteArg = { id: string; completion?: ProductionCompletionInput };
 
 export type ManufacturingState = {
   lists: Record<string, AsyncEntry<ListData>>;
@@ -147,7 +149,7 @@ const manufacturingSlice = createSlice({
       setMutationFailure(state.start, action);
     },
 
-    completeRequest(state, _action: PayloadAction<RequestPayload<string>>) {
+    completeRequest(state, _action: PayloadAction<RequestPayload<CompleteArg>>) {
       setMutationLoading(state.complete);
     },
     completeSuccess(state, action: PayloadAction<SuccessPayload<ManufacturingJob>>) {

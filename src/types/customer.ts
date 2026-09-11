@@ -27,10 +27,6 @@ export interface Customer {
   phone: string;
   billingAddresses: Address[];
   activeBillingAddressIndex: number;
-  /**
-   * Delivery address(es).
-   * If omitted/empty, the system will fall back to the active billing address for delivery.
-   */
   deliverySameAsBilling: boolean;
   shippingAddresses?: Address[];
   activeShippingAddressIndex?: number;

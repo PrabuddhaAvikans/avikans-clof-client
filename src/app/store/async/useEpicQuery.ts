@@ -9,7 +9,6 @@ import type { AsyncEntry } from "@/app/store/async/types";
 type UseEpicQueryOptions<TArg, TData> = {
   arg: TArg;
   enabled?: boolean;
-  /** Override cache key (e.g. use entity id for detail queries). */
   getKey?: (arg: TArg) => string;
   request: ActionCreatorWithPayload<RequestPayload<TArg>>;
   selectEntry: (state: RootState, key: string) => AsyncEntry<TData> | undefined;

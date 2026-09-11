@@ -50,7 +50,6 @@ export type BreakpointFlags = {
   isDesktop: boolean;
 };
 
-/** Single listener for layout breakpoints - avoids flicker from multiple hook instances. */
 export function useBreakpoints(): BreakpointFlags {
   const [flags, setFlags] = useState<BreakpointFlags>(() => {
     const isMd = getMatch(BREAKPOINTS.md);

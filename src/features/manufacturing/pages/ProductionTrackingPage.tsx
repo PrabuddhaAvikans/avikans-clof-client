@@ -186,7 +186,6 @@ export function ProductionTrackingPage() {
       >
         {snapshot && (
           <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {/* Title + actions - full width */}
             <div className="col-span-1 flex flex-wrap items-center gap-1.5 border border-border bg-card px-2.5 py-1.5 md:col-span-2 lg:col-span-3 xl:col-span-4">
               <h1 className="mr-auto text-sm font-semibold tracking-tight text-foreground">
                 Production Tracking
@@ -270,12 +269,10 @@ export function ProductionTrackingPage() {
               </div>
             </div>
 
-            {/* KPI cards - responsive multi-column */}
             <div className="col-span-1 md:col-span-2 lg:col-span-3 xl:col-span-4">
               <ProductionKpiCards kpis={snapshot.kpis} />
             </div>
 
-            {/* Filters + actions - same row */}
             <div className="col-span-1 flex flex-wrap items-center gap-1.5 border border-border bg-card px-2.5 py-1.5 md:col-span-2 lg:col-span-3 xl:col-span-4">
               <Input
                 value={search}
@@ -332,7 +329,6 @@ export function ProductionTrackingPage() {
               </p>
             </div>
 
-            {/* Jobs table - 3 of 4 on xl, 2 of 3 on lg */}
             <div className="col-span-1 flex min-h-0 min-w-0 flex-col border border-border bg-card md:col-span-2 lg:col-span-2 xl:col-span-3">
               <div className="flex items-center justify-between border-b border-border px-2.5 py-1">
                 <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
@@ -349,8 +345,6 @@ export function ProductionTrackingPage() {
               </div>
             </div>
 
-            {/* Job detail - side column */}
-            {/* Job detail - sticky side column on large screens */}
             <div className="col-span-1 max-h-[480px] overflow-auto border border-border bg-card p-2 md:col-span-2 lg:col-span-1 xl:col-span-1 xl:row-span-2 xl:max-h-[min(720px,calc(100dvh-220px))]">
               <ProductionJobDetailsPanel
                 job={selectedJob}
@@ -362,7 +356,6 @@ export function ProductionTrackingPage() {
               />
             </div>
 
-            {/* Timeline - under table, beside detail on xl */}
             <div className="col-span-1 border border-border bg-card p-2 md:col-span-2 lg:col-span-3 xl:col-span-3">
               <ProductionTimeline
                 blocks={snapshot.timeline}

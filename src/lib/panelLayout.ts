@@ -1,5 +1,3 @@
-/** Shared layout classes for workspace panels - natural height on mobile, fixed scroll regions on lg+. */
-
 export const workspaceGrid =
   "grid grid-cols-1 gap-2 lg:grid-cols-12 lg:min-h-[calc(100dvh-11rem)]";
 

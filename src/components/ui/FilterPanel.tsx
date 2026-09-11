@@ -13,7 +13,6 @@ export type FilterPanelProps = {
   resetLabel?: string;
   className?: string;
   showActions?: boolean;
-  /** Compact bar layout matching list pages (no collapse header) */
   variant?: 'default' | 'toolbar';
 };
 

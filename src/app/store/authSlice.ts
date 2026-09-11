@@ -1,5 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { ALL_PERMISSIONS, type Permission } from "@/app/config/permissions";
+import type { Permission } from "@/app/config/permissions";
+import { readStoredAuthUser } from "@/app/store/authStorage";
 
 export interface AuthUser {
   id: string;
@@ -16,20 +17,11 @@ export interface AuthState {
   user: AuthUser | null;
 }
 
-const mockAdminUser: AuthUser = {
-  id: "usr-001",
-  email: "prabuddha.jayawardhana@avikans.com",
-  firstName: "Prabuddha",
-  lastName: "Jayawardhana",
-  displayName: "Prabuddha Jayawardhana",
-  role: "Admin",
-  permissions: [...ALL_PERMISSIONS],
-};
+const storedUser = readStoredAuthUser();
 
-const initialState: AuthState = {
-  isAuthenticated: true,
-  user: mockAdminUser,
-};
+const initialState: AuthState = storedUser
+  ? { isAuthenticated: true, user: storedUser }
+  : { isAuthenticated: false, user: null };
 
 export const authSlice = createSlice({
   name: "auth",

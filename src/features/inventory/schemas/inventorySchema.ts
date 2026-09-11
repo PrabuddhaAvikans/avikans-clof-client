@@ -69,8 +69,16 @@ export const stockMovementFormSchema = yup.object({
   inventoryItemId: yup.string().required("Select an inventory item"),
   type: yup
     .string()
-    .oneOf(["receipt", "issue", "transfer", "adjustment", "reservation", "release"] as const)
-    .required(),
+    .oneOf(["receipt", "issue", "adjustment", "reservation", "release"] as const)
+    .required("Choose what happened"),
+  adjustmentDirection: yup
+    .string()
+    .oneOf(["increase", "decrease"] as const)
+    .when("type", {
+      is: "adjustment",
+      then: (schema) => schema.required("Choose increase or decrease"),
+      otherwise: (schema) => schema.optional(),
+    }),
   quantity: coerceNumber().required().positive("Quantity must be greater than 0"),
   notes: yup.string().optional(),
 });

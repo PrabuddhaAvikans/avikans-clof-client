@@ -1,9 +1,5 @@
 import type { Invoice } from "@/types/invoice";
 
-/**
- * Mock invoice data for the finance UI.
- * The apply-credit-note flow adjusts `amountCredited` and `outstandingAmount`.
- */
 export const initialInvoices: Invoice[] = [
   {
     id: "inv-001",

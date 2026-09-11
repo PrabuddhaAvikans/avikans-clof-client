@@ -8,7 +8,6 @@ export type StepItem = {
   id: string;
   label: string;
   description?: string;
-  /** Optional content rendered under the step label (vertical orientation). */
   content?: ReactNode;
   status: StepStatus;
 };

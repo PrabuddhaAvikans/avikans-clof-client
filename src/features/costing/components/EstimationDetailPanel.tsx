@@ -265,7 +265,6 @@ export function EstimationDetailPanel({
 
               return (
                 <>
-                  {/* Coating / Finishing Section */}
                   <section>
                     <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Coating / Finishing
@@ -345,7 +344,6 @@ export function EstimationDetailPanel({
                     </div>
                   </section>
 
-                  {/* Materials / Components Section */}
                   <section>
                     <div className="mb-2 flex items-center justify-between">
                       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -469,7 +467,6 @@ export function EstimationDetailPanel({
                     )}
                   </section>
 
-                  {/* Grand Total */}
                   <div className="rounded-md border border-border bg-muted/20 px-3 py-2.5 flex items-center justify-between">
                     <span className="text-sm font-semibold">Estimation Grand Total</span>
                     <span className="text-sm font-semibold tabular-nums">
@@ -518,7 +515,6 @@ export function EstimationDetailPanel({
           </FormikForm>
         ) : (
           <>
-            {/* Read-only Coating section */}
             <section>
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Coating / Finishing
@@ -572,7 +568,6 @@ export function EstimationDetailPanel({
               </div>
             </section>
 
-            {/* Read-only Materials section */}
             {request.estimationMaterials.length > 0 && (
               <section>
                 <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -626,7 +621,6 @@ export function EstimationDetailPanel({
               </section>
             )}
 
-            {/* Read-only Grand Total */}
             <div className="rounded-md border border-border bg-muted/20 px-3 py-2.5 flex items-center justify-between">
               <span className="text-sm font-semibold">Estimation Grand Total</span>
               <span className="text-sm font-semibold tabular-nums">

@@ -234,7 +234,6 @@ function ContactHistoryItem({ entry }: { entry: QuotationContactEntry }) {
   );
 }
 
-/** Compact trigger summary for panels - does not render the full history. */
 export function QuotationContactTrigger({
   count,
   onClick,

@@ -22,6 +22,9 @@ export const InventoryItemType = {
   service: "service",
   packaging: "packaging",
   finished_product: "finished_product",
+  reusable_scrap: "reusable_scrap",
+  reprocessing_wip: "reprocessing_wip",
+  recovered_material: "recovered_material",
 } as const;
 
 export type InventoryItemTypeValue =
@@ -36,7 +39,17 @@ export const InventoryItemTypeLabels: Record<InventoryItemTypeValue, string> = {
   service: "Service",
   packaging: "Packaging",
   finished_product: "Finished Product",
+  reusable_scrap: "Reusable Scrap",
+  reprocessing_wip: "Under Reprocessing",
+  recovered_material: "Recovered Material",
 };
+
+export const PRODUCTION_ISSUABLE_ITEM_TYPES: InventoryItemTypeValue[] = [
+  InventoryItemType.raw_material,
+  InventoryItemType.component,
+  InventoryItemType.recovered_material,
+  InventoryItemType.reusable_scrap,
+];
 
 export const PricingMethod = {
   percentage_markup: "percentage_markup",
@@ -87,9 +100,7 @@ export interface InventoryItem {
   maxStock: number;
   reorderLevel: number;
   reorderQuantity: number;
-  /** Optional purchase price from supplier */
   buyingPrice?: number;
-  /** Cost price used for BOM / manufacturing costing */
   costPrice: number;
   /**
    * @deprecated Use costPrice. Kept in sync for backward compatibility with BOM and legacy UI.
@@ -98,7 +109,6 @@ export interface InventoryItem {
   pricingMethod: PricingMethodValue;
   markupPercent: number;
   markupFixedAmount: number;
-  /** Direct inventory sales price - separate from cost price */
   sellingPrice: number;
   pricingEffectiveDate: string;
   stockStatus: StockStatusValue;
@@ -106,6 +116,17 @@ export interface InventoryItem {
   lastRestockedAt?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface StockMovementTrace {
+  sourceInventoryTransactionId?: string;
+  sourceProductionOrderId?: string;
+  sourceProductionBatchId?: string;
+  sourceMaterialLotId?: string;
+  reprocessingBatchId?: string;
+  parentMaterialTransactionId?: string;
+  unitCost?: number;
+  carriedValue?: number;
 }
 
 export interface StockMovement {
@@ -122,9 +143,9 @@ export interface StockMovement {
   performedBy: string;
   performedByName: string;
   performedAt: string;
+  trace?: StockMovementTrace;
 }
 
-/** Ensures costPrice and unitCost stay aligned for backward compatibility. */
 export function normalizeInventoryItem(item: InventoryItem): InventoryItem {
   const costPrice = item.costPrice ?? item.unitCost ?? 0;
   return {

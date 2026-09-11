@@ -35,6 +35,10 @@ import {
   UnitsOfMeasurePage,
 } from "@/features/inventory/pages/InventoryPages";
 import {
+  ReprocessingBatchDetailPage,
+  ReprocessingBatchesPage,
+} from "@/features/reprocessing/pages/ReprocessingPages";
+import {
   ManufacturingJobDetailPage,
   ManufacturingJobFormPage,
   ManufacturingJobsPage,
@@ -104,6 +108,8 @@ export const PAGE_REGISTRY = {
   StockMovementsPage,
   LowStockPage,
   UnitsOfMeasurePage,
+  ReprocessingBatchesPage,
+  ReprocessingBatchDetailPage,
   ProductionTrackingPage,
   ReadyToShipPage,
   ManufacturingJobFormPage,

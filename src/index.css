@@ -50,7 +50,6 @@
 }
 
 :root {
-  /* Neutral chrome + semantic label colors (red / blue / yellow) */
   --background: #f5f5f5;
   --foreground: #0a0a0a;
   --muted: #eeeeee;
@@ -66,7 +65,6 @@
   --accent: #f5f5f5;
   --accent-foreground: #0a0a0a;
 
-  /* Semantic status / label colors */
   --destructive: #ff0000;
   --destructive-foreground: #ffffff;
   --success: #66b40b;
@@ -83,7 +81,6 @@
   --popover: #ffffff;
   --popover-foreground: #0a0a0a;
 
-  /* Light sidebar aligned with logo on white */
   --sidebar: #ffffff;
   --sidebar-foreground: #525252;
   --sidebar-muted: #737373;
@@ -131,7 +128,6 @@ body {
   min-height: 100dvh;
 }
 
-/* Pointer cursor on every interactive / clickable control */
 a[href],
 button:not(:disabled),
 [role="button"]:not([aria-disabled="true"]),

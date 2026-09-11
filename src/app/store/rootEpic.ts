@@ -14,6 +14,7 @@ import { costingEpic } from "@/features/costing/store/costingEpics";
 import { usersEpic } from "@/features/admin/store/usersEpics";
 import { notificationsEpic } from "@/features/admin/store/notificationsEpics";
 import { dashboardEpic } from "@/features/dashboard/store/dashboardEpics";
+import { reprocessingEpic } from "@/features/reprocessing/store/reprocessingEpics";
 
 export const rootEpic: AppEpic = combineEpics(
   salesOrdersEpic,
@@ -30,4 +31,5 @@ export const rootEpic: AppEpic = combineEpics(
   usersEpic,
   notificationsEpic,
   dashboardEpic,
+  reprocessingEpic,
 );

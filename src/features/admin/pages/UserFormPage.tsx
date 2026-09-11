@@ -4,7 +4,6 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Mail, Save } from "lucide-react";
 import { toast } from "sonner";
 import { ROUTES } from "@/app/config/routes";
-import type { Permission } from "@/app/config/permissions";
 import { PageHeader } from "@/components/feedback/PageHeader";
 import { PageContent } from "@/components/feedback/PageStates";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -14,14 +13,18 @@ import { Checkbox } from "@/components/ui/Checkbox";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { createUserFormSections } from "@/features/admin/forms/userFormFields";
 import { userFormSchema, type UserFormValues } from "@/features/admin/schemas/userSchema";
+import { useRefreshSessionPermissions } from "@/features/admin/hooks/useRefreshSessionPermissions";
 import {
   useCreateUser,
   useRoleGroups,
   useRoles,
   useUpdateUser,
   useUser,
-  useUserPermissions,
 } from "@/features/admin/hooks/useUsers";
+import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
+import { usePermissions } from "@/hooks/usePermissions";
+import { resolveEffectivePermissions } from "@/lib/effectivePermissions";
+import { DEMO_LOGIN_PASSWORD } from "@/services/mock/mockAuthService";
 import type { UserFormData } from "@/services";
 
 const defaultValues: UserFormValues = {
@@ -44,19 +47,29 @@ function RoleGroupsSection({
   onToggle: (groupId: string) => void;
 }) {
   const { data: roleGroups } = useRoleGroups({ page: 1, pageSize: 50 });
+  const visibleGroups = (roleGroups?.items ?? []).filter(
+    (group) => group.status === "active" || roleGroupIds.includes(group.id),
+  );
 
   return (
-    <div className="rounded-lg border border-border bg-card p-6">
-      <h2 className="mb-4 text-sm font-semibold">Role Groups</h2>
+    <div className="rounded-lg border border-border bg-card p-6 shadow-xs">
+      <h2 className="mb-1 text-sm font-semibold">Role Groups</h2>
+      <p className="mb-4 text-xs text-muted-foreground">
+        Groups add every permission from their member roles on top of the primary role.
+      </p>
       <div className="space-y-2">
-        {(roleGroups?.items ?? []).map((group) => (
+        {visibleGroups.map((group) => (
           <Checkbox
             key={group.id}
             checked={roleGroupIds.includes(group.id)}
             onChange={() => onToggle(group.id)}
-            label={`${group.name} (${group.roleNames.join(", ")})`}
+            disabled={group.status !== "active"}
+            label={`${group.name} (${group.roleNames.join(", ") || "No roles"})`}
           />
         ))}
+        {visibleGroups.length === 0 && (
+          <p className="text-sm text-muted-foreground">No role groups available.</p>
+        )}
       </div>
     </div>
   );
@@ -69,38 +82,27 @@ function PermissionsPreview({
   roleId: string;
   roleGroupIds: string[];
 }) {
-  const { id } = useParams<{ id: string }>();
   const { data: roles } = useRoles({ page: 1, pageSize: 50 });
   const { data: roleGroups } = useRoleGroups({ page: 1, pageSize: 50 });
-  const { data: permissions } = useUserPermissions(id ?? "");
 
-  const selectedRole = roles?.items.find((r) => r.id === roleId);
-  const selectedGroups = (roleGroups?.items ?? []).filter((g) => roleGroupIds.includes(g.id));
-
-  const groupRolePermissions = useMemo(() => {
-    const perms = new Set<Permission>();
-    for (const group of selectedGroups) {
-      for (const groupRoleId of group.roleIds) {
-        const role = roles?.items.find((r) => r.id === groupRoleId);
-        role?.permissions.forEach((p) => perms.add(p));
-      }
-    }
-    return [...perms];
-  }, [selectedGroups, roles?.items]);
-
-  const effectivePermissions = useMemo(() => {
-    const set = new Set<Permission>([
-      ...(selectedRole?.permissions ?? []),
-      ...groupRolePermissions,
-    ]);
-    return [...set].sort();
-  }, [selectedRole, groupRolePermissions]);
+  const effectivePermissions = useMemo(
+    () =>
+      roleId
+        ? resolveEffectivePermissions(
+            { roleId, roleGroupIds },
+            roles?.items ?? [],
+            roleGroups?.items ?? [],
+          )
+        : [],
+    [roleGroupIds, roleId, roleGroups?.items, roles?.items],
+  );
 
   return (
-    <div className="rounded-lg border border-border bg-card p-6">
-      <h2 className="mb-4 text-sm font-semibold">Effective Permissions Preview</h2>
+    <div className="rounded-lg border border-border bg-card p-6 shadow-xs">
+      <h2 className="mb-1 text-sm font-semibold">Effective Permissions Preview</h2>
       <p className="mb-3 text-xs text-muted-foreground">
-        Combined from primary role and role groups.
+        Combined from the primary role and selected role groups. This is what the user
+        can access after sign-in.
       </p>
       <div className="flex flex-wrap gap-1.5">
         {effectivePermissions.map((perm) => (
@@ -112,11 +114,6 @@ function PermissionsPreview({
           <p className="text-sm text-muted-foreground">Select a role to preview permissions</p>
         )}
       </div>
-      {permissions && (
-        <p className="mt-3 text-xs text-muted-foreground">
-          Server effective count: {permissions.effectivePermissions.length}
-        </p>
-      )}
     </div>
   );
 }
@@ -136,13 +133,22 @@ function UserFormActions({
   const updateUser = useUpdateUser();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const { user: currentUser } = useAuthSession();
+  const { hasPermission } = usePermissions();
+  const refreshSession = useRefreshSessionPermissions();
+  const canSave = isEdit ? hasPermission("users:edit") : hasPermission("users:create");
+
+  const roleOptions = useMemo(
+    () =>
+      (roles?.items ?? [])
+        .filter((role) => role.status === "active" || role.id === values.roleId)
+        .map((role) => ({ value: role.id, label: role.name })),
+    [roles?.items, values.roleId],
+  );
 
   const sections = useMemo(
-    () =>
-      createUserFormSections({
-        roleOptions: (roles?.items ?? []).map((r) => ({ value: r.id, label: r.name })),
-      }),
-    [roles?.items],
+    () => createUserFormSections({ roleOptions }),
+    [roleOptions],
   );
 
   const toFormData = (): UserFormData => ({
@@ -165,9 +171,16 @@ function UserFormActions({
       if (isEdit && id) {
         await updateUser.mutateAsync({ id, data: toFormData() });
         toast.success("User updated");
+        if (id === currentUser?.id) {
+          await refreshSession();
+        }
       } else {
         await createUser.mutateAsync(toFormData());
-        toast.success(sendInvite ? "User created and invitation sent" : "User created");
+        toast.success(
+          sendInvite
+            ? `User created and invitation queued. They can sign in with ${DEMO_LOGIN_PASSWORD}.`
+            : `User created. They can sign in with ${DEMO_LOGIN_PASSWORD}.`,
+        );
       }
       navigate(ROUTES.admin.users);
     } catch {
@@ -193,11 +206,12 @@ function UserFormActions({
             variant="primary"
             leftIcon={<Save className="h-4 w-4" />}
             loading={isSubmitting || createUser.isPending || updateUser.isPending}
+            disabled={!canSave}
             onClick={() => void handleSave(false)}
           >
             Save
           </Button>
-          {!isEdit && (
+          {!isEdit && canSave && (
             <Button
               type="button"
               variant="outline"

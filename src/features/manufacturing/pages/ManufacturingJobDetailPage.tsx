@@ -28,6 +28,7 @@ import {
   TaskActionDialogs,
   type TaskDialogMode,
 } from "@/features/manufacturing/components/TaskActionDialogs";
+import { CompleteJobDialog } from "@/features/manufacturing/components/CompleteJobDialog";
 import {
   useCompleteManufacturingJob,
   useManufacturingJob,
@@ -62,6 +63,7 @@ export function ManufacturingJobDetailPage() {
   const [activeTab, setActiveTab] = useState("tasks");
   const [dialogTask, setDialogTask] = useState<ManufacturingTask | null>(null);
   const [dialogMode, setDialogMode] = useState<TaskDialogMode>(null);
+  const [completeOpen, setCompleteOpen] = useState(false);
 
   const progress = job ? calculateJobProgress(job) : 0;
   const materialsReady = job ? areMaterialsReady(job) : false;
@@ -206,15 +208,8 @@ export function ManufacturingJobDetailPage() {
                     variant="success"
                     leftIcon={<CheckCircle className="h-4 w-4" />}
                     loading={completeJob.isPending}
-                    disabled={!canComplete}
-                    onClick={() => {
-                      void completeJob.mutateAsync(job.id).then(() => {
-                        toast.success("Production job completed");
-                        void refetch();
-                      }).catch((err: { message?: string }) => {
-                        toast.error(err?.message ?? "Job cannot be completed yet");
-                      });
-                    }}
+                    disabled={!canComplete || job.status === "completed"}
+                    onClick={() => setCompleteOpen(true)}
                   >
                     Complete Job
                   </Button>
@@ -441,6 +436,32 @@ export function ManufacturingJobDetailPage() {
                     </tbody>
                   </table>
                 </div>
+                {job.materialOutcome && (
+                  <div className="mt-4 rounded-lg border border-border bg-card p-4 text-sm">
+                    <h3 className="mb-2 font-semibold">Material outcome</h3>
+                    <dl className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                      <div>
+                        <dt className="text-xs text-muted-foreground">Finished material</dt>
+                        <dd className="font-medium">{job.materialOutcome.finishedMaterialQuantity}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-muted-foreground">Reusable scrap</dt>
+                        <dd className="font-medium">{job.materialOutcome.reusableScrapQuantity}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-muted-foreground">Recoverable</dt>
+                        <dd className="font-medium">{job.materialOutcome.recoverableQuantity}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-muted-foreground">Permanent waste</dt>
+                        <dd className="font-medium">{job.materialOutcome.permanentWasteQuantity}</dd>
+                      </div>
+                    </dl>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Scrap lots keep carried material cost — no new purchase was posted.
+                    </p>
+                  </div>
+                )}
               </TabPanel>
 
               <TabPanel value="quality">
@@ -564,6 +585,26 @@ export function ManufacturingJobDetailPage() {
         }}
         onSubmit={(action) => {
           void runAction(action, "Task updated");
+        }}
+      />
+
+      <CompleteJobDialog
+        job={job ?? null}
+        open={completeOpen}
+        loading={completeJob.isPending}
+        onClose={() => setCompleteOpen(false)}
+        onSubmit={(completion) => {
+          if (!job) return;
+          void completeJob
+            .mutateAsync({ id: job.id, completion })
+            .then(() => {
+              toast.success("Production job completed — scrap inventory posted at carried cost");
+              setCompleteOpen(false);
+              void refetch();
+            })
+            .catch((err: { message?: string }) => {
+              toast.error(err?.message ?? "Job cannot be completed yet");
+            });
         }}
       />
     </PageContainer>

@@ -18,7 +18,6 @@ function releaseScrollLock(): void {
   }
 }
 
-/** Prevents background scroll while overlays are open; supports nested locks safely. */
 export function useScrollLock(active: boolean): void {
   useEffect(() => {
     if (!active) return;

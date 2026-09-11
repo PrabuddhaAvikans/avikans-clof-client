@@ -235,6 +235,16 @@
       "permission": "inventory:view"
     },
     {
+      "path": "inventory/reprocessing",
+      "page": "ReprocessingBatchesPage",
+      "permission": "manufacturing:view"
+    },
+    {
+      "path": "inventory/reprocessing/:id",
+      "page": "ReprocessingBatchDetailPage",
+      "permission": "manufacturing:view"
+    },
+    {
       "path": "inventory/low-stock",
       "page": "LowStockPage",
       "permission": "inventory:view"

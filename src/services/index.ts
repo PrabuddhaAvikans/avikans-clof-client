@@ -1,3 +1,4 @@
+export { mockAuthService as authService } from "@/services/mock/mockAuthService";
 export { mockProductService as productService } from "@/services/mock/mockProductService";
 export { mockCategoryService as categoryService } from "@/services/mock/mockCategoryService";
 export { mockBrandService as brandService } from "@/services/mock/mockBrandService";
@@ -12,7 +13,9 @@ export { mockNotificationService as notificationService } from "@/services/mock/
 export { mockDashboardService as dashboardService } from "@/services/mock/mockDashboardService";
 export { mockCostingService as costingService } from "@/services/mock/mockCostingService";
 export { mockProductionTrackingService as productionTrackingService } from "@/services/mock/mockProductionTrackingService";
+export { mockReprocessingService as reprocessingService } from "@/services/mock/mockReprocessingService";
 
+export type { AuthService, LoginCredentials } from "@/services/interfaces/authService";
 export type { ProductService, ProductListFilters } from "@/services/interfaces/productService";
 export type { CategoryService, CategoryListFilters, CategoryFormData } from "@/services/interfaces/categoryService";
 export type { BrandService, BrandListFilters, BrandFormData } from "@/services/interfaces/brandService";
@@ -30,3 +33,7 @@ export type {
   ProductionTrackingService,
   ProductionTrackingFilters,
 } from "@/services/interfaces/productionTrackingService";
+export type {
+  ReprocessingService,
+  ReprocessingListFilters,
+} from "@/services/interfaces/reprocessingService";

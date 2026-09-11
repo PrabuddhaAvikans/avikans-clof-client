@@ -15,7 +15,6 @@ import type {
 } from "@/types/quotation";
 import type { QuotationCustomizationStatusValue } from "@/types/status";
 
-/** Fields that salespeople commonly customize on lighting products. */
 export const CUSTOMIZABLE_SPEC_FIELDS = [
   { key: "dimensions", label: "Dimensions" },
   { key: "size", label: "Size" },
@@ -382,10 +381,6 @@ export function applyCustomizationChanges(
   };
 }
 
-/**
- * Finalize estimation lifecycle:
- * Draft → Estimated → (Pending Approval | Approved)
- */
 export function finalizeCustomizationEstimation(
   customization: QuotationProductCustomization,
   sellingPrice?: number,

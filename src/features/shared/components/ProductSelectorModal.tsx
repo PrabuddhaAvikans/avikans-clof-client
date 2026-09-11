@@ -19,7 +19,6 @@ export type ProductSelectorModalProps = {
   onClose: () => void;
   onSelect: (product: Product) => void;
   title?: string;
-  /** When set (including ""), only this customer's products plus default catalog items are listed. */
   customerId?: string;
   customerName?: string;
 };

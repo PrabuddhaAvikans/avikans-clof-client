@@ -13,7 +13,6 @@ type TaxBreakdownRowsProps = {
   className?: string;
 };
 
-/** Renders country-configured tax lines (e.g. VAT, or SGST + CGST). */
 export function TaxBreakdownRows({
   taxAmount,
   taxableAmount,

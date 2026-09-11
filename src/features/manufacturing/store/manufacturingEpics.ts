@@ -51,16 +51,22 @@ const startEpic = createAsyncEpic({
   failure: manufacturingActions.startFailure,
   handler: (id) => manufacturingService.startJob(id),
   mode: "merge",
-  onSuccess: () => [productionTrackingActions.invalidateAll()],
+  onSuccess: () => [
+    inventoryActions.invalidateAll(),
+    productionTrackingActions.invalidateAll(),
+  ],
 });
 
 const completeEpic = createAsyncEpic({
   request: manufacturingActions.completeRequest,
   success: manufacturingActions.completeSuccess,
   failure: manufacturingActions.completeFailure,
-  handler: (id) => manufacturingService.completeJob(id),
+  handler: ({ id, completion }) => manufacturingService.completeJob(id, completion),
   mode: "merge",
-  onSuccess: () => [productionTrackingActions.invalidateAll()],
+  onSuccess: () => [
+    inventoryActions.invalidateAll(),
+    productionTrackingActions.invalidateAll(),
+  ],
 });
 
 const holdEpic = createAsyncEpic({

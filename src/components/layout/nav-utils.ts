@@ -49,11 +49,6 @@ export function buildRouteLabelMap(): Map<string, string> {
   return map;
 }
 
-/**
- * Returns true when `path` is the best match for `currentPath`.
- * Prefers exact matches, then longest prefix among `siblingPaths`
- * so `/customers` does not stay active on `/customers/new`.
- */
 export function isNavItemActive(
   path: string,
   currentPath: string,

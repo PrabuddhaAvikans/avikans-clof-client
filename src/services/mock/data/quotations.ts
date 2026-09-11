@@ -1,4 +1,5 @@
 import type { Quotation, QuotationContactEntry, QuotationRevision } from "@/types/quotation";
+import type { Attachment } from "@/types/common";
 
 const contactHistoryById: Record<string, QuotationContactEntry[]> = {
   "quo-001": [
@@ -180,7 +181,10 @@ const contactHistoryById: Record<string, QuotationContactEntry[]> = {
 };
 
 const rawQuotations: Array<
-  Omit<Quotation, "contactHistory" | "revisions"> & { revisions?: QuotationRevision[] }
+  Omit<Quotation, "contactHistory" | "revisions" | "attachments"> & {
+    revisions?: QuotationRevision[];
+    attachments?: Attachment[];
+  }
 > = [
   {
     id: "quo-001",
@@ -233,6 +237,26 @@ const rawQuotations: Array<
     sentAt: "2025-07-20T10:00:00Z",
     createdAt: "2025-07-18T08:00:00Z",
     updatedAt: "2025-07-20T10:00:00Z",
+    attachments: [
+      {
+        id: "qatt-001",
+        fileName: "Layout Drawing.pdf",
+        fileSize: 245_000,
+        mimeType: "application/pdf",
+        url: "",
+        uploadedBy: "usr-002",
+        uploadedAt: "2025-07-18T09:00:00Z",
+      },
+      {
+        id: "qatt-002",
+        fileName: "Technical Spec.pdf",
+        fileSize: 180_000,
+        mimeType: "application/pdf",
+        url: "",
+        uploadedBy: "usr-002",
+        uploadedAt: "2025-07-18T09:05:00Z",
+      },
+    ],
     revisions: [
       {
         id: "qrev-001-2",
@@ -531,4 +555,5 @@ export const initialQuotations: Quotation[] = rawQuotations.map((quotation) => (
   ...quotation,
   contactHistory: contactHistoryById[quotation.id] ?? [],
   revisions: quotation.revisions ?? [],
+  attachments: quotation.attachments ?? [],
 }));

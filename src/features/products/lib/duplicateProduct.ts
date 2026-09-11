@@ -42,7 +42,6 @@ export const duplicateProductFormSchema = yup.object({
   dimensions: yup.string().optional(),
 });
 
-/** Prefill editable duplicate form from the source product. */
 export function buildDuplicateProductFormValues(
   product: Product,
 ): DuplicateProductFormValues {
@@ -64,10 +63,6 @@ export function buildDuplicateProductFormValues(
   };
 }
 
-/**
- * Build create payload from edited form values + non-edited source data
- * (BOM, attributes, customer/project refs). Does not copy audit/history.
- */
 export function buildDuplicateProductCreatePayload(
   product: Product,
   values: DuplicateProductFormValues,

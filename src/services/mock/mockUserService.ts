@@ -17,6 +17,7 @@ import {
   initialUsers,
 } from "@/services/mock/data/users";
 import type { PermissionAssignment, Role, RoleGroup, User } from "@/types/user";
+import { resolveEffectivePermissions } from "@/lib/effectivePermissions";
 
 let users = cloneData(initialUsers);
 let roles = cloneData(initialRoles);
@@ -32,6 +33,42 @@ function resolveRoleGroupNames(groupIds: string[]): string[] {
   return groupIds
     .map((id) => roleGroups.find((g) => g.id === id)?.name)
     .filter((name): name is string => Boolean(name));
+}
+
+function syncAssignmentCounts() {
+  roles = roles.map((role) => ({
+    ...role,
+    userCount: users.filter((user) => user.status === "active" && user.roleId === role.id)
+      .length,
+  }));
+  roleGroups = roleGroups.map((group) => ({
+    ...group,
+    userCount: users.filter(
+      (user) => user.status === "active" && user.roleGroupIds.includes(group.id),
+    ).length,
+  }));
+}
+
+export function findActiveUserByEmail(email: string): User | undefined {
+  const normalized = email.trim().toLowerCase();
+  return users.find(
+    (user) => user.email.toLowerCase() === normalized && user.status === "active",
+  );
+}
+
+export function getRoleCatalog() {
+  return { roles, roleGroups };
+}
+
+export function recordUserLogin(userId: string): User | undefined {
+  const index = users.findIndex((user) => user.id === userId);
+  if (index === -1) return undefined;
+  users[index] = {
+    ...users[index],
+    lastLoginAt: nowIso(),
+    updatedAt: nowIso(),
+  };
+  return users[index];
 }
 
 export const mockUserService: UserService = {
@@ -76,6 +113,7 @@ export const mockUserService: UserService = {
       updatedAt: timestamp,
     };
     users.push(user);
+    syncAssignmentCounts();
     return user;
   },
 
@@ -100,6 +138,7 @@ export const mockUserService: UserService = {
         : existing.roleGroupNames,
       updatedAt: nowIso(),
     };
+    syncAssignmentCounts();
     return users[index];
   },
 
@@ -108,6 +147,7 @@ export const mockUserService: UserService = {
     const index = users.findIndex((u) => u.id === id);
     if (index === -1) notFoundError("User", id);
     users[index] = { ...users[index], status: "inactive", updatedAt: nowIso() };
+    syncAssignmentCounts();
   },
 
   async getPermissionAssignment(userId) {
@@ -122,7 +162,7 @@ export const mockUserService: UserService = {
       roleId: role.id,
       additionalPermissions: [],
       revokedPermissions: [],
-      effectivePermissions: [...role.permissions],
+      effectivePermissions: resolveEffectivePermissions(user, roles, roleGroups),
     };
     return assignment;
   },

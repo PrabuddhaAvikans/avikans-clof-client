@@ -18,9 +18,8 @@ export interface ProductionJob {
   productSku: string;
   productImageUrl?: string;
   quantity: number;
-  /** Current manufacturing task name (not a department/line). */
   currentTaskName: string;
-  /** Alias of currentTaskName for existing table layout. */
+  /** Alias of currentTaskName for the existing table column. */
   line: string;
   supervisorId: string;
   supervisorName: string;

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
-import { GitBranchPlus, Lock, Pencil } from "lucide-react";
+import { Copy, Lock, Pencil } from "lucide-react";
 import { ROUTES } from "@/app/config/routes";
 import { DataTable } from "@/components/tables/DataTable";
 import { Button } from "@/components/ui/Button";
@@ -92,10 +92,10 @@ export function ProductVersionsPanel({
                 <Button
                   size="sm"
                   variant="outline"
-                  leftIcon={<GitBranchPlus className="h-3.5 w-3.5" />}
+                  leftIcon={<Copy className="h-3.5 w-3.5" />}
                   onClick={() => setReviseTarget(version)}
                 >
-                  Revise
+                  Copy to edit
                 </Button>
               )}
             </div>
@@ -124,8 +124,8 @@ export function ProductVersionsPanel({
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        Approved and released versions are locked. Create a new revision to change specifications,
-        BOM, or costing.
+        Approved and released versions cannot be changed directly. Copy to edit if you
+        need to change specifications, BOM, or costing.
       </p>
       <DataTable
         data={product.versions}
@@ -143,13 +143,13 @@ export function ProductVersionsPanel({
           setRevisionNotes("");
         }}
         onConfirm={() => void handleRevise()}
-        title={`Create revision from ${reviseTarget?.label ?? ""}`}
-        description="This creates a new draft version. The source version remains locked."
-        confirmLabel="Create Revision"
+        title={`Copy ${reviseTarget?.label ?? ""} to edit`}
+        description="The current version stays as it is. You will edit a copy."
+        confirmLabel="Copy to edit"
         loading={reviseVersion.isPending}
       >
         <Input
-          label="Revision notes"
+          label="Notes"
           value={revisionNotes}
           onChange={(event) => setRevisionNotes(event.target.value)}
           placeholder="Describe what changed and why"

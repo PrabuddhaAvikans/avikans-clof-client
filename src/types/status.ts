@@ -186,7 +186,6 @@ export const ProductVersionStatus = {
 
 export type ProductVersionStatusValue = keyof typeof ProductVersionStatus;
 
-/** Lifecycle for quotation-level product customizations (does not alter master product). */
 export const QuotationCustomizationStatus = {
   draft: { label: "Draft", variant: "secondary" },
   estimated: { label: "Estimated", variant: "info" },

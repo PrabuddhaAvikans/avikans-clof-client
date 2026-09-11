@@ -64,7 +64,6 @@ export function QuotationPreviewPage() {
             />
 
             <article className="mx-auto max-w-4xl rounded-lg border border-border bg-card p-8 shadow-sm print:shadow-none">
-              {/* Company Header */}
               <header className="mb-8 flex flex-wrap items-start justify-between gap-6 border-b border-border pb-6">
                 <div>
                   <h1 className="text-2xl font-bold text-primary">AVIKANS SOLUTION</h1>
@@ -84,7 +83,6 @@ export function QuotationPreviewPage() {
                 </div>
               </header>
 
-              {/* Customer */}
               <section className="mb-8 grid gap-6 sm:grid-cols-2">
                 <div>
                   <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Bill To</h2>
@@ -108,7 +106,6 @@ export function QuotationPreviewPage() {
                 )}
               </section>
 
-              {/* Line Items */}
               <table className="mb-8 w-full text-sm">
                 <thead>
                   <tr className="border-b-2 border-border bg-muted/40">
@@ -159,7 +156,6 @@ export function QuotationPreviewPage() {
                 </div>
               )}
 
-              {/* Terms */}
               {quotation.termsAndConditions && (
                 <section className="mb-8">
                   <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Terms & Conditions</h2>
@@ -167,7 +163,6 @@ export function QuotationPreviewPage() {
                 </section>
               )}
 
-              {/* Signature */}
               <footer className="mt-12 grid gap-8 border-t border-border pt-8 sm:grid-cols-2">
                 <div>
                   <div className="mb-2 h-16 border-b border-border" />

@@ -14,11 +14,20 @@ import {
   removeManufacturingJob,
   replaceManufacturingJob,
 } from "@/services/mock/manufacturingStore";
+import {
+  issueMaterialsForJob,
+  postProductionMaterialOutcome,
+} from "@/services/mock/manufacturingInventory";
+import { mockInventoryService } from "@/services/mock/mockInventoryService";
 import { initialProducts } from "@/services/mock/data/products";
 import { migrateLegacyProduct } from "@/services/mock/productHelpers";
 import { initialSalesOrders } from "@/services/mock/data/sales-orders";
 import { initialUsers } from "@/services/mock/data/users";
-import type { ManufacturingJob, TaskActionActor } from "@/types/manufacturing";
+import type {
+  ManufacturingJob,
+  ProductionCompletionInput,
+  TaskActionActor,
+} from "@/types/manufacturing";
 import { getApprovedManufacturingVersion } from "@/lib/productVersion";
 import {
   applyHoldProductionJob,
@@ -165,31 +174,61 @@ export const mockManufacturingService: ManufacturingService = {
   async reserveMaterials(id) {
     await delay();
     const job = requireJob(id);
-    const updatedRequirements = job.materialRequirements.map((mr) => ({
-      ...mr,
-      reservedQuantity: mr.requiredQuantity,
-      status: "reserved" as const,
-    }));
+    const updatedRequirements = [];
+
+    for (const mr of job.materialRequirements) {
+      if (mr.status === "issued" || mr.reservedQuantity >= mr.requiredQuantity) {
+        updatedRequirements.push({
+          ...mr,
+          reservedQuantity: Math.max(mr.reservedQuantity, mr.requiredQuantity),
+          status: mr.status === "issued" ? ("issued" as const) : ("reserved" as const),
+        });
+        continue;
+      }
+
+      const qty = Math.max(0, mr.requiredQuantity - mr.reservedQuantity);
+      if (qty > 0) {
+        await mockInventoryService.recordMovement(mr.inventoryItemId, "reservation", qty, {
+          referenceType: "manufacturing_job",
+          referenceId: job.id,
+          notes: `Reserve for ${job.jobNumber}`,
+          trace: {
+            sourceProductionOrderId: job.id,
+            sourceProductionBatchId: job.jobNumber,
+            sourceMaterialLotId: mr.inventoryItemId,
+          },
+        });
+      }
+
+      updatedRequirements.push({
+        ...mr,
+        reservedQuantity: mr.requiredQuantity,
+        status: "reserved" as const,
+      });
+    }
 
     const updated = refreshJobDerivedFields({
       ...job,
       materialRequirements: updatedRequirements,
-      status: job.status === "materials_pending" || job.status === "draft" || job.status === "planned"
-        ? "ready_to_start"
-        : job.status,
+      status:
+        job.status === "materials_pending" || job.status === "draft" || job.status === "planned"
+          ? "ready_to_start"
+          : job.status,
     });
     return replaceManufacturingJob(updated);
   },
 
   async startJob(id) {
     await delay();
-    const updated = applyStartProductionJob(requireJob(id), MANUFACTURING_ACTOR);
+    let job = requireJob(id);
+    job = await issueMaterialsForJob(job);
+    const updated = applyStartProductionJob(job, MANUFACTURING_ACTOR);
     return replaceManufacturingJob(updated);
   },
 
-  async completeJob(id) {
+  async completeJob(id, completion?: ProductionCompletionInput) {
     await delay();
-    const job = requireJob(id);
+    let job = requireJob(id);
     if (!isProductionJobCompletable(job)) {
       throw {
         code: "INVALID_STATE",
@@ -197,6 +236,32 @@ export const mockManufacturingService: ManufacturingService = {
           "All required manufacturing tasks must be completed and QC must pass before the product can be completed.",
       };
     }
+
+    if (job.status === "completed" && job.materialOutcome) {
+      return job;
+    }
+
+    const needsIssue = job.materialRequirements.some(
+      (mr) => mr.issuedQuantity < mr.requiredQuantity,
+    );
+    if (needsIssue) {
+      job = await issueMaterialsForJob(job);
+    }
+
+    if (completion) {
+      const posted = await postProductionMaterialOutcome(job, completion);
+      job = posted.job;
+    } else if (!job.materialOutcome && job.materialRequirements.some((mr) => mr.issuedQuantity > 0)) {
+      const issuedQty = job.materialRequirements.reduce((sum, mr) => sum + mr.issuedQuantity, 0);
+      const posted = await postProductionMaterialOutcome(job, {
+        finishedMaterialQuantity: issuedQty,
+        reusableScrapQuantity: 0,
+        recoverableQuantity: 0,
+        permanentWasteQuantity: 0,
+      });
+      job = posted.job;
+    }
+
     const updated = refreshJobDerivedFields({
       ...job,
       status: "completed",

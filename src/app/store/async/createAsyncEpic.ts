@@ -32,9 +32,7 @@ type AsyncEpicOptions<TArg, TData> = {
   success: ActionCreatorWithPayload<SuccessPayload<TData>>;
   failure: ActionCreatorWithPayload<FailurePayload>;
   handler: (arg: TArg) => Promise<TData>;
-  /** Prefer switchMap for queries (cancel in-flight); mergeMap for mutations. */
   mode?: "switch" | "merge";
-  /** Extra actions to emit after a successful response. */
   onSuccess?: (data: TData, arg: TArg) => UnknownAction[];
 };
 

@@ -56,7 +56,6 @@ export interface CoatingLineItem {
   productSku?: string;
 }
 
-/** Per sales-order-line estimation summary (standard or quotation customization). */
 export interface EstimationProductLine {
   id: string;
   salesOrderLineItemId: string;
@@ -128,7 +127,6 @@ export interface CostingRequest {
   lineItems: CostingLineItem[];
   coatingItems: CoatingLineItem[];
   estimationMaterials: EstimationMaterial[];
-  /** One entry per SO line - standard product or quotation customization snapshot. */
   estimationProductLines: EstimationProductLine[];
   attachments: CostingAttachment[];
   notes: string;

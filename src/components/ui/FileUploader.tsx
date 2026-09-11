@@ -8,8 +8,24 @@ import { IconButton } from './IconButton';
 
 export type UploadedFile = {
   id: string;
-  file: File;
+  file?: File;
+  name?: string;
+  size?: number;
+  mimeType?: string;
+  url?: string;
 };
+
+function uploadedFileName(item: UploadedFile): string {
+  return item.file?.name ?? item.name ?? 'Untitled';
+}
+
+function uploadedFileSize(item: UploadedFile): number {
+  return item.file?.size ?? item.size ?? 0;
+}
+
+function uploadedMimeType(item: UploadedFile): string | undefined {
+  return item.file?.type || item.mimeType;
+}
 
 export type FileUploaderProps = {
   value?: UploadedFile[];
@@ -25,7 +41,13 @@ export type FileUploaderProps = {
 };
 
 function createUploadedFile(file: File): UploadedFile {
-  return { id: `${file.name}-${file.size}-${file.lastModified}`, file };
+  return {
+    id: `${file.name}-${file.size}-${file.lastModified}-${crypto.randomUUID().slice(0, 8)}`,
+    file,
+    name: file.name,
+    size: file.size,
+    mimeType: file.type,
+  };
 }
 
 export function FileUploader({
@@ -142,7 +164,12 @@ export function FileUploader({
 
       {value.length > 0 && (
         <ul className="space-y-2">
-          {value.map((item) => (
+          {value.map((item) => {
+            const name = uploadedFileName(item);
+            const size = uploadedFileSize(item);
+            const mimeType = uploadedMimeType(item);
+
+            return (
             <li
               key={item.id}
               className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2"
@@ -153,23 +180,24 @@ export function FileUploader({
                 disabled={disabled}
                 onClick={() =>
                   openAttachment({
-                    name: item.file.name,
-                    mimeType: item.file.type,
+                    name,
+                    mimeType,
                     file: item.file,
+                    url: item.url,
                   })
                 }
-                title={`Open ${item.file.name}`}
+                title={`Open ${name}`}
               >
                 <AttachmentIcon
-                  fileName={item.file.name}
-                  mimeType={item.file.type}
+                  fileName={name}
+                  mimeType={mimeType}
                   className="shrink-0 text-muted-foreground"
                 />
                 <div className="min-w-0">
                   <p className="cursor-pointer truncate text-sm font-medium text-foreground underline-offset-2 hover:underline">
-                    {item.file.name}
+                    {name}
                   </p>
-                  <p className="text-xs text-muted-foreground">{formatBytes(item.file.size)}</p>
+                  <p className="text-xs text-muted-foreground">{formatBytes(size)}</p>
                 </div>
               </button>
               <div className="flex shrink-0 items-center gap-1">
@@ -177,13 +205,14 @@ export function FileUploader({
                   variant="ghost"
                   size="sm"
                   icon={<Download className="h-4 w-4" />}
-                  aria-label={`Download ${item.file.name}`}
+                  aria-label={`Download ${name}`}
                   disabled={disabled}
                   onClick={() =>
                     downloadAttachment({
-                      name: item.file.name,
-                      mimeType: item.file.type,
+                      name,
+                      mimeType,
                       file: item.file,
+                      url: item.url,
                     })
                   }
                 />
@@ -192,13 +221,14 @@ export function FileUploader({
                     variant="ghost"
                     size="sm"
                     icon={<X className="h-4 w-4" />}
-                    aria-label={`Remove ${item.file.name}`}
+                    aria-label={`Remove ${name}`}
                     onClick={() => removeFile(item.id)}
                   />
                 )}
               </div>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </div>

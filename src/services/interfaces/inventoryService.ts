@@ -6,6 +6,7 @@ import type {
   InventoryPriceHistoryEntry,
   PricingMethodValue,
   StockMovement,
+  StockMovementTrace,
   StockMovementTypeValue,
 } from "@/types/inventory";
 import type { StockStatusValue } from "@/types/status";
@@ -49,7 +50,16 @@ export interface InventoryFormData {
 export interface StockMovementFilters extends PaginatedRequest {
   inventoryItemId?: string;
   type?: StockMovementTypeValue;
+  referenceType?: string;
+  referenceId?: string;
 }
+
+export type StockMovementReference = {
+  referenceType: string;
+  referenceId: string;
+  notes?: string;
+  trace?: StockMovementTrace;
+};
 
 export interface InventoryService {
   list(filters: InventoryListFilters): Promise<PaginatedResponse<InventoryItem>>;
@@ -63,7 +73,8 @@ export interface InventoryService {
     inventoryItemId: string,
     type: StockMovementTypeValue,
     quantity: number,
-    reference?: { referenceType: string; referenceId: string; notes?: string },
+    reference?: StockMovementReference,
   ): Promise<StockMovement>;
   getPriceHistory(inventoryItemId: string): Promise<InventoryPriceHistoryEntry[]>;
+  findBySku(sku: string): Promise<InventoryItem | null>;
 }

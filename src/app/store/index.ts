@@ -21,6 +21,7 @@ import costingReducer from "@/features/costing/store/costingSlice";
 import usersReducer from "@/features/admin/store/usersSlice";
 import notificationsReducer from "@/features/admin/store/notificationsSlice";
 import dashboardReducer from "@/features/dashboard/store/dashboardSlice";
+import reprocessingReducer from "@/features/reprocessing/store/reprocessingSlice";
 
 const epicMiddleware = createEpicMiddleware<
   UnknownAction
@@ -44,6 +45,7 @@ export const store = configureStore({
     users: usersReducer,
     notifications: notificationsReducer,
     dashboard: dashboardReducer,
+    reprocessing: reprocessingReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(epicMiddleware as Middleware),

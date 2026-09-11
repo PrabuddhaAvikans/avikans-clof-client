@@ -117,6 +117,27 @@ export interface MaterialRequirement {
   issuedQuantity: number;
   unit: string;
   status: "pending" | "reserved" | "partial" | "issued";
+  issuedFromInventoryItemId?: string;
+  issuedStockMovementId?: string;
+  issuedUnitCost?: number;
+}
+
+export interface ProductionCompletionInput {
+  finishedMaterialQuantity: number;
+  reusableScrapQuantity: number;
+  recoverableQuantity?: number;
+  permanentWasteQuantity: number;
+  notes?: string;
+}
+
+export interface ProductionMaterialOutcome {
+  finishedMaterialQuantity: number;
+  reusableScrapQuantity: number;
+  recoverableQuantity: number;
+  permanentWasteQuantity: number;
+  postedAt: string;
+  scrapLotIds: string[];
+  recoverableLotIds: string[];
 }
 
 export interface QualityInspection {
@@ -164,6 +185,7 @@ export interface ManufacturingJob {
   assignedTo?: string;
   assignedToName?: string;
   notes?: string;
+  materialOutcome?: ProductionMaterialOutcome;
   createdBy: string;
   createdByName: string;
   createdAt: string;

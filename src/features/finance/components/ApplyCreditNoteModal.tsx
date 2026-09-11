@@ -12,12 +12,9 @@ import { formatCurrency } from "@/lib/format";
 export type ApplyCreditNoteModalProps = {
   open: boolean;
   onClose: () => void;
-  /** Pre-selected credit note (Finance page). */
   creditNote?: CreditNote | null;
-  /** Selectable credit notes (Sales Order quick apply). */
   creditNotes?: CreditNote[];
   invoices: Invoice[];
-  /** When set, only invoices for this sales order are eligible. */
   salesOrderId?: string;
   onApply: (args: {
     creditNoteId: string;

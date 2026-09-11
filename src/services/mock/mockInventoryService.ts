@@ -163,6 +163,12 @@ export const mockInventoryService: InventoryService = {
           return false;
         }
         if (filters.type && item.type !== filters.type) return false;
+        if (filters.referenceType && item.referenceType !== filters.referenceType) {
+          return false;
+        }
+        if (filters.referenceId && item.referenceId !== filters.referenceId) {
+          return false;
+        }
         return true;
       },
     );
@@ -174,12 +180,20 @@ export const mockInventoryService: InventoryService = {
     if (index === -1) notFoundError("InventoryItem", inventoryItemId);
 
     const item = inventoryItems[index];
-    const delta = type === "issue" || type === "reservation" ? -Math.abs(quantity) : quantity;
+    const absQty = Math.abs(quantity);
+    const delta = type === "issue" || type === "reservation" ? -absQty : quantity;
+
+    if ((type === "issue" || type === "reservation") && absQty > item.quantityAvailable + 1e-9) {
+      throw {
+        code: "INSUFFICIENT_STOCK",
+        message: `Insufficient available stock for ${item.sku}. Available: ${item.quantityAvailable}, requested: ${absQty}.`,
+      };
+    }
 
     if (type === "reservation") {
-      item.quantityReserved += Math.abs(quantity);
+      item.quantityReserved += absQty;
     } else if (type === "release") {
-      item.quantityReserved = Math.max(0, item.quantityReserved - Math.abs(quantity));
+      item.quantityReserved = Math.max(0, item.quantityReserved - absQty);
     } else {
       item.quantityOnHand += delta;
     }
@@ -187,15 +201,18 @@ export const mockInventoryService: InventoryService = {
     inventoryItems[index] = refreshStockStatus({
       ...item,
       updatedAt: nowIso(),
+      lastRestockedAt:
+        type === "receipt" ? nowIso() : item.lastRestockedAt,
     });
 
+    const unitCost = reference?.trace?.unitCost ?? item.costPrice;
     const movement: StockMovement = {
       id: generateId("sm"),
       inventoryItemId,
       inventoryItemName: item.name,
       inventoryItemSku: item.sku,
       type,
-      quantity: Math.abs(quantity),
+      quantity: type === "adjustment" ? quantity : absQty,
       unit: item.unit,
       referenceType: reference?.referenceType,
       referenceId: reference?.referenceId,
@@ -203,9 +220,23 @@ export const mockInventoryService: InventoryService = {
       performedBy: "usr-001",
       performedByName: "Prabuddha Jayawardhana",
       performedAt: nowIso(),
+      trace: reference?.trace
+        ? {
+            ...reference.trace,
+            unitCost,
+            carriedValue:
+              reference.trace.carriedValue ??
+              Math.round(absQty * unitCost * 100) / 100,
+          }
+        : undefined,
     };
     stockMovements.unshift(movement);
     return movement;
+  },
+
+  async findBySku(sku) {
+    await delay(50);
+    return inventoryItems.find((item) => item.sku === sku) ?? null;
   },
 
   async getPriceHistory(inventoryItemId) {

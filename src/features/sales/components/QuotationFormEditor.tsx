@@ -3,6 +3,7 @@ import { useFormikContext } from "formik";
 import { UserPlus } from "lucide-react";
 import { FormikInput, FormikSelect, FormikTextarea } from "@/components/forms";
 import { Button } from "@/components/ui/Button";
+import { FileUploader } from "@/components/ui/FileUploader";
 import { Input } from "@/components/ui/Input";
 import { Tabs, TabList, Tab, TabPanel } from "@/components/ui/Tabs";
 import { CustomerSelectorModal } from "@/features/shared/components/CustomerSelectorModal";
@@ -34,6 +35,7 @@ const TABS = [
   { id: "lines", label: "Line Items" },
   { id: "pricing", label: "Pricing & Terms" },
   { id: "notes", label: "Notes" },
+  { id: "attachments", label: "Attachments" },
 ] as const;
 
 function CustomerPicker({ onOpen }: { onOpen: () => void }) {
@@ -73,9 +75,7 @@ function TotalsCard() {
 }
 
 export type QuotationFormEditorProps = {
-  /** page = full layout with sticky preview; modal = denser layout for Duplicate modal */
   variant?: "page" | "modal";
-  /** Hide preview quick-action stubs (e.g. inside Duplicate modal). */
   showQuickActions?: boolean;
 };
 
@@ -146,7 +146,9 @@ export function QuotationFormEditor({
               value={item.id}
               className="whitespace-nowrap rounded-none px-3 py-2 text-[12px]"
             >
-              {item.label}
+              {item.id === "attachments"
+                ? `Attachments (${formik.values.attachments?.length ?? 0})`
+                : item.label}
             </Tab>
           ))}
         </TabList>
@@ -264,6 +266,26 @@ export function QuotationFormEditor({
           <div className="grid gap-3 lg:grid-cols-3">
             <SalesFormSection title="Internal Notes" className="lg:col-span-2">
               <FormikTextarea name="notes" label="Notes" rows={8} />
+            </SalesFormSection>
+            {preview}
+          </div>
+        </TabPanel>
+
+        <TabPanel value="attachments" className="pt-3">
+          <div className="grid gap-3 lg:grid-cols-3">
+            <SalesFormSection
+              title="Attachments"
+              description="Upload drawings, specs, or supporting files. Remove a file to drop it from this quotation."
+              className="lg:col-span-2"
+            >
+              <FileUploader
+                label="Files"
+                hint="PDF, images, spreadsheets, and documents"
+                multiple
+                maxSize={10 * 1024 * 1024}
+                value={formik.values.attachments ?? []}
+                onChange={(files) => void formik.setFieldValue("attachments", files)}
+              />
             </SalesFormSection>
             {preview}
           </div>

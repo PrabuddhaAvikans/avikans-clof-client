@@ -19,6 +19,8 @@ import {
   useUpdateQuotation,
 } from "@/features/sales/hooks/useQuotations";
 import { currentQuotationRevision } from "@/lib/quotationRevisions";
+import { buildQuotationFormPayload } from "@/features/sales/lib/duplicateQuotation";
+import { quotationAttachmentsToForm } from "@/features/sales/lib/quotationAttachments";
 import type { Quotation } from "@/types/quotation";
 import { toast } from "sonner";
 
@@ -32,6 +34,7 @@ const defaultValues: QuotationFormValues = {
   discountAmount: 0,
   notes: "",
   termsAndConditions: "Payment due within 30 days. Prices valid until the date specified.",
+  attachments: [],
 };
 
 export function EstimateFormPage() {
@@ -79,6 +82,7 @@ export function EstimateFormPage() {
         discountAmount: quotation.discountAmount,
         notes: quotation.notes ?? "",
         termsAndConditions: quotation.termsAndConditions ?? "",
+        attachments: quotationAttachmentsToForm(quotation.attachments),
       };
     }
     return {
@@ -93,16 +97,10 @@ export function EstimateFormPage() {
   const handleSubmit = async (values: QuotationFormValues) => {
     const action = pendingActionRef.current;
     const saveMode = action === "save" || action === "send" ? "save" : "draft";
-    const payload = {
-      customerId: values.customerId,
-      lineItems: values.lineItems,
-      validUntil: values.validUntil,
-      priority: values.priority,
-      notes: values.notes,
-      termsAndConditions: values.termsAndConditions,
-      discountAmount: values.discountAmount,
+    const payload = buildQuotationFormPayload(values, {
       saveMode,
-    };
+      existingAttachments: quotation?.attachments,
+    });
 
     const saved =
       isEdit && id

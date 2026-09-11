@@ -8,24 +8,18 @@ export type RowActionItem = {
   label: string;
   icon: ReactNode;
   onClick: () => void;
-  /** Marks destructive items (delete) with danger styling in the menu */
   danger?: boolean;
   disabled?: boolean;
-  /** Prefer showing as one of the visible icon buttons when space allows */
   primary?: boolean;
 };
 
 export type RowActionsProps = {
   actions: RowActionItem[];
-  /** Max icon buttons shown before overflow dropdown. Default 3 */
   maxVisible?: number;
   className?: string;
   align?: "left" | "right";
 };
 
-/**
- * Shows up to `maxVisible` primary action icons; remaining actions open in a dropdown.
- */
 export function RowActions({
   actions,
   maxVisible = 3,

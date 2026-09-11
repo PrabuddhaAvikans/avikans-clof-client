@@ -1,10 +1,5 @@
 import type { CreditNote } from "@/types/credit-note";
 
-/**
- * Mock credit note data for the finance UI.
- * The apply-credit-note flow adjusts `appliedAmount` and `remainingAmount`,
- * and appends to `applications`.
- */
 export const initialCreditNotes: CreditNote[] = [
   {
     id: "cn-001",

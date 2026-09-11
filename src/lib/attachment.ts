@@ -12,14 +12,12 @@ export type AttachmentIconSource = {
   mimeType?: string;
 };
 
-/** Anything that can be opened or downloaded in the UI. */
 export type OpenableAttachment = {
   name?: string;
   fileName?: string;
   url?: string;
   type?: string;
   mimeType?: string;
-  /** Local browser File from an uploader. */
   file?: File;
 };
 
@@ -129,7 +127,6 @@ function escapeXml(value: string): string {
     .replaceAll('"', "&quot;");
 }
 
-/** Minimal valid PDF so mock attachments open in the browser. */
 function buildDemoPdf(title: string): Blob {
   const safeTitle = title.replace(/[()\\]/g, " ").slice(0, 80);
   const stream = `BT /F1 18 Tf 72 720 Td (${safeTitle}) Tj T* /F1 12 Tf (ATSolution demo attachment) Tj ET`;
@@ -238,8 +235,7 @@ function scheduleRevoke(url: string, revoke: boolean) {
 }
 
 function openInNewTab(url: string): boolean {
-  // Avoid windowFeatures "noopener" — it makes window.open() return null even when
-  // the tab opens, which falsely triggers download fallbacks.
+  // window.open(..., "noopener") returns null even when the tab opens.
   const opened = window.open(url, "_blank");
   if (opened) {
     opened.opener = null;
@@ -256,7 +252,6 @@ function openInNewTab(url: string): boolean {
   return true;
 }
 
-/** Open previewable files in a new tab; otherwise download. */
 export function openAttachment(attachment: OpenableAttachment): void {
   const name = attachmentDisplayName(attachment);
   const { url, revoke } = resolveAttachmentUrl(attachment);
@@ -273,7 +268,6 @@ export function openAttachment(attachment: OpenableAttachment): void {
   scheduleRevoke(url, revoke);
 }
 
-/** Always force a file download. */
 export function downloadAttachment(attachment: OpenableAttachment): void {
   const name = attachmentDisplayName(attachment);
   const { url, revoke } = resolveAttachmentUrl(attachment);

@@ -1,5 +1,6 @@
 export const ROUTES = {
   home: "/",
+  login: "/login",
   dashboard: "/dashboard",
 
   products: {
@@ -22,6 +23,11 @@ export const ROUTES = {
     lowStock: "/inventory/low-stock",
     stock: "/inventory/stock",
     units: "/inventory/units",
+  },
+
+  reprocessing: {
+    list: "/inventory/reprocessing",
+    detail: (id: string) => `/inventory/reprocessing/${id}` as const,
   },
 
   customers: {

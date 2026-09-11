@@ -46,6 +46,9 @@ export const DEFAULT_UNIT_BY_ITEM_TYPE: Record<string, string> = {
   service: "hrs",
   packaging: "pcs",
   finished_product: "pcs",
+  reusable_scrap: "kg",
+  reprocessing_wip: "kg",
+  recovered_material: "kg",
 };
 
 export const inventoryGeneralSections: DynamicFormSection[] = [
@@ -212,9 +215,9 @@ const MOVEMENT_TYPE_OPTIONS: FieldOption[] = [
   { value: "receipt", label: "Stock In" },
   { value: "issue", label: "Stock Out" },
   { value: "adjustment", label: "Adjustment" },
-  { value: "reservation", label: "Reservation" },
+  { value: "reservation", label: "Reserve" },
+  { value: "release", label: "Unreserve" },
   { value: "transfer", label: "Transfer" },
-  { value: "release", label: "Release Reservation" },
 ];
 
 export function createStockMovementFormFields(

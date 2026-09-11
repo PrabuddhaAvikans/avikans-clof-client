@@ -25,7 +25,6 @@ export type QuotationCustomizeModalProps = {
   versionId: string;
   quantity: number;
   unitPrice: number;
-  /** When editing an existing customized line. */
   existingCustomization?: QuotationProductCustomization | null;
   onClose: () => void;
   onSave: (line: QuotationLineItemFormValues) => void;

@@ -68,10 +68,14 @@ export function QuotationDetailPanel({
     quotation.shippingAddress?.country ||
     DEFAULT_COUNTRY;
 
-  const attachments = [
-    { id: "att-1", name: "Layout Drawing.pdf", size: 245_000, type: "pdf" },
-    { id: "att-2", name: "Technical Spec.pdf", size: 180_000, type: "pdf" },
-  ];
+  const attachments = quotation.attachments.map((attachment) => ({
+    id: attachment.id,
+    name: attachment.fileName,
+    size: attachment.fileSize,
+    mimeType: attachment.mimeType,
+    url: attachment.url,
+    type: attachment.mimeType,
+  }));
 
   const handleApprove = async (lineItemId: string) => {
     setActionBusy(`approve-${lineItemId}`);
