@@ -22,20 +22,25 @@ import { currentQuotationRevision } from "@/lib/quotationRevisions";
 import { buildQuotationFormPayload } from "@/features/sales/lib/duplicateQuotation";
 import { quotationAttachmentsToForm } from "@/features/sales/lib/quotationAttachments";
 import type { Quotation } from "@/types/quotation";
+import { loadSystemSettings, quotationValidUntilDate } from "@/lib/systemSettings";
 import { toast } from "sonner";
 
-const defaultValues: QuotationFormValues = {
-  customerId: "",
-  customerName: "",
-  quoteDate: new Date().toISOString().slice(0, 10),
-  validUntil: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
-  priority: "medium",
-  lineItems: [],
-  discountAmount: 0,
-  notes: "",
-  termsAndConditions: "Payment due within 30 days. Prices valid until the date specified.",
-  attachments: [],
-};
+function createDefaultValues(): QuotationFormValues {
+  const settings = loadSystemSettings();
+  return {
+    customerId: "",
+    customerName: "",
+    quoteDate: new Date().toISOString().slice(0, 10),
+    validUntil: quotationValidUntilDate(),
+    priority: "medium",
+    lineItems: [],
+    discountAmount: 0,
+    notes: "",
+    termsAndConditions:
+      settings.paymentTerms || "Payment due within 30 days. Prices valid until the date specified.",
+    attachments: [],
+  };
+}
 
 export function EstimateFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -86,7 +91,7 @@ export function EstimateFormPage() {
       };
     }
     return {
-      ...defaultValues,
+      ...createDefaultValues(),
       customerId: preselectedCustomerId ?? "",
     };
   }, [quotation, preselectedCustomerId]);

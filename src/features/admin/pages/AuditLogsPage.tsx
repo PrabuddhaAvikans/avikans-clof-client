@@ -1,204 +1,328 @@
-import { useMemo, useState } from "react";
-import { type ColumnDef } from "@tanstack/react-table";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Download } from "lucide-react";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/feedback/PageHeader";
+import { PageContent } from "@/components/feedback/PageStates";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { DataTable } from "@/components/tables/DataTable";
+import { Button } from "@/components/ui/Button";
+import { DateRangePicker } from "@/components/ui/DateRangePicker";
 import { FilterPanel } from "@/components/ui/FilterPanel";
 import { SearchBar } from "@/components/ui/SearchBar";
 import { Select } from "@/components/ui/Select";
-import { StatusBadge } from "@/components/ui/StatusBadge";
-import { formatDateTime } from "@/lib/format";
+import { AuditLogDetailPanel } from "@/features/admin/components/AuditLogDetailPanel";
+import { AuditLogListPanel } from "@/features/admin/components/AuditLogListPanel";
+import { AuditMetricCards } from "@/features/admin/components/AuditMetricCards";
+import { useAuditLogSummary, useAuditLogs } from "@/features/admin/hooks/useAuditLogs";
+import { useUsers } from "@/features/admin/hooks/useUsers";
+import { AUDIT_ACTION_LABELS, AUDIT_SEVERITY_LABELS } from "@/features/admin/lib/auditLabels";
+import { downloadAuditLogsCsv } from "@/features/admin/lib/exportAuditLogs";
+import { useDebounce } from "@/hooks/useDebounce";
+import { usePermissions } from "@/hooks/usePermissions";
+import { workspaceGrid, workspaceGridCol } from "@/lib/panelLayout";
+import { cn } from "@/lib/utils";
+import { auditService } from "@/services";
+import {
+  AUDIT_ACTIONS,
+  AUDIT_ENTITIES,
+  AUDIT_SEVERITIES,
+  type AuditAction,
+  type AuditEntity,
+  type AuditSeverity,
+} from "@/types/audit";
 
-interface AuditLogEntry {
-  id: string;
-  timestamp: string;
-  user: string;
-  action: string;
-  entity: string;
-  entityId: string;
-  details: string;
-  severity: "info" | "warning" | "critical";
+function todayIsoDate(): string {
+  const date = new Date();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
 }
 
-const MOCK_AUDIT_LOGS: AuditLogEntry[] = [
-  {
-    id: "aud-001",
-    timestamp: "2025-07-21T14:30:00Z",
-    user: "Nuwan Wickramasinghe",
-    action: "Updated",
-    entity: "ManufacturingJob",
-    entityId: "mj-001",
-    details: "Changed status to in_progress",
-    severity: "info",
-  },
-  {
-    id: "aud-002",
-    timestamp: "2025-07-21T12:00:00Z",
-    user: "Prabuddha Jayawardhana",
-    action: "Created",
-    entity: "Delivery",
-    entityId: "del-003",
-    details: "Created delivery DL-2025-0501",
-    severity: "info",
-  },
-  {
-    id: "aud-003",
-    timestamp: "2025-07-20T16:45:00Z",
-    user: "Admin",
-    action: "Updated",
-    entity: "Role",
-    entityId: "rol-003",
-    details: "Modified permissions for Production Manager",
-    severity: "warning",
-  },
-  {
-    id: "aud-004",
-    timestamp: "2025-07-20T09:15:00Z",
-    user: "Kasun Silva",
-    action: "Deleted",
-    entity: "Quotation",
-    entityId: "qt-089",
-    details: "Deleted draft quotation",
-    severity: "warning",
-  },
-  {
-    id: "aud-005",
-    timestamp: "2025-07-19T18:00:00Z",
-    user: "System",
-    action: "Failed Login",
-    entity: "User",
-    entityId: "usr-unknown",
-    details: "3 failed login attempts from 192.168.1.45",
-    severity: "critical",
-  },
-  {
-    id: "aud-006",
-    timestamp: "2025-07-19T10:30:00Z",
-    user: "Chamari Perera",
-    action: "Approved",
-    entity: "SalesOrder",
-    entityId: "so-001",
-    details: "Confirmed sales order SO-2025-0089",
-    severity: "info",
-  },
-];
-
 export function AuditLogsPage() {
+  const { hasPermission } = usePermissions();
+  const canExport = hasPermission("audit_logs:export");
+
   const [search, setSearch] = useState("");
   const [entity, setEntity] = useState("");
+  const [action, setAction] = useState("");
   const [severity, setSeverity] = useState("");
+  const [userId, setUserId] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectEdge, setSelectEdge] = useState<"first" | "last">("first");
 
-  const filtered = useMemo(() => {
-    return MOCK_AUDIT_LOGS.filter((log) => {
-      if (search) {
-        const q = search.toLowerCase();
-        if (
-          !log.user.toLowerCase().includes(q) &&
-          !log.details.toLowerCase().includes(q) &&
-          !log.entityId.toLowerCase().includes(q)
-        ) {
-          return false;
-        }
+  const debouncedSearch = useDebounce(search, 250);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, entity, action, severity, userId, from, to]);
+
+  const listFilters = {
+    page,
+    pageSize,
+    search: debouncedSearch.trim() || undefined,
+    entity: (entity as AuditEntity) || undefined,
+    action: (action as AuditAction) || undefined,
+    severity: (severity as AuditSeverity) || undefined,
+    userId: userId || undefined,
+    from: from || undefined,
+    to: to || undefined,
+  };
+
+  const { data, isLoading, error, refetch } = useAuditLogs(listFilters);
+  const { data: summary } = useAuditLogSummary({
+    search: listFilters.search,
+    entity: listFilters.entity,
+    action: listFilters.action,
+    severity: listFilters.severity,
+    userId: listFilters.userId,
+    from: listFilters.from,
+    to: listFilters.to,
+  });
+  const { data: users } = useUsers({ page: 1, pageSize: 100, status: "active" });
+
+  const items = useMemo(() => data?.items ?? [], [data?.items]);
+  const totalCount = data?.totalCount ?? 0;
+  const totalPages = Math.max(1, data?.totalPages ?? 1);
+  const selectedIndex = items.findIndex((item) => item.id === selectedId);
+  const selected = selectedIndex >= 0 ? items[selectedIndex] : null;
+
+  useEffect(() => {
+    if (items.length === 0) {
+      setSelectedId(null);
+      return;
+    }
+    if (!selectedId || !items.some((item) => item.id === selectedId)) {
+      const index = selectEdge === "last" ? items.length - 1 : 0;
+      setSelectedId(items[index].id);
+    }
+  }, [items, selectedId, selectEdge]);
+
+  const goToIndex = useCallback(
+    (index: number) => {
+      if (index >= 0 && index < items.length) {
+        setSelectedId(items[index].id);
+        return;
       }
-      if (entity && log.entity !== entity) return false;
-      if (severity && log.severity !== severity) return false;
-      return true;
-    });
-  }, [search, entity, severity]);
-
-  const entityOptions = useMemo(
-    () => [...new Set(MOCK_AUDIT_LOGS.map((l) => l.entity))].map((e) => ({ value: e, label: e })),
-    [],
+      if (index >= items.length && page < totalPages) {
+        setSelectEdge("first");
+        setPage((current) => current + 1);
+        return;
+      }
+      if (index < 0 && page > 1) {
+        setSelectEdge("last");
+        setPage((current) => current - 1);
+      }
+    },
+    [items, page, totalPages],
   );
 
-  const columns = useMemo<ColumnDef<AuditLogEntry>[]>(
-    () => [
-      {
-        id: "timestamp",
-        header: "Timestamp",
-        cell: ({ row }) => formatDateTime(row.original.timestamp),
-      },
-      { id: "user", accessorKey: "user", header: "User" },
-      { id: "action", accessorKey: "action", header: "Action" },
-      {
-        id: "entity",
-        header: "Entity",
-        cell: ({ row }) => (
-          <div>
-            <p className="font-medium">{row.original.entity}</p>
-            <p className="text-xs text-muted-foreground">{row.original.entityId}</p>
-          </div>
-        ),
-      },
-      { id: "details", accessorKey: "details", header: "Details" },
-      {
-        id: "severity",
-        header: "Severity",
-        cell: ({ row }) => (
-          <StatusBadge
-            variant={
-              row.original.severity === "critical"
-                ? "danger"
-                : row.original.severity === "warning"
-                  ? "warning"
-                  : "info"
-            }
-            size="sm"
-          >
-            {row.original.severity}
-          </StatusBadge>
-        ),
-      },
-    ],
-    [],
-  );
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName)) {
+        return;
+      }
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        goToIndex(Math.max(0, selectedIndex) + 1);
+      }
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        goToIndex(selectedIndex - 1);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [goToIndex, selectedIndex]);
+
+  const hasFilters = Boolean(search || entity || action || severity || userId || from || to);
+  const today = todayIsoDate();
+  const todayActive = from === today && to === today;
+  const activeMetric =
+    severity === "critical"
+      ? "critical"
+      : severity === "warning"
+        ? "warning"
+        : todayActive
+          ? "today"
+          : "all";
+
+  const resetFilters = () => {
+    setSearch("");
+    setEntity("");
+    setAction("");
+    setSeverity("");
+    setUserId("");
+    setFrom("");
+    setTo("");
+    setPage(1);
+  };
+
+  const handleMetricSelect = (id: "all" | "today" | "warning" | "critical") => {
+    if (id === "all") {
+      resetFilters();
+      return;
+    }
+    if (id === "today") {
+      setFrom(today);
+      setTo(today);
+      setSeverity("");
+      setPage(1);
+      return;
+    }
+    setFrom("");
+    setTo("");
+    setSeverity(id);
+    setPage(1);
+  };
+
+  const handleExport = async () => {
+    try {
+      const result = await auditService.list({
+        ...listFilters,
+        page: 1,
+        pageSize: Math.max(totalCount, pageSize),
+      });
+      if (result.items.length === 0) {
+        toast.error("No audit events to export");
+        return;
+      }
+      downloadAuditLogsCsv(result.items);
+      toast.success(`Exported ${result.items.length} audit events`);
+    } catch {
+      toast.error("Failed to export audit logs");
+    }
+  };
+
+  const handlePageChange = (nextPage: number, nextSize: number) => {
+    setSelectEdge("first");
+    setPage(nextPage);
+    setPageSize(nextSize);
+  };
 
   return (
     <PageContainer maxWidth="wide">
       <PageHeader
         title="Audit Logs"
-        description="Review system activity and audit trail."
+        description="Review system activity, permission changes, and security events."
         breadcrumbs={[{ label: "Administration" }, { label: "Audit Logs" }]}
+        actions={
+          canExport ? (
+            <Button
+              variant="outline"
+              leftIcon={<Download className="h-4 w-4" />}
+              onClick={() => void handleExport()}
+            >
+              Export CSV
+            </Button>
+          ) : undefined
+        }
       />
 
-      <div className="mb-6">
-        <FilterPanel
-          onReset={() => {
-            setSearch("");
-            setEntity("");
-            setSeverity("");
-          }}
-        >
-          <div className="grid gap-4 sm:grid-cols-3">
+      <div className="space-y-4">
+        <AuditMetricCards summary={summary} active={activeMetric} onSelect={handleMetricSelect} />
+
+        <FilterPanel variant="toolbar" onReset={hasFilters ? resetFilters : undefined}>
+          <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <SearchBar
+              label="Search"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(event) => setSearch(event.target.value)}
               onClear={() => setSearch("")}
               placeholder="Search logs..."
             />
             <Select
               label="Entity"
               value={entity}
-              onChange={(e) => setEntity(e.target.value)}
-              options={entityOptions}
-              placeholder="All entities"
+              onChange={(event) => setEntity(event.target.value)}
+              options={[
+                { value: "", label: "All entities" },
+                ...AUDIT_ENTITIES.map((value) => ({ value, label: value })),
+              ]}
+            />
+            <Select
+              label="Action"
+              value={action}
+              onChange={(event) => setAction(event.target.value)}
+              options={[
+                { value: "", label: "All actions" },
+                ...AUDIT_ACTIONS.map((value) => ({
+                  value,
+                  label: AUDIT_ACTION_LABELS[value],
+                })),
+              ]}
+            />
+            <Select
+              label="User"
+              value={userId}
+              onChange={(event) => setUserId(event.target.value)}
+              options={[
+                { value: "", label: "All users" },
+                { value: "system", label: "System" },
+                ...(users?.items ?? []).map((user) => ({
+                  value: user.id,
+                  label: user.displayName,
+                })),
+              ]}
             />
             <Select
               label="Severity"
               value={severity}
-              onChange={(e) => setSeverity(e.target.value)}
+              onChange={(event) => setSeverity(event.target.value)}
               options={[
-                { value: "info", label: "Info" },
-                { value: "warning", label: "Warning" },
-                { value: "critical", label: "Critical" },
+                { value: "", label: "All severities" },
+                ...AUDIT_SEVERITIES.map((value) => ({
+                  value,
+                  label: AUDIT_SEVERITY_LABELS[value],
+                })),
               ]}
-              placeholder="All severities"
             />
+            <div className="sm:col-span-2">
+              <DateRangePicker
+                label="Date range"
+                value={{ from, to }}
+                onChange={(range) => {
+                  setFrom(range.from ?? "");
+                  setTo(range.to ?? "");
+                }}
+              />
+            </div>
           </div>
         </FilterPanel>
-      </div>
 
-      <DataTable data={filtered} columns={columns} pageSize={15} getRowId={(row) => row.id} />
+        <PageContent
+          error={error ? "Failed to load audit logs" : null}
+          onRetry={() => void refetch()}
+        >
+          <div className={workspaceGrid}>
+            <div className={cn(workspaceGridCol, "lg:col-span-5")}>
+              <AuditLogListPanel
+                items={items}
+                totalCount={totalCount}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+                page={page}
+                pageSize={pageSize}
+                onPageChange={handlePageChange}
+                isLoading={isLoading && items.length === 0}
+              />
+            </div>
+            <div className={cn(workspaceGridCol, "lg:col-span-7")}>
+              <AuditLogDetailPanel
+                log={selected}
+                hasPrevious={selectedIndex > 0 || page > 1}
+                hasNext={selectedIndex < items.length - 1 || page < totalPages}
+                onPrevious={() => goToIndex(selectedIndex - 1)}
+                onNext={() => goToIndex(Math.max(0, selectedIndex) + 1)}
+              />
+            </div>
+          </div>
+        </PageContent>
+      </div>
     </PageContainer>
   );
 }

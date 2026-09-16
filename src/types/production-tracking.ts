@@ -1,4 +1,4 @@
-import type { ManufacturingJobStatusValue } from "@/types/status";
+import type { ManufacturingJobStatusValue, PriorityValue } from "@/types/status";
 
 export interface ProductionStageTask {
   id: string;
@@ -17,7 +17,9 @@ export interface ProductionJob {
   productName: string;
   productSku: string;
   productImageUrl?: string;
+  customerName: string;
   quantity: number;
+  priority: PriorityValue;
   currentTaskName: string;
   /** Alias of currentTaskName for the existing table column. */
   line: string;
@@ -32,6 +34,7 @@ export interface ProductionJob {
   materialIssued: number;
   materialConsumed: number;
   materialUnit: string;
+  materialsReady: boolean;
   blockers: string[];
   laborHours: number;
   laborCost: number;
@@ -51,6 +54,8 @@ export interface ProductionKpis {
   onHoldTrend: number;
   inQualityCheck: number;
   inQualityCheckTrend: number;
+  delayedJobs: number;
+  delayedJobsTrend: number;
   readyToShip: number;
   readyToShipTrend: number;
 }

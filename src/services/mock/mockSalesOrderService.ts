@@ -16,6 +16,7 @@ import { initialUsers } from "@/services/mock/data/users";
 import { initialSalesOrders } from "@/services/mock/data/sales-orders";
 import { initialSalesOrderCostingRequests } from "@/services/mock/data/sales-order-costing";
 import { mockCostingService } from "@/services/mock/mockCostingService";
+import { loadSystemSettings } from "@/lib/systemSettings";
 import type { SalesOrder, SalesOrderLineItem } from "@/types/sales-order";
 
 let salesOrders: SalesOrder[] = cloneData(initialSalesOrders).map((order) => ({
@@ -49,7 +50,8 @@ function computeTotals(lineItems: SalesOrderLineItem[], discountAmount = 0) {
 
 function nextOrderNumber(): string {
   const year = new Date().getFullYear();
-  return `SO-${year}-${String(salesOrders.length + 1).padStart(4, "0")}`;
+  const prefix = loadSystemSettings().salesOrderPrefix || "SO";
+  return `${prefix}-${year}-${String(salesOrders.length + 1).padStart(4, "0")}`;
 }
 
 export const mockSalesOrderService: SalesOrderService = {

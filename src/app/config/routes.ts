@@ -113,7 +113,6 @@ export const ROUTES = {
     roleGroups: "/admin/role-groups",
     permissions: "/admin/permissions",
     settings: "/admin/settings",
-    notifications: "/admin/notifications",
     auditLogs: "/admin/audit-logs",
   },
 

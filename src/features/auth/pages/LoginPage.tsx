@@ -20,6 +20,7 @@ import {
 } from "@/components/forms";
 import { Button } from "@/components/ui/Button";
 import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
 import {
   loginFormSchema,
   loginInitialValues,
@@ -60,6 +61,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { signInUser } = useAuthSession();
+  const { appSubtitle } = useSystemSettings();
   const [showPassword, setShowPassword] = useState(false);
 
   const fromPath =
@@ -80,9 +82,11 @@ export function LoginPage() {
             <div>
               <BrandLogo className="h-9 max-w-[176px]" />
               <div className="mt-3 h-0.5 w-12 rounded-full bg-warning" />
-              <p className="mt-6 max-w-sm text-[13px] leading-relaxed text-muted-foreground">
-                Custom Lighting Product Management
-              </p>
+              {appSubtitle ? (
+                <p className="mt-6 max-w-sm text-[13px] leading-relaxed text-muted-foreground">
+                  {appSubtitle}
+                </p>
+              ) : null}
             </div>
 
             <div className="mt-10 space-y-6">
@@ -134,6 +138,9 @@ export function LoginPage() {
             <div className="mb-8 lg:hidden">
               <BrandLogo className="h-8 max-w-[160px]" />
               <div className="mt-3 h-0.5 w-10 rounded-full bg-warning" />
+              {appSubtitle ? (
+                <p className="mt-3 text-sm text-muted-foreground">{appSubtitle}</p>
+              ) : null}
             </div>
 
             <div className="mb-6">

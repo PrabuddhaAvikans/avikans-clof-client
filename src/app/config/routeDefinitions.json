@@ -271,8 +271,7 @@
     },
     {
       "path": "manufacturing/tracking",
-      "page": "ProductionTrackingPage",
-      "permission": "manufacturing:view"
+      "redirect": "/manufacturing/jobs"
     },
     {
       "path": "manufacturing/ready-to-ship",
@@ -301,8 +300,7 @@
     },
     {
       "path": "manufacturing/board",
-      "page": "ProductionBoardPage",
-      "permission": "manufacturing:view"
+      "redirect": "/manufacturing/jobs"
     },
     {
       "path": "manufacturing/material-requirements",
@@ -416,11 +414,6 @@
     {
       "path": "admin/settings",
       "page": "SystemSettingsPage",
-      "permission": "settings:view"
-    },
-    {
-      "path": "admin/notifications",
-      "page": "NotificationSettingsPage",
       "permission": "settings:view"
     },
     {

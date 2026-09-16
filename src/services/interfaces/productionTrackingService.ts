@@ -8,6 +8,8 @@ export interface ProductionTrackingFilters extends PaginatedRequest {
   line?: string;
   supervisorId?: string;
   status?: string;
+  priority?: string;
+  delayedOnly?: boolean;
 }
 
 export interface ProductionTrackingService {

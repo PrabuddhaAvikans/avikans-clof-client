@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Tabs, TabList, Tab, TabPanel } from "@/components/ui/Tabs";
 import { ROUTES } from "@/app/config/routes";
+import { loadSystemSettings } from "@/lib/systemSettings";
 import type { Quotation } from "@/types/quotation";
 
 export type SendQuotationModalProps = {
@@ -28,6 +29,7 @@ export function SendQuotationModal({
   const [copied, setCopied] = useState(false);
 
   const previewLink = `${window.location.origin}${ROUTES.quotations.preview(quotation.id)}`;
+  const companyName = loadSystemSettings().companyName;
 
   const handleSend = async () => {
     setStatus("sending");
@@ -79,11 +81,11 @@ export function SendQuotationModal({
         <TabPanel value="email">
           <div className="space-y-4">
             <Input label="To" defaultValue={quotation.customerEmail} />
-            <Input label="Subject" defaultValue={`Quotation ${quotation.quotationNumber} from AVIKANS SOLUTION`} />
+            <Input label="Subject" defaultValue={`Quotation ${quotation.quotationNumber} from ${companyName}`} />
             <Textarea
               label="Message"
               rows={5}
-              defaultValue={`Dear ${quotation.customerName},\n\nPlease find attached quotation ${quotation.quotationNumber} for your review.\n\nValid until: ${quotation.validUntil.slice(0, 10)}\n\nBest regards,\nAVIKANS SOLUTION`}
+              defaultValue={`Dear ${quotation.customerName},\n\nPlease find attached quotation ${quotation.quotationNumber} for your review.\n\nValid until: ${quotation.validUntil.slice(0, 10)}\n\nBest regards,\n${companyName}`}
             />
             {status === "sent" && (
               <p className="flex items-center gap-2 text-sm text-success">
@@ -99,7 +101,7 @@ export function SendQuotationModal({
             <Textarea
               label="Message"
               rows={4}
-              defaultValue={`Hi ${quotation.customerName}, your quotation ${quotation.quotationNumber} from AVIKANS SOLUTION is ready. View: ${previewLink}`}
+              defaultValue={`Hi ${quotation.customerName}, your quotation ${quotation.quotationNumber} from ${companyName} is ready. View: ${previewLink}`}
             />
             {status === "sent" && (
               <p className="flex items-center gap-2 text-sm text-success">

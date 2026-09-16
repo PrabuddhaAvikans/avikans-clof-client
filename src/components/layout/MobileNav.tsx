@@ -14,6 +14,7 @@ import {
 } from "@/components/layout/nav-utils";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { cn } from "@/lib/utils";
 import { IconButton } from "@/components/ui/IconButton";
 
@@ -24,6 +25,7 @@ export function MobileNav() {
   );
   const { pathname } = useLocation();
   const { canAccess } = usePermissions();
+  const { appSubtitle } = useSystemSettings();
 
   const navigation = useMemo(
     () => getFilteredNavigation(canAccess),
@@ -75,9 +77,11 @@ export function MobileNav() {
         <div className="flex h-14 items-center justify-between border-b border-sidebar-border px-4">
           <div className="min-w-0">
             <BrandLogo className="h-9 max-w-[180px]" />
-            <p className="mt-0.5 truncate text-[10px] text-sidebar-muted">
-              Custom Lighting Product Management
-            </p>
+            {appSubtitle ? (
+              <p className="mt-0.5 truncate text-[10px] text-sidebar-muted">
+                {appSubtitle}
+              </p>
+            ) : null}
           </div>
           <IconButton
             variant="ghost"

@@ -9,6 +9,7 @@ export { mockSalesOrderService as salesOrderService } from "@/services/mock/mock
 export { mockManufacturingService as manufacturingService } from "@/services/mock/mockManufacturingService";
 export { mockDeliveryService as deliveryService } from "@/services/mock/mockDeliveryService";
 export { mockUserService as userService, mockRoleService as roleService } from "@/services/mock/mockUserService";
+export { mockAuditService as auditService } from "@/services/mock/mockAuditService";
 export { mockNotificationService as notificationService } from "@/services/mock/mockNotificationService";
 export { mockDashboardService as dashboardService } from "@/services/mock/mockDashboardService";
 export { mockCostingService as costingService } from "@/services/mock/mockCostingService";
@@ -26,6 +27,7 @@ export type { SalesOrderService, SalesOrderListFilters, SalesOrderFormData } fro
 export type { ManufacturingService, ManufacturingListFilters, ManufacturingJobFormData } from "@/services/interfaces/manufacturingService";
 export type { DeliveryService, DeliveryListFilters, DeliveryFormData } from "@/services/interfaces/deliveryService";
 export type { UserService, UserListFilters, UserFormData, RoleService, RoleListFilters, RoleFormData, RoleGroupFormData } from "@/services/interfaces/userService";
+export type { AuditService, AuditLogListFilters } from "@/services/interfaces/auditService";
 export type { NotificationService, NotificationListFilters } from "@/services/interfaces/notificationService";
 export type { DashboardService } from "@/services/interfaces/dashboardService";
 export type { CostingService, CostingListFilters, CoatingSubmitData } from "@/services/interfaces/costingService";

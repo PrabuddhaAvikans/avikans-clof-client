@@ -46,7 +46,9 @@ export function toProductionJobView(job: ManufacturingJob): ProductionJob {
     salesOrderNumber: job.salesOrderNumber,
     productName: job.productName,
     productSku: job.productSku,
+    customerName: job.customerName,
     quantity: job.quantity,
+    priority: job.priority,
     currentTaskName,
     line: currentTaskName,
     supervisorId: job.assignedTo ?? "",
@@ -70,6 +72,14 @@ export function toProductionJobView(job: ManufacturingJob): ProductionJob {
     materialIssued,
     materialConsumed,
     materialUnit: job.materialRequirements[0]?.unit ?? "pcs",
+    materialsReady:
+      job.materialRequirements.length === 0 ||
+      job.materialRequirements.every(
+        (mr) =>
+          mr.status === "issued" ||
+          mr.status === "reserved" ||
+          mr.reservedQuantity >= mr.requiredQuantity,
+      ),
     blockers,
     laborHours,
     laborCost: calculateJobActualCost(job),
@@ -96,6 +106,7 @@ export function buildProductionTrackingSnapshot(
   ).length;
   const onHold = views.filter((job) => job.status === "on_hold").length;
   const inQualityCheck = views.filter((job) => job.status === "quality_check").length;
+  const delayedJobs = views.filter((job) => (job.overdueDays ?? 0) > 0).length;
   const readyToShip = views.filter((job) => job.status === "completed").length;
 
   const kpis: ProductionKpis = {
@@ -105,6 +116,8 @@ export function buildProductionTrackingSnapshot(
     onHoldTrend: 0,
     inQualityCheck,
     inQualityCheckTrend: 0,
+    delayedJobs,
+    delayedJobsTrend: 0,
     readyToShip,
     readyToShipTrend: 0,
   };

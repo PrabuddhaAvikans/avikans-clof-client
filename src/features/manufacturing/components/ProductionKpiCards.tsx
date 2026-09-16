@@ -14,6 +14,7 @@ const METRICS: {
   { key: "jobsInProduction", trendKey: "jobsInProductionTrend", label: "In production" },
   { key: "onHold", trendKey: "onHoldTrend", label: "On hold" },
   { key: "inQualityCheck", trendKey: "inQualityCheckTrend", label: "In QC" },
+  { key: "delayedJobs", trendKey: "delayedJobsTrend", label: "Delayed" },
   { key: "readyToShip", trendKey: "readyToShipTrend", label: "Ready to ship" },
 ];
 
@@ -22,6 +23,7 @@ export function ProductionKpiCards({ kpis, className }: ProductionKpiCardsProps)
     kpis.jobsInProduction,
     kpis.onHold,
     kpis.inQualityCheck,
+    kpis.delayedJobs,
     kpis.readyToShip,
     1,
   );
@@ -29,7 +31,7 @@ export function ProductionKpiCards({ kpis, className }: ProductionKpiCardsProps)
   return (
     <div
       className={cn(
-        "grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
+        "grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5",
         className,
       )}
     >

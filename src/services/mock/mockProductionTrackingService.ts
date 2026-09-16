@@ -44,11 +44,18 @@ export const mockProductionTrackingService: ProductionTrackingService = {
     if (filters.status) {
       items = items.filter((job) => job.status === filters.status);
     }
+    if (filters.priority) {
+      items = items.filter((job) => job.priority === filters.priority);
+    }
+    if (filters.delayedOnly) {
+      items = items.filter((job) => (job.overdueDays ?? 0) > 0);
+    }
     return applyListQuery(items, filters, [
       "jobNumber",
       "salesOrderNumber",
       "productName",
       "productSku",
+      "customerName",
       "supervisorName",
       "line",
       "statusLabel",

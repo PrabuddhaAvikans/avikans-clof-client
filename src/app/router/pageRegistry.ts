@@ -1,7 +1,6 @@
 import type { ComponentType } from "react";
 import {
   AuditLogsPage,
-  NotificationSettingsPage,
   PermissionsPage,
   RoleGroupsPage,
   RolesPage,
@@ -43,8 +42,6 @@ import {
   ManufacturingJobFormPage,
   ManufacturingJobsPage,
   MaterialRequirementsPage,
-  ProductionBoardPage,
-  ProductionTrackingPage,
   QualityInspectionPage,
   ReadyToShipPage,
   WorkOrdersPage,
@@ -110,13 +107,11 @@ export const PAGE_REGISTRY = {
   UnitsOfMeasurePage,
   ReprocessingBatchesPage,
   ReprocessingBatchDetailPage,
-  ProductionTrackingPage,
   ReadyToShipPage,
   ManufacturingJobFormPage,
   ManufacturingJobDetailPage,
   ManufacturingJobsPage,
   WorkOrdersPage,
-  ProductionBoardPage,
   MaterialRequirementsPage,
   QualityInspectionPage,
   DeliveryListPage,
@@ -131,7 +126,6 @@ export const PAGE_REGISTRY = {
   RoleGroupsPage,
   PermissionsPage,
   SystemSettingsPage,
-  NotificationSettingsPage,
   AuditLogsPage,
   NotFoundPage,
 } as const satisfies Record<string, ComponentType>;

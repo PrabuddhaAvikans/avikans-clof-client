@@ -12,10 +12,11 @@ import {
 
 type CostingRatesFormProps = {
   compact?: boolean;
+  readOnly?: boolean;
   onSaved?: (rates: CostingRates) => void;
 };
 
-export function CostingRatesForm({ compact = false, onSaved }: CostingRatesFormProps) {
+export function CostingRatesForm({ compact = false, readOnly = false, onSaved }: CostingRatesFormProps) {
   const [rates, setRates] = useState<CostingRates>(loadCostingRates);
 
   const update = (key: keyof CostingRates, value: string) => {
@@ -36,7 +37,7 @@ export function CostingRatesForm({ compact = false, onSaved }: CostingRatesFormP
   };
 
   return (
-    <div className={compact ? "space-y-3" : "space-y-4"}>
+    <div className={compact ? "space-y-3" : "grid gap-3 sm:grid-cols-2"}>
       <Input
         label={compact ? "Labour / hour" : "Labour rate (per hour)"}
         type="number"
@@ -44,6 +45,7 @@ export function CostingRatesForm({ compact = false, onSaved }: CostingRatesFormP
         step={0.01}
         hint={compact ? undefined : "Used when an operation has no labour rate"}
         value={rates.labourRatePerHour}
+        disabled={readOnly}
         onChange={(event) => update("labourRatePerHour", event.target.value)}
       />
       <Input
@@ -53,6 +55,7 @@ export function CostingRatesForm({ compact = false, onSaved }: CostingRatesFormP
         step={0.01}
         hint={compact ? undefined : "Used when an operation has no machine cost"}
         value={rates.machineRatePerHour}
+        disabled={readOnly}
         onChange={(event) => update("machineRatePerHour", event.target.value)}
       />
       <Input
@@ -62,6 +65,7 @@ export function CostingRatesForm({ compact = false, onSaved }: CostingRatesFormP
         step={0.01}
         hint={compact ? undefined : "Fixed coating cost applied to each product"}
         value={rates.coatingCostPerUnit}
+        disabled={readOnly}
         onChange={(event) => update("coatingCostPerUnit", event.target.value)}
       />
       <Input
@@ -72,16 +76,19 @@ export function CostingRatesForm({ compact = false, onSaved }: CostingRatesFormP
         step={0.1}
         hint={compact ? undefined : "Applied on material + labour + machine + coating"}
         value={rates.overheadPercent}
+        disabled={readOnly}
         onChange={(event) => update("overheadPercent", event.target.value)}
       />
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="primary" size="sm" leftIcon={<Save className="h-4 w-4" />} onClick={handleSave}>
-          Save rates
-        </Button>
-        <Button type="button" variant="outline" size="sm" onClick={handleReset}>
-          Reset defaults
-        </Button>
-      </div>
+      {!readOnly && (
+        <div className={compact ? "flex flex-wrap gap-2" : "flex flex-wrap gap-2 sm:col-span-2"}>
+          <Button type="button" variant="primary" size="sm" leftIcon={<Save className="h-4 w-4" />} onClick={handleSave}>
+            Save rates
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={handleReset}>
+            Reset defaults
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

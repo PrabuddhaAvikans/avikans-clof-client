@@ -19,6 +19,7 @@ import manufacturingReducer from "@/features/manufacturing/store/manufacturingSl
 import productionTrackingReducer from "@/features/manufacturing/store/productionTrackingSlice";
 import costingReducer from "@/features/costing/store/costingSlice";
 import usersReducer from "@/features/admin/store/usersSlice";
+import auditLogsReducer from "@/features/admin/store/auditLogsSlice";
 import notificationsReducer from "@/features/admin/store/notificationsSlice";
 import dashboardReducer from "@/features/dashboard/store/dashboardSlice";
 import reprocessingReducer from "@/features/reprocessing/store/reprocessingSlice";
@@ -43,6 +44,7 @@ export const store = configureStore({
     productionTracking: productionTrackingReducer,
     costing: costingReducer,
     users: usersReducer,
+    auditLogs: auditLogsReducer,
     notifications: notificationsReducer,
     dashboard: dashboardReducer,
     reprocessing: reprocessingReducer,

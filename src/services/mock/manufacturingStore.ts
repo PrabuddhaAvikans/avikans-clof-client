@@ -1,3 +1,4 @@
+import { loadSystemSettings } from "@/lib/systemSettings";
 import type { ManufacturingJob } from "@/types/manufacturing";
 import { cloneData } from "@/services/mock/helpers";
 import { initialManufacturingJobs } from "@/services/mock/data/manufacturing";
@@ -39,5 +40,6 @@ export function nextProductionJobNumber(): string {
     .map((job) => Number.parseInt(job.jobNumber.replace(/\D/g, ""), 10))
     .filter((value) => Number.isFinite(value));
   const next = Math.max(1000, ...used, 1000) + 1;
-  return `PJ-${next}`;
+  const prefix = loadSystemSettings().jobPrefix || "PJ";
+  return `${prefix}-${next}`;
 }

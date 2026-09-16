@@ -8,7 +8,7 @@ import {
   recordUserLogin,
 } from "@/services/mock/mockUserService";
 
-export const DEMO_LOGIN_EMAIL = "prabuddha.jayawardhana@avikans.com";
+export const DEMO_LOGIN_EMAIL = "prabuddha@avikans.com";
 export const DEMO_LOGIN_PASSWORD = "Avikans@123";
 
 function toAuthUser(

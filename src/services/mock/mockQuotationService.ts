@@ -25,6 +25,7 @@ import {
   createQuotationRevision,
   ensureQuotationRevisions,
 } from "@/lib/quotationRevisions";
+import { loadSystemSettings } from "@/lib/systemSettings";
 
 let quotations = cloneData(initialQuotations).map((quotation) => ({
   ...quotation,
@@ -57,7 +58,8 @@ function computeTotals(lineItems: QuotationLineItem[], discountAmount = 0) {
 function nextQuotationNumber(): string {
   const year = new Date().getFullYear();
   const count = quotations.length + 1;
-  return `QT-${year}-${String(count).padStart(4, "0")}`;
+  const prefix = loadSystemSettings().quotationPrefix || "QT";
+  return `${prefix}-${year}-${String(count).padStart(4, "0")}`;
 }
 
 function findLineOrThrow(quotation: Quotation, lineItemId: string): QuotationLineItem {

@@ -9,13 +9,15 @@ import { applyListQuery, cloneData } from "@/services/mock/helpers";
 import { initialDeliveries } from "@/services/mock/data/deliveries";
 import { initialSalesOrders } from "@/services/mock/data/sales-orders";
 import { initialUsers } from "@/services/mock/data/users";
+import { loadSystemSettings } from "@/lib/systemSettings";
 import type { Delivery } from "@/types/delivery";
 
 let deliveries = cloneData(initialDeliveries);
 
 function nextDeliveryNumber(): string {
   const year = new Date().getFullYear();
-  return `DL-${year}-${String(500 + deliveries.length)}`;
+  const prefix = loadSystemSettings().deliveryPrefix || "DL";
+  return `${prefix}-${year}-${String(500 + deliveries.length).padStart(4, "0")}`;
 }
 
 export const mockDeliveryService: DeliveryService = {

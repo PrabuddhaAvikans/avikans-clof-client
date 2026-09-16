@@ -21,6 +21,7 @@ import {
   isNavItemActive,
 } from "@/components/layout/nav-utils";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { APP_HEADER_HEIGHT } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +36,7 @@ export function Sidebar({ forceCollapsed = false, className }: SidebarProps) {
   );
   const { pathname } = useLocation();
   const { canAccess } = usePermissions();
+  const { appSubtitle } = useSystemSettings();
 
   const collapsed = forceCollapsed || sidebarCollapsed;
   const navigation = useMemo(
@@ -79,9 +81,11 @@ export function Sidebar({ forceCollapsed = false, className }: SidebarProps) {
         ) : (
           <div className="min-w-0">
             <BrandLogo className="h-7 max-w-full" />
-            <p className="truncate text-[10px] leading-tight text-sidebar-muted">
-              Custom Lighting Product Management
-            </p>
+            {appSubtitle ? (
+              <p className="truncate text-[10px] leading-tight text-sidebar-muted">
+                {appSubtitle}
+              </p>
+            ) : null}
           </div>
         )}
       </div>
@@ -382,7 +386,7 @@ function NavLinkItem({
         indent && "ml-2 pl-2.5 text-[12.5px] font-normal",
         collapsed && "justify-center px-2",
         active
-          ? "bg-sidebar-accent text-sidebar-accent-foreground before:absolute before:left-0 before:top-1/2 before:h-4 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-blue-600"
+          ? "bg-sidebar-accent text-sidebar-accent-foreground before:absolute before:left-0 before:top-1/2 before:h-4 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-orange-400"
           : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
       )}
     >

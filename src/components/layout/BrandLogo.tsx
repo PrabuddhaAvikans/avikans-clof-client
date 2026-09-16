@@ -1,3 +1,5 @@
+import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { resolveSystemLogoUrl } from "@/lib/systemSettings";
 import { cn } from "@/lib/utils";
 
 export type BrandLogoProps = {
@@ -6,14 +8,17 @@ export type BrandLogoProps = {
 };
 
 export function BrandLogo({ compact = false, className }: BrandLogoProps) {
+  const settings = useSystemSettings();
+  const custom = Boolean(settings.logoUrl);
+
   return (
     <img
-      src="/logo.png"
-      alt="Avikans"
+      src={resolveSystemLogoUrl(settings.logoUrl)}
+      alt={settings.companyName || "Avikans"}
       className={cn(
         "block shrink-0 object-contain",
         compact ? "h-8 w-8 object-left" : "h-8 w-auto max-w-[148px]",
-        "mix-blend-multiply", // knock out black canvas on light bg
+        !custom && "mix-blend-multiply",
         className,
       )}
     />

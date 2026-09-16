@@ -90,6 +90,8 @@ export const initialRoles: Role[] = [
       "customers:view",
       "quotations:view",
       "sales_orders:view",
+      "audit_logs:view",
+      "audit_logs:export",
     ] as Permission[],
     isSystem: false,
     userCount: 0,
@@ -160,7 +162,7 @@ export const initialRoleGroups: RoleGroup[] = [
 export const initialUsers: User[] = [
   {
     id: "usr-001",
-    email: "prabuddha.jayawardhana@avikans.com",
+    email: "prabuddha@avikans.com",
     firstName: "Prabuddha",
     lastName: "Jayawardhana",
     displayName: "Prabuddha Jayawardhana",

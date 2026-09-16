@@ -15,6 +15,8 @@ import { useQuotation } from "@/features/sales/hooks/useQuotations";
 import { getCountryConfig } from "@/lib/countryConfig";
 import { DEFAULT_COUNTRY } from "@/lib/countries";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { BrandLogo } from "@/components/layout/BrandLogo";
+import { loadSystemSettings } from "@/lib/systemSettings";
 import { QuotationStatus } from "@/types/status";
 
 export function QuotationPreviewPage() {
@@ -32,6 +34,7 @@ export function QuotationPreviewPage() {
     quotation?.shippingAddress?.country ||
     DEFAULT_COUNTRY;
   const { taxName } = getCountryConfig(taxCountry);
+  const company = loadSystemSettings();
 
   return (
     <PageContainer maxWidth="wide">
@@ -66,13 +69,17 @@ export function QuotationPreviewPage() {
             <article className="mx-auto max-w-4xl rounded-lg border border-border bg-card p-8 shadow-sm print:shadow-none">
               <header className="mb-8 flex flex-wrap items-start justify-between gap-6 border-b border-border pb-6">
                 <div>
-                  <h1 className="text-2xl font-bold text-primary">AVIKANS SOLUTION</h1>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Premium Lighting & Manufacturing
-                    <br />
-                    Colombo, Sri Lanka
-                    <br />
-                    info@avikans.lk | +94 11 000 0000
+                  <BrandLogo className="mb-3 h-10 max-w-[180px]" />
+                  <h1 className="text-2xl font-bold text-primary">{company.companyName}</h1>
+                  <p className="mt-1 whitespace-pre-line text-sm text-muted-foreground">
+                    {[
+                      company.tagline,
+                      company.address,
+                      [company.email, company.phone].filter(Boolean).join(" | "),
+                      company.taxRegistration,
+                    ]
+                      .filter(Boolean)
+                      .join("\n")}
                   </p>
                 </div>
                 <div className="text-right text-sm">
@@ -167,7 +174,7 @@ export function QuotationPreviewPage() {
                 <div>
                   <div className="mb-2 h-16 border-b border-border" />
                   <p className="text-sm font-medium">Authorized Signature</p>
-                  <p className="text-xs text-muted-foreground">AVIKANS SOLUTION</p>
+                  <p className="text-xs text-muted-foreground">{company.companyName}</p>
                 </div>
                 <div>
                   <div className="mb-2 h-16 border-b border-border" />
