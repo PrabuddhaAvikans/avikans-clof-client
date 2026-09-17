@@ -4,9 +4,9 @@ import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
-import {
-  remainingQuantity,
-} from "@/lib/manufacturingTasks";
+import { remainingQuantity } from "@/lib/manufacturingTasks";
+import { calculateLaborCost, splitLaborHours } from "@/lib/laborCost";
+import { formatCurrency } from "@/lib/format";
 import type { ManufacturingTask, ManufacturingTaskAction } from "@/types/manufacturing";
 
 export type TaskDialogMode = "start" | "complete" | "hold" | "notes" | "rework" | null;
@@ -38,6 +38,7 @@ export function TaskActionDialogs({
   const [rejectedQuantity, setRejectedQuantity] = useState(0);
   const [wasteQuantity, setWasteQuantity] = useState(0);
   const [actualHours, setActualHours] = useState("");
+  const [overtimeHours, setOvertimeHours] = useState("");
   const [reworkQuantity, setReworkQuantity] = useState(remaining || 1);
   const [reason, setReason] = useState("");
   const [notes, setNotes] = useState("");
@@ -51,6 +52,7 @@ export function TaskActionDialogs({
     setRejectedQuantity(0);
     setWasteQuantity(0);
     setActualHours(task.actualHours != null ? String(task.actualHours) : "");
+    setOvertimeHours(task.overtimeHours != null ? String(task.overtimeHours) : "");
     setReworkQuantity(Math.max(1, remainingQuantity(task) || task.plannedQuantity));
     setReason("");
     setNotes(task.notes ?? "");
@@ -59,6 +61,21 @@ export function TaskActionDialogs({
   if (!task || !mode) return null;
 
   const selectedUser = users.find((user) => user.id === assignedTo);
+  const parsedActual = actualHours === "" ? undefined : Number(actualHours);
+  const previewHours =
+    parsedActual != null && !Number.isNaN(parsedActual)
+      ? parsedActual
+      : (task.actualHours ?? task.estimatedHours);
+  const laborPreview = calculateLaborCost({
+    actualHours: previewHours,
+    estimatedHours: task.estimatedHours,
+    overtimeHours: overtimeHours === "" ? undefined : Number(overtimeHours),
+    labourCostRate: task.labourCostRate,
+  });
+  const suggestedOt = splitLaborHours({
+    actualHours: previewHours,
+    estimatedHours: task.estimatedHours,
+  }).overtimeHours;
 
   const title = {
     start: `Start ${task.name}`,
@@ -95,6 +112,7 @@ export function TaskActionDialogs({
         rejectedQuantity,
         wasteQuantity,
         actualHours: actualHours ? Number(actualHours) : undefined,
+        overtimeHours: overtimeHours === "" ? undefined : Number(overtimeHours),
         notes: notes || undefined,
       });
       return;
@@ -199,6 +217,36 @@ export function TaskActionDialogs({
                 onChange={(event) => setActualHours(event.target.value)}
                 hint="Leave blank to calculate from start time"
               />
+              <Input
+                label="Overtime (hours)"
+                type="number"
+                min={0}
+                step={0.05}
+                value={overtimeHours}
+                onChange={(event) => setOvertimeHours(event.target.value)}
+                hint={
+                  suggestedOt > 0
+                    ? `Leave blank to use ${suggestedOt}h above estimate at ${laborPreview.overtimeMultiplier}×`
+                    : `Leave blank unless hours are overtime (${laborPreview.overtimeMultiplier}×)`
+                }
+              />
+            </div>
+            <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+              <p className="font-medium text-foreground">Labour cost</p>
+              <p className="mt-1">
+                Regular {laborPreview.regularHours}h × {formatCurrency(laborPreview.labourRatePerHour)}
+                {laborPreview.overtimeHours > 0
+                  ? ` + OT ${laborPreview.overtimeHours}h × ${formatCurrency(laborPreview.overtimeRatePerHour)}`
+                  : ""}
+                {" = "}
+                <span className="font-medium text-foreground">
+                  {formatCurrency(laborPreview.laborCost)}
+                </span>
+              </p>
+              <p className="mt-1">
+                Estimated time {task.estimatedHours}h
+                {task.labourCostRate != null ? ` · Rate ${formatCurrency(task.labourCostRate)}/h` : " · System labour rate"}
+              </p>
             </div>
           </>
         )}

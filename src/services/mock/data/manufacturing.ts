@@ -22,6 +22,7 @@ type TaskSeed = {
   machineName?: string;
   estimatedHours: number;
   actualHours?: number;
+  overtimeHours?: number;
   labourCostRate?: number;
   machineCost?: number;
   status: ManufacturingTaskStatus;
@@ -60,6 +61,7 @@ function toTask(jobId: string, seed: TaskSeed, index: number): ManufacturingTask
     isRework: false,
     estimatedHours: seed.estimatedHours,
     actualHours: seed.actualHours,
+    overtimeHours: seed.overtimeHours,
     labourCostRate: seed.labourCostRate,
     machineName: seed.machineName,
     machineCost: seed.machineCost,
@@ -191,6 +193,7 @@ const auroraTasks = (qty: number): TaskSeed[] => [
     machineName: "Press Brake",
     estimatedHours: 0.33 * qty,
     actualHours: 0.42 * qty,
+    overtimeHours: 0.09 * qty,
     labourCostRate: 500,
     machineCost: 150 * qty,
     status: "completed",
@@ -399,7 +402,7 @@ const rawJobs: JobSeed[] = [
     taskSeeds: [
       { id: "op-005", name: "Metal Fabrication", sequence: 10, workstation: "Fab Bay 2", estimatedHours: 6, actualHours: 5.5, status: "completed", completedAt: "2025-06-20T17:00:00Z", plannedQuantity: 12 },
       { id: "op-006", name: "Powder Coating", sequence: 20, workstation: "Coating Line A", estimatedHours: 3, actualHours: 3, status: "completed", completedAt: "2025-06-22T12:00:00Z", plannedQuantity: 12 },
-      { id: "op-007", name: "Assembly & Wiring", sequence: 30, workstation: "Assembly Line 1", estimatedHours: 4, actualHours: 4, status: "completed", completedAt: "2025-06-25T16:00:00Z", plannedQuantity: 12 },
+      { id: "op-007", name: "Assembly & Wiring", sequence: 30, workstation: "Assembly Line 1", estimatedHours: 4, actualHours: 5.5, overtimeHours: 1.5, labourCostRate: 550, status: "completed", completedAt: "2025-06-25T16:00:00Z", plannedQuantity: 12 },
       { id: "op-008", name: "QC", sequence: 40, workstation: "QC Station 1", estimatedHours: 1, actualHours: 1, status: "completed", completedAt: "2025-06-26T10:00:00Z", plannedQuantity: 12 },
     ],
     materialRequirements: [

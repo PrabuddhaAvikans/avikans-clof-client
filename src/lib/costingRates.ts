@@ -6,6 +6,7 @@ import {
 
 export type CostingRates = {
   labourRatePerHour: number;
+  overtimeMultiplier: number;
   machineRatePerHour: number;
   coatingCostPerUnit: number;
   overheadPercent: number;
@@ -13,10 +14,19 @@ export type CostingRates = {
 
 export const DEFAULT_COSTING_RATES: CostingRates = {
   labourRatePerHour: 500,
+  overtimeMultiplier: 1.5,
   machineRatePerHour: 200,
   coatingCostPerUnit: 0,
   overheadPercent: 10,
 };
+
+function parseOvertimeMultiplier(value: unknown): number {
+  const parsed = Number(value);
+  if (value == null || Number.isNaN(parsed) || parsed < 1) {
+    return DEFAULT_COSTING_RATES.overtimeMultiplier;
+  }
+  return parsed;
+}
 
 const STORAGE_KEY = "ats.costingRates";
 
@@ -27,6 +37,7 @@ export function loadCostingRates(): CostingRates {
     const parsed = JSON.parse(raw) as Partial<CostingRates>;
     return {
       labourRatePerHour: Number(parsed.labourRatePerHour) || DEFAULT_COSTING_RATES.labourRatePerHour,
+      overtimeMultiplier: parseOvertimeMultiplier(parsed.overtimeMultiplier),
       machineRatePerHour: Number(parsed.machineRatePerHour) || DEFAULT_COSTING_RATES.machineRatePerHour,
       coatingCostPerUnit: Number(parsed.coatingCostPerUnit) || 0,
       overheadPercent:
@@ -40,7 +51,18 @@ export function loadCostingRates(): CostingRates {
 }
 
 export function saveCostingRates(rates: CostingRates): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(rates));
+  const normalized: CostingRates = {
+    labourRatePerHour: Number(rates.labourRatePerHour) || DEFAULT_COSTING_RATES.labourRatePerHour,
+    overtimeMultiplier: parseOvertimeMultiplier(rates.overtimeMultiplier),
+    machineRatePerHour: Number(rates.machineRatePerHour) || DEFAULT_COSTING_RATES.machineRatePerHour,
+    coatingCostPerUnit: Number(rates.coatingCostPerUnit) || 0,
+    overheadPercent:
+      rates.overheadPercent == null
+        ? DEFAULT_COSTING_RATES.overheadPercent
+        : Number(rates.overheadPercent) || 0,
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+  window.dispatchEvent(new Event("ats-costing-rates-updated"));
 }
 
 export type CostingOperationInput = {

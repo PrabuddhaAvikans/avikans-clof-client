@@ -148,7 +148,11 @@ export function ProductionJobDetailsPanel({
           <Stat
             title="Labor"
             primary={`${job.laborHours}h`}
-            secondary={formatCurrency(job.laborCost, "LKR")}
+            secondary={
+              job.overtimeHours > 0
+                ? `${formatCurrency(job.laborCost, "LKR")} · ${job.overtimeHours}h OT`
+                : formatCurrency(job.laborCost, "LKR")
+            }
           />
           <Stat
             title="Quality"

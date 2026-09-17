@@ -49,6 +49,16 @@ export function CostingRatesForm({ compact = false, readOnly = false, onSaved }:
         onChange={(event) => update("labourRatePerHour", event.target.value)}
       />
       <Input
+        label={compact ? "OT multiplier" : "Overtime multiplier"}
+        type="number"
+        min={1}
+        step={0.1}
+        hint={compact ? undefined : "Applied to hours above the task estimate (e.g. 1.5 = time-and-a-half)"}
+        value={rates.overtimeMultiplier}
+        disabled={readOnly}
+        onChange={(event) => update("overtimeMultiplier", event.target.value)}
+      />
+      <Input
         label={compact ? "Machine / hour" : "Machine rate (per hour)"}
         type="number"
         min={0}

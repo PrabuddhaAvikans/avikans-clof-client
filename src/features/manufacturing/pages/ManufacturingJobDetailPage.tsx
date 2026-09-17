@@ -43,9 +43,11 @@ import {
   taskQuantityLabel,
 } from "@/features/manufacturing/utils/jobUtils";
 import { statusLabel, statusVariant } from "@/features/shared/utils/statusBadge";
-import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
+import { formatCurrency, formatDateTime } from "@/lib/format";
 import {
   allowedTaskActions,
+  calculateJobLaborBreakdown,
+  calculateTaskLaborCost,
   formatDurationHours,
   isProductionJobCompletable,
 } from "@/lib/manufacturingTasks";
@@ -69,6 +71,7 @@ export function ManufacturingJobDetailPage() {
   const materialsReady = job ? areMaterialsReady(job) : false;
   const delayed = job ? isJobDelayed(job) : false;
   const canComplete = job ? isProductionJobCompletable(job) : false;
+  const labor = job ? calculateJobLaborBreakdown(job) : null;
 
   const activityEntries = useMemo(() => {
     if (!job) return [];
@@ -151,10 +154,13 @@ export function ManufacturingJobDetailPage() {
               <SummaryCard title="Quantity" value={String(job.quantity)} />
               <SummaryCard title="Overall Status" value={statusLabel(ManufacturingJobStatus, job.status)} />
               <SummaryCard title="Progress" value={`${progress}%`} />
-              <SummaryCard title="Start Date" value={formatDate(job.plannedStartDate)} />
-              <SummaryCard title="Due Date" value={formatDate(job.plannedEndDate)} />
               <SummaryCard title="Estimated Cost" value={formatCurrency(job.estimatedCost)} />
               <SummaryCard title="Actual Cost" value={formatCurrency(job.actualCost)} />
+              <SummaryCard title="Labour Cost" value={formatCurrency(labor?.laborCost ?? 0)} />
+              <SummaryCard
+                title="Overtime"
+                value={labor && labor.overtimeHours > 0 ? formatDurationHours(labor.overtimeHours) : "None"}
+              />
               <SummaryCard title="Priority" value={statusLabel(Priority, job.priority)} />
             </div>
 
@@ -229,6 +235,8 @@ export function ManufacturingJobDetailPage() {
                         <th className="px-4 py-3">Status</th>
                         <th className="px-4 py-3 text-right">Est. Time</th>
                         <th className="px-4 py-3 text-right">Actual Time</th>
+                        <th className="px-4 py-3 text-right">OT</th>
+                        <th className="px-4 py-3 text-right">Labour</th>
                         <th className="px-4 py-3">Assigned To</th>
                         <th className="px-4 py-3">Actions</th>
                       </tr>
@@ -236,6 +244,7 @@ export function ManufacturingJobDetailPage() {
                     <tbody>
                       {job.tasks.map((task) => {
                         const actions = allowedTaskActions(task);
+                        const taskLabor = task.actualHours ? calculateTaskLaborCost(task) : null;
                         const prereqNames = task.prerequisiteTaskIds
                           .map((prereqId) => job.tasks.find((item) => item.id === prereqId)?.name)
                           .filter(Boolean);
@@ -279,6 +288,14 @@ export function ManufacturingJobDetailPage() {
                             </td>
                             <td className="px-4 py-3 text-right">{formatDurationHours(task.estimatedHours)}</td>
                             <td className="px-4 py-3 text-right">{formatDurationHours(task.actualHours)}</td>
+                            <td className="px-4 py-3 text-right">
+                              {taskLabor && taskLabor.overtimeHours > 0
+                                ? formatDurationHours(taskLabor.overtimeHours)
+                                : "-"}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              {taskLabor ? formatCurrency(taskLabor.laborCost) : "-"}
+                            </td>
                             <td className="px-4 py-3">{task.assignedToName ?? task.operatorName ?? "-"}</td>
                             <td className="px-4 py-3">
                               <div className="flex flex-wrap gap-1">
@@ -386,6 +403,27 @@ export function ManufacturingJobDetailPage() {
                           <dd>{formatDateTime(job.actualStartDate)}</dd>
                         </div>
                       )}
+                      <div className="flex justify-between">
+                        <dt className="text-muted-foreground">Regular labour</dt>
+                        <dd>
+                          {formatDurationHours(labor?.regularHours ?? 0)} ·{" "}
+                          {formatCurrency(labor?.regularCost ?? 0)}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-muted-foreground">Overtime</dt>
+                        <dd>
+                          {formatDurationHours(labor?.overtimeHours ?? 0)} ·{" "}
+                          {formatCurrency(labor?.overtimeCost ?? 0)}
+                          {labor && labor.overtimeHours > 0
+                            ? ` (${labor.overtimeMultiplier}×)`
+                            : ""}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-muted-foreground">Labour cost</dt>
+                        <dd>{formatCurrency(labor?.laborCost ?? 0)}</dd>
+                      </div>
                       <div className="flex justify-between">
                         <dt className="text-muted-foreground">Estimated Cost</dt>
                         <dd>{formatCurrency(job.estimatedCost)}</dd>

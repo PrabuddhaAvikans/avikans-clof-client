@@ -37,7 +37,9 @@ export interface ProductionJob {
   materialsReady: boolean;
   blockers: string[];
   laborHours: number;
+  overtimeHours: number;
   laborCost: number;
+  overtimeCost: number;
   estimatedCost: number;
   actualCost: number;
   qualityOpen: number;

@@ -7,7 +7,7 @@ import type {
   TimelineBlock,
 } from "@/types/production-tracking";
 import {
-  calculateJobActualCost,
+  calculateJobLaborBreakdown,
   currentTask,
   remainingQuantity,
 } from "@/lib/manufacturingTasks";
@@ -27,7 +27,8 @@ export function toProductionJobView(job: ManufacturingJob): ProductionJob {
     (sum, mr) => sum + Math.min(mr.issuedQuantity, mr.requiredQuantity),
     0,
   );
-  const laborHours = job.tasks.reduce((sum, task) => sum + (task.actualHours ?? 0), 0);
+  const labor = calculateJobLaborBreakdown(job);
+  const laborHours = labor.actualHours;
   const estimatedHours = job.tasks.reduce((sum, task) => sum + task.estimatedHours, 0);
   const overdueDays =
     job.status !== "completed" && job.status !== "cancelled" && new Date(job.plannedEndDate) < new Date()
@@ -82,7 +83,9 @@ export function toProductionJobView(job: ManufacturingJob): ProductionJob {
       ),
     blockers,
     laborHours,
-    laborCost: calculateJobActualCost(job),
+    overtimeHours: labor.overtimeHours,
+    laborCost: labor.laborCost,
+    overtimeCost: labor.overtimeCost,
     estimatedCost: job.estimatedCost,
     actualCost: job.actualCost,
     qualityOpen: qcOpen,

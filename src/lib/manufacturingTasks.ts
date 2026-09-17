@@ -12,6 +12,15 @@ import type {
   TaskMaterialUsage,
 } from "@/types/manufacturing";
 import type { ManufacturingTaskStatus } from "@/types/manufacturing";
+import { roundCost } from "@/lib/bomCosting";
+import { loadCostingRates } from "@/lib/costingRates";
+import {
+  calculateEstimatedLaborCost,
+  calculateLaborCost,
+  resolveLabourRatePerHour,
+  splitLaborHours,
+  type LaborCostBreakdown,
+} from "@/lib/laborCost";
 
 const TERMINAL_STATUSES: ManufacturingTaskStatus[] = [
   "completed",
@@ -191,28 +200,82 @@ export function calculateTaskProgressPercent(tasks: ManufacturingTask[]): number
 }
 
 export function calculateJobEstimatedCost(job: Pick<ManufacturingJob, "tasks" | "quantity">): number {
+  const rates = loadCostingRates();
   return round2(
     job.tasks.reduce((sum, task) => {
       if (!task.isEnabled || task.isRework) return sum;
-      const labour = task.estimatedHours * (task.labourCostRate ?? 0);
+      const labour = calculateEstimatedLaborCost(task.estimatedHours, task.labourCostRate, rates);
       const machine = task.machineCost ?? 0;
       return sum + labour + machine;
     }, 0),
   );
 }
 
+export function calculateTaskLaborCost(
+  task: Pick<ManufacturingTask, "actualHours" | "estimatedHours" | "overtimeHours" | "labourCostRate">,
+): LaborCostBreakdown {
+  return calculateLaborCost({
+    actualHours: task.actualHours ?? 0,
+    estimatedHours: task.estimatedHours,
+    overtimeHours: task.overtimeHours,
+    labourCostRate: task.labourCostRate,
+  });
+}
+
+export function calculateJobLaborBreakdown(
+  job: Pick<ManufacturingJob, "tasks">,
+): LaborCostBreakdown {
+  const rates = loadCostingRates();
+  return job.tasks.reduce<LaborCostBreakdown>(
+    (sum, task) => {
+      if (!task.isEnabled || (task.actualHours ?? 0) <= 0) return sum;
+      const labor = calculateLaborCost({
+        actualHours: task.actualHours ?? 0,
+        estimatedHours: task.estimatedHours,
+        overtimeHours: task.overtimeHours,
+        labourCostRate: task.labourCostRate,
+        rates,
+      });
+      return {
+        actualHours: roundCost(sum.actualHours + labor.actualHours),
+        regularHours: roundCost(sum.regularHours + labor.regularHours),
+        overtimeHours: roundCost(sum.overtimeHours + labor.overtimeHours),
+        labourRatePerHour: rates.labourRatePerHour,
+        overtimeRatePerHour: roundCost(rates.labourRatePerHour * rates.overtimeMultiplier),
+        overtimeMultiplier: rates.overtimeMultiplier,
+        regularCost: roundCost(sum.regularCost + labor.regularCost),
+        overtimeCost: roundCost(sum.overtimeCost + labor.overtimeCost),
+        laborCost: roundCost(sum.laborCost + labor.laborCost),
+      };
+    },
+    {
+      actualHours: 0,
+      regularHours: 0,
+      overtimeHours: 0,
+      labourRatePerHour: rates.labourRatePerHour,
+      overtimeRatePerHour: roundCost(rates.labourRatePerHour * rates.overtimeMultiplier),
+      overtimeMultiplier: rates.overtimeMultiplier,
+      regularCost: 0,
+      overtimeCost: 0,
+      laborCost: 0,
+    },
+  );
+}
+
 export function calculateJobActualCost(job: Pick<ManufacturingJob, "tasks" | "reworks">): number {
+  const laborCost = calculateJobLaborBreakdown(job).laborCost;
   const taskCost = job.tasks.reduce((sum, task) => {
-    const hours = task.actualHours ?? 0;
-    const labour = hours * (task.labourCostRate ?? 0);
+    if (!task.isEnabled) return sum;
     const materials = task.materialsUsed.reduce((m, item) => m + (item.cost ?? 0), 0);
-    return sum + labour + materials + (task.actualCost ?? 0);
+    const machine =
+      task.status === "completed" || task.status === "skipped" ? (task.machineCost ?? 0) : 0;
+    return sum + materials + machine;
   }, 0);
   const reworkCost = job.reworks.reduce(
     (sum, rework) => sum + (rework.additionalCost ?? 0),
     0,
   );
-  return round2(taskCost + reworkCost);
+  return round2(laborCost + taskCost + reworkCost);
 }
 
 export function isQcPassed(job: ManufacturingJob): boolean {
@@ -316,6 +379,7 @@ export function generateTasksFromOperations(options: {
 }): ManufacturingTask[] {
   const { jobId, quantity, actor } = options;
   const createdAt = options.createdAt ?? nowIso();
+  const defaultLabourRate = loadCostingRates().labourRatePerHour;
   const enabled = options.operations
     .filter((op) => op.isEnabled !== false)
     .slice()
@@ -342,7 +406,7 @@ export function generateTasksFromOperations(options: {
       isTestingTask: isTestingOperation(op),
       isRework: false,
       estimatedHours,
-      labourCostRate: op.labourCostRate,
+      labourCostRate: op.labourCostRate ?? defaultLabourRate,
       machineName: op.machineName,
       machineCost,
       plannedQuantity: quantity,
@@ -614,6 +678,11 @@ export function applyCompleteTask(
   const actualHours =
     action.actualHours ??
     hoursFromStart(task.startedAt, task.actualHours ?? task.estimatedHours);
+  const { overtimeHours } = splitLaborHours({
+    actualHours,
+    estimatedHours: task.estimatedHours,
+    overtimeHours: action.overtimeHours,
+  });
   const materialsUsed: TaskMaterialUsage[] = [
     ...task.materialsUsed,
     ...(action.materialsUsed ?? []),
@@ -632,6 +701,7 @@ export function applyCompleteTask(
       wasteQuantity: task.wasteQuantity + addedWaste,
       reworkQuantity: task.reworkQuantity + addedRework,
       actualHours,
+      overtimeHours,
       actualCost: round2((task.actualCost ?? 0) + materialCost),
       materialsUsed,
       notes: action.notes ?? task.notes,
@@ -735,7 +805,7 @@ export function applyRecordRework(
         ? (original.estimatedHours / original.plannedQuantity) * quantity
         : original.estimatedHours,
     ),
-    labourCostRate: original.labourCostRate,
+    labourCostRate: original.labourCostRate ?? resolveLabourRatePerHour(),
     machineName: original.machineName,
     machineCost: original.machineCost,
     assignedTo: original.assignedTo,
@@ -799,6 +869,7 @@ export function applyRecordRework(
       completedAt: undefined,
       startedAt: undefined,
       actualHours: undefined,
+      overtimeHours: undefined,
     };
     if (
       task.status === "completed" ||

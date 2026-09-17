@@ -79,6 +79,7 @@ export interface ManufacturingTask {
   originalTaskId?: string;
   estimatedHours: number;
   actualHours?: number;
+  overtimeHours?: number;
   labourCostRate?: number;
   machineName?: string;
   machineCost?: number;
@@ -220,6 +221,7 @@ export type ManufacturingTaskAction =
       wasteQuantity?: number;
       reworkQuantity?: number;
       actualHours?: number;
+      overtimeHours?: number;
       notes?: string;
       materialsUsed?: TaskMaterialUsage[];
     }

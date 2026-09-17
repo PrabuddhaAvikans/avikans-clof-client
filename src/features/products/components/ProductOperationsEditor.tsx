@@ -239,7 +239,7 @@ export function ProductOperationsEditor({ readOnly = false }: Props) {
                       name={`operations.${index}.labourCostRate`}
                       type="number"
                       min={0}
-                      label="Labour Cost / Rate"
+                      label="Labour rate / hour"
                     />
                     <FormikInput
                       name={`operations.${index}.machineName`}

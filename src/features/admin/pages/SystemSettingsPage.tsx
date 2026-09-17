@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { Building2, Globe, RotateCcw, Save } from "lucide-react";
+import { Building2, Calculator, Globe, RotateCcw, Save } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/feedback/PageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -48,17 +48,17 @@ const SECTIONS = [
     description: "Country, currency, and VAT",
     icon: Globe,
   },
+  {
+    id: "costing",
+    label: "Costing rates",
+    description: "Labour, overtime, and overhead",
+    icon: Calculator,
+  },
   // {
   //   id: "sales",
   //   label: "Sales defaults",
   //   description: "Quotations and payment terms",
   //   icon: FileText,
-  // },
-  // {
-  //   id: "costing",
-  //   label: "Costing rates",
-  //   description: "Labour, machine, and overhead",
-  //   icon: Calculator,
   // },
   // {
   //   id: "documents",
@@ -403,7 +403,7 @@ export function SystemSettingsPage() {
                 {section === "costing" && (
                   <SectionCard
                     title="Standard costing rates"
-                    description="Fixed rates used to calculate labour, machine, coating, and overhead on products."
+                    description="Labour and overtime rates used when manufacturing jobs record actual hours. Hours above a task estimate are overtime unless you enter OT separately."
                   >
                     <CostingRatesForm readOnly={!canEdit} onSaved={setCostingRates} />
                   </SectionCard>
