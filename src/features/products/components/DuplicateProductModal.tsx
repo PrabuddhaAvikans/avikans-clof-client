@@ -111,7 +111,7 @@ export function DuplicateProductModal({
       <Modal
         open={open}
         onClose={handleModalClose}
-        title={`Duplicate Product — ${product.sku}`}
+        title={`Duplicate Product - ${product.sku}`}
         size="full"
         className="h-[min(90vh,48rem)] max-h-[90vh]"
         closeOnOverlayClick={!confirmOpen}
@@ -231,7 +231,7 @@ export function DuplicateProductModal({
             <div className="flex justify-between gap-3">
               <dt className="text-muted-foreground">Type</dt>
               <dd className="font-medium text-foreground">
-                {ProductTypeLabels[summary.productType] ?? summary.productType}
+                {ProductTypeLabels [summary.productType] ?? summary.productType}
               </dd>
             </div>
             <div className="flex justify-between gap-3">

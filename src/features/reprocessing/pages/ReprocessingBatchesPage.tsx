@@ -99,7 +99,7 @@ export function ReprocessingBatchesPage() {
         cell: ({ row }) =>
           row.original.recoveredQuantity != null
             ? `${formatNumber(row.original.recoveredQuantity)} ${row.original.inputUnit}`
-            : "—",
+            : "-",
       },
       {
         id: "unitCost",
@@ -107,7 +107,7 @@ export function ReprocessingBatchesPage() {
         cell: ({ row }) =>
           row.original.recoveredUnitCost != null
             ? formatCurrency(row.original.recoveredUnitCost)
-            : "—",
+            : "-",
       },
       {
         accessorKey: "updatedAt",
@@ -159,7 +159,7 @@ export function ReprocessingBatchesPage() {
     <PageContainer maxWidth="wide">
       <PageHeader
         title="Reprocessing"
-        description="Melt reusable scrap into recovered material. Carries scrap value and adds only processing costs — never a new purchase."
+        description="Melt reusable scrap into recovered material. Carries scrap value and adds only processing costs - never a new purchase."
         breadcrumbs={[
           { label: "Inventory", href: ROUTES.inventory.list },
           { label: "Reprocessing" },

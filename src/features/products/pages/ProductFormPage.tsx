@@ -1087,7 +1087,7 @@ function BasicInformationSection({
           ]}
           required
         />
-        <FormikInput name="productFamily" label="Family Label" />
+        {/* <FormikInput name="productFamily" label="Family Label" /> */}
       </div>
     </SectionCard>
   );

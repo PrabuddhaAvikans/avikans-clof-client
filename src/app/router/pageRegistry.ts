@@ -16,6 +16,7 @@ import {
   CustomerListPage,
 } from "@/features/customers/pages/CustomerPages";
 import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
+import { ReportsHubPage, ReportViewerPage } from "@/features/reports/pages/ReportsPages";
 import {
   DeliveryCalendarPage,
   DeliveryDetailPage,
@@ -73,6 +74,8 @@ import { NotFoundPage } from "@/features/shared/pages/NotFoundPage";
 
 export const PAGE_REGISTRY = {
   DashboardPage,
+  ReportsHubPage,
+  ReportViewerPage,
   QuotationWorkspacePage,
   EstimateFormPage,
   QuotationPreviewPage,

@@ -19,6 +19,13 @@ export const NAVIGATION: NavItem[] = [
     permission: "dashboard:view",
   },
   {
+    id: "reports",
+    label: "Reports",
+    path: ROUTES.reports.hub,
+    icon: "BarChart3",
+    permission: "reports:view",
+  },
+  {
     id: "sales",
     label: "Sales",
     path: ROUTES.quotations.list,
@@ -160,6 +167,13 @@ export const NAVIGATION: NavItem[] = [
         label: "Inventory Items",
         path: ROUTES.inventory.list,
         icon: "Boxes",
+        permission: "inventory:view",
+      },
+      {
+        id: "inventory-units",
+        label: "Units of Measure",
+        path: ROUTES.inventory.units,
+        icon: "Ruler",
         permission: "inventory:view",
       },
       {

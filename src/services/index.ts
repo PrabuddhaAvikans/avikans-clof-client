@@ -12,6 +12,7 @@ export { mockUserService as userService, mockRoleService as roleService } from "
 export { mockAuditService as auditService } from "@/services/mock/mockAuditService";
 export { mockNotificationService as notificationService } from "@/services/mock/mockNotificationService";
 export { mockDashboardService as dashboardService } from "@/services/mock/mockDashboardService";
+export { mockReportService as reportService } from "@/services/mock/mockReportService";
 export { mockCostingService as costingService } from "@/services/mock/mockCostingService";
 export { mockProductionTrackingService as productionTrackingService } from "@/services/mock/mockProductionTrackingService";
 export { mockReprocessingService as reprocessingService } from "@/services/mock/mockReprocessingService";
@@ -30,6 +31,7 @@ export type { UserService, UserListFilters, UserFormData, RoleService, RoleListF
 export type { AuditService, AuditLogListFilters } from "@/services/interfaces/auditService";
 export type { NotificationService, NotificationListFilters } from "@/services/interfaces/notificationService";
 export type { DashboardService } from "@/services/interfaces/dashboardService";
+export type { ReportService } from "@/services/interfaces/reportService";
 export type { CostingService, CostingListFilters, CoatingSubmitData } from "@/services/interfaces/costingService";
 export type {
   ProductionTrackingService,

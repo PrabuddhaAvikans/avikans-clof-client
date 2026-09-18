@@ -101,7 +101,7 @@ export function PermissionsPage() {
                       </StatusBadge>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
-                      {(rolesByPermission.get(permission) ?? []).join(", ") || "—"}
+                      {(rolesByPermission.get(permission) ?? []).join(", ") || "-"}
                     </td>
                   </tr>
                 )),

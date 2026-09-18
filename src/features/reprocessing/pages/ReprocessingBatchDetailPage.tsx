@@ -83,7 +83,7 @@ export function ReprocessingBatchDetailPage() {
     if (!batch) return;
     try {
       await startBatch.mutateAsync(batch.id);
-      toast.success("Reprocessing started — scrap issued to WIP");
+      toast.success("Reprocessing started - scrap issued to WIP");
       void refetch();
     } catch (err) {
       toast.error(
@@ -106,7 +106,7 @@ export function ReprocessingBatchDetailPage() {
           notes: notes || undefined,
         },
       });
-      toast.success("Reprocessing completed — recovered lot posted (no purchase)");
+      toast.success("Reprocessing completed - recovered lot posted (no purchase)");
       setCompleteOpen(false);
       void refetch();
     } catch (err) {
@@ -204,7 +204,7 @@ export function ReprocessingBatchDetailPage() {
                 value={
                   batch.recoveredQuantity != null
                     ? `${formatNumber(batch.recoveredQuantity)} ${batch.inputUnit}`
-                    : "—"
+                    : "-"
                 }
               />
               <SummaryCard
@@ -212,7 +212,7 @@ export function ReprocessingBatchDetailPage() {
                 value={
                   batch.recoveredUnitCost != null
                     ? formatCurrency(batch.recoveredUnitCost)
-                    : "—"
+                    : "-"
                 }
                 description="(scrap value + processing) ÷ recovered"
               />
@@ -265,7 +265,7 @@ export function ReprocessingBatchDetailPage() {
                             {batch.recoveredLotSku}
                           </Link>
                         ) : (
-                          "—"
+                          "-"
                         )}
                       </dd>
                     </div>
@@ -277,7 +277,7 @@ export function ReprocessingBatchDetailPage() {
                     </div>
                     <div className="flex justify-between gap-4">
                       <dt className="text-muted-foreground">Completed</dt>
-                      <dd>{batch.completedAt ? formatDateTime(batch.completedAt) : "—"}</dd>
+                      <dd>{batch.completedAt ? formatDateTime(batch.completedAt) : "-"}</dd>
                     </div>
                   </dl>
                 ) : (
@@ -320,7 +320,7 @@ export function ReprocessingBatchDetailPage() {
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
               Input {formatNumber(batch.inputQuantity)} {batch.inputUnit}. Split into recovered
-              material and process loss. Recovered unit cost adds processing only — no purchase.
+              material and process loss. Recovered unit cost adds processing only - no purchase.
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               <Input

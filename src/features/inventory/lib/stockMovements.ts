@@ -103,7 +103,7 @@ export function stockMovementImpact(movement: StockMovement): string {
     case "transfer":
       return "Moved";
     default:
-      return "—";
+      return "-";
   }
 }
 
@@ -144,7 +144,7 @@ export function movementReason(movement: StockMovement): string {
   if (movement.referenceType && movement.referenceId) {
     return `${movement.referenceType} ${movement.referenceId}`;
   }
-  return "—";
+  return "-";
 }
 
 export function previewStockChange(options: {

@@ -34,6 +34,13 @@ export function formatCurrency(
   }).format(amount);
 }
 
+export function formatCompactAmount(value: number): string {
+  if (!value) return "0";
+  if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(0)}k`;
+  return formatNumber(value);
+}
+
 export function formatNumber(
   value: number,
   options?: Intl.NumberFormatOptions,

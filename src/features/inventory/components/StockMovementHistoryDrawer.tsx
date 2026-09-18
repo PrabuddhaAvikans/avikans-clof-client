@@ -110,7 +110,7 @@ export function StockMovementHistoryDrawer({
                   return {
                     id: entry.id,
                     title: `${stockMovementLabel(entry.type)}  ${signed.prefix}${formatNumber(Math.abs(entry.quantity))} ${entry.unit}`,
-                    description: `${stockMovementImpact(entry)}${movementReason(entry) !== "—" ? ` · ${movementReason(entry)}` : ""}`,
+                    description: `${stockMovementImpact(entry)}${movementReason(entry) !== "-" ? ` · ${movementReason(entry)}` : ""}`,
                     timestamp: formatDateTime(entry.performedAt),
                     status: stockMovementTimelineStatus(entry.type),
                   };

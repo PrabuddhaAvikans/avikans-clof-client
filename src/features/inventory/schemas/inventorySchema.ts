@@ -84,3 +84,18 @@ export const stockMovementFormSchema = yup.object({
 });
 
 export type StockMovementFormValues = yup.InferType<typeof stockMovementFormSchema>;
+
+export const unitOfMeasureFormSchema = yup.object({
+  code: yup
+    .string()
+    .trim()
+    .required("Unit code is required")
+    .max(16, "Use 16 characters or fewer"),
+  name: yup
+    .string()
+    .trim()
+    .required("Unit name is required")
+    .max(80, "Use 80 characters or fewer"),
+});
+
+export type UnitOfMeasureFormValues = yup.InferType<typeof unitOfMeasureFormSchema>;

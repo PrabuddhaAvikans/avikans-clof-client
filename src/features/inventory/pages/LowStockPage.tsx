@@ -108,10 +108,3 @@ export function StockOverviewPage() {
   return <LowStockPage />;
 }
 
-export function UnitsOfMeasurePage() {
-  return (
-    <PageContainer>
-      <PageHeader title="Units of Measure" description="Configure measurement units." />
-    </PageContainer>
-  );
-}

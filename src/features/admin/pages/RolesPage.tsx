@@ -175,7 +175,7 @@ export function RolesPage() {
         id: "description",
         accessorKey: "description",
         header: "Description",
-        cell: ({ row }) => row.original.description || "—",
+        cell: ({ row }) => row.original.description || "-",
       },
       {
         id: "permissions",

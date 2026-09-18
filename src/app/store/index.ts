@@ -22,6 +22,7 @@ import usersReducer from "@/features/admin/store/usersSlice";
 import auditLogsReducer from "@/features/admin/store/auditLogsSlice";
 import notificationsReducer from "@/features/admin/store/notificationsSlice";
 import dashboardReducer from "@/features/dashboard/store/dashboardSlice";
+import reportsReducer from "@/features/reports/store/reportsSlice";
 import reprocessingReducer from "@/features/reprocessing/store/reprocessingSlice";
 
 const epicMiddleware = createEpicMiddleware<
@@ -47,6 +48,7 @@ export const store = configureStore({
     auditLogs: auditLogsReducer,
     notifications: notificationsReducer,
     dashboard: dashboardReducer,
+    reports: reportsReducer,
     reprocessing: reprocessingReducer,
   },
   middleware: (getDefaultMiddleware) =>

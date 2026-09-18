@@ -6,6 +6,16 @@
       "page": "DashboardPage",
       "permission": "dashboard:view"
     },
+    {
+      "path": "reports",
+      "page": "ReportsHubPage",
+      "permission": "reports:view"
+    },
+    {
+      "path": "reports/:reportId",
+      "page": "ReportViewerPage",
+      "permission": "reports:view"
+    },
 
     {
       "path": "sales",

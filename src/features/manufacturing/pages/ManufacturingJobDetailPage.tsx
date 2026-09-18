@@ -496,7 +496,7 @@ export function ManufacturingJobDetailPage() {
                       </div>
                     </dl>
                     <p className="mt-2 text-xs text-muted-foreground">
-                      Scrap lots keep carried material cost — no new purchase was posted.
+                      Scrap lots keep carried material cost - no new purchase was posted.
                     </p>
                   </div>
                 )}
@@ -636,7 +636,7 @@ export function ManufacturingJobDetailPage() {
           void completeJob
             .mutateAsync({ id: job.id, completion })
             .then(() => {
-              toast.success("Production job completed — scrap inventory posted at carried cost");
+              toast.success("Production job completed - scrap inventory posted at carried cost");
               setCompleteOpen(false);
               void refetch();
             })

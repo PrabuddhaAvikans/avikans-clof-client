@@ -13,6 +13,7 @@ export const PERMISSION_MODULES = {
   roles: "roles",
   settings: "settings",
   audit_logs: "audit_logs",
+  reports: "reports",
 } as const;
 
 export type PermissionModule =
@@ -57,6 +58,7 @@ const MODULE_ACTIONS: Record<PermissionModule, readonly PermissionAction[]> = {
   roles: ["view", "create", "edit", "delete", "assign"],
   settings: ["view", "edit"],
   audit_logs: ["view", "export"],
+  reports: ["view", "export"],
 };
 
 export const ALL_PERMISSIONS: Permission[] = (

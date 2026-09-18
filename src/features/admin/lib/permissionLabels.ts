@@ -15,4 +15,5 @@ export const PERMISSION_MODULE_LABELS: Record<PermissionModule, string> = {
   roles: "Roles",
   settings: "Settings",
   audit_logs: "Audit Logs",
+  reports: "Reports",
 };

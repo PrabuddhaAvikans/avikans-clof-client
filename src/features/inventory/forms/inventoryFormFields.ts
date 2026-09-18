@@ -1,4 +1,10 @@
+import { createElement } from "react";
 import type { DynamicFormSection } from "@/components/forms/types";
+import { UnitOfMeasureField } from "@/features/inventory/components/UnitOfMeasureField";
+import {
+  DEFAULT_UNITS_OF_MEASURE,
+  toUnitFieldOptions,
+} from "@/lib/unitsOfMeasure";
 import {
   InventoryItemType,
   InventoryItemTypeLabels,
@@ -21,21 +27,7 @@ const PRICING_METHOD_OPTIONS = Object.entries(PricingMethodLabels).map(([value, 
   label,
 }));
 
-export const UNIT_OF_MEASURE_OPTIONS = [
-  { value: "pcs", label: "pcs - Pieces" },
-  { value: "set", label: "set - Set" },
-  { value: "kg", label: "kg - Kilogram" },
-  { value: "g", label: "g - Gram" },
-  { value: "L", label: "L - Litre" },
-  { value: "ml", label: "ml - Millilitre" },
-  { value: "m", label: "m - Metre" },
-  { value: "mm", label: "mm - Millimetre" },
-  { value: "box", label: "box - Box" },
-  { value: "reel", label: "reel - Reel" },
-  { value: "roll", label: "roll - Roll" },
-  { value: "hrs", label: "hrs - Hours" },
-  { value: "job", label: "job - Job" },
-];
+export const UNIT_OF_MEASURE_OPTIONS = toUnitFieldOptions(DEFAULT_UNITS_OF_MEASURE);
 
 export const DEFAULT_UNIT_BY_ITEM_TYPE: Record<string, string> = {
   raw_material: "kg",
@@ -69,15 +61,14 @@ export const inventoryGeneralSections: DynamicFormSection[] = [
       {
         name: "unit",
         label: "Unit of Measure",
-        type: "select",
+        type: "custom",
         required: true,
-        options: (values) => {
-          const current = typeof values.unit === "string" ? values.unit : "";
-          if (current && !UNIT_OF_MEASURE_OPTIONS.some((option) => option.value === current)) {
-            return [...UNIT_OF_MEASURE_OPTIONS, { value: current, label: current }];
-          }
-          return UNIT_OF_MEASURE_OPTIONS;
-        },
+        render: () =>
+          createElement(UnitOfMeasureField, {
+            name: "unit",
+            label: "Unit of Measure",
+            required: true,
+          }),
       },
       { name: "category", label: "Category", type: "text", required: true },
       { name: "brand", label: "Brand", type: "text" },

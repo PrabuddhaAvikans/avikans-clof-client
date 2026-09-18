@@ -87,7 +87,7 @@ export function CompleteJobDialog({ job, open, loading, onClose, onSubmit }: Pro
             {issuedQuantity} {unit}
           </span>
           . Split into finished consumption, reusable scrap, recoverable material, and permanent
-          waste. Reusable scrap keeps the original material cost — it is not a new purchase.
+          waste. Reusable scrap keeps the original material cost - it is not a new purchase.
         </p>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -124,7 +124,7 @@ export function CompleteJobDialog({ job, open, loading, onClose, onSubmit }: Pro
             step={0.001}
             value={permanentWasteQuantity}
             onChange={(event) => setPermanentWasteQuantity(Number(event.target.value))}
-            hint="Process loss — not an inventory asset"
+            hint="Process loss - not an inventory asset"
           />
         </div>
 

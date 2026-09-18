@@ -3,6 +3,11 @@ export const ROUTES = {
   login: "/login",
   dashboard: "/dashboard",
 
+  reports: {
+    hub: "/reports",
+    view: (id: string) => `/reports/${id}` as const,
+  },
+
   products: {
     list: "/products",
     new: "/products/new",

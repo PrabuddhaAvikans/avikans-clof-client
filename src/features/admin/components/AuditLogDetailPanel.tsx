@@ -137,8 +137,8 @@ export function AuditLogDetailPanel({
                   {log.changes.map((change) => (
                     <tr key={change.field} className="border-b border-border last:border-0">
                       <td className="px-3 py-2 font-medium">{auditFieldLabel(change.field)}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{change.from || "—"}</td>
-                      <td className="px-3 py-2 font-medium">{change.to || "—"}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{change.from || "-"}</td>
+                      <td className="px-3 py-2 font-medium">{change.to || "-"}</td>
                     </tr>
                   ))}
                 </tbody>

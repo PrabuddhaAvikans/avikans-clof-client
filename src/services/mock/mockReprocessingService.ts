@@ -187,7 +187,7 @@ export const mockReprocessingService: ReprocessingService = {
       const form: InventoryFormData = {
         sku: wipSku,
         name: `${scrap.name} (Reprocessing WIP · ${batch.batchNumber})`,
-        description: `Under melting / reprocessing for ${batch.batchNumber}. Carried scrap value — not a purchase.`,
+        description: `Under melting / reprocessing for ${batch.batchNumber}. Carried scrap value - not a purchase.`,
         category: "Reusable Materials",
         itemType: InventoryItemType.reprocessing_wip,
         unit: scrap.unit,
