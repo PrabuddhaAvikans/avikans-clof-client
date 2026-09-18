@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Pencil, Plus, Trash2 } from "lucide-react";
+import { ROUTES } from "@/app/config/routes";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/feedback/PageHeader";
 import { PageContent } from "@/components/feedback/PageStates";
@@ -101,6 +102,10 @@ export function BrandListPage() {
       <PageHeader
         title="Brands"
         description="Manage product brands and manufacturers."
+        breadcrumbs={[
+          { label: "Configuration", href: ROUTES.configuration.hub },
+          { label: "Brands" },
+        ]}
         actions={
           <Button
             leftIcon={<Plus className="h-4 w-4" />}

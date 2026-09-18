@@ -71,7 +71,7 @@ export function UnitsOfMeasurePage() {
         title="Units of Measure"
         description="Add units that can be selected on inventory items."
         breadcrumbs={[
-          { label: "Inventory", href: ROUTES.inventory.list },
+          { label: "Configuration", href: ROUTES.configuration.hub },
           { label: "Units of Measure" },
         ]}
         actions={

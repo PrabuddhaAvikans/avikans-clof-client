@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import type { DynamicFormSection } from "@/components/forms/types";
 import { UnitOfMeasureField } from "@/features/inventory/components/UnitOfMeasureField";
+import { WarehouseField } from "@/features/inventory/components/WarehouseField";
 import {
   DEFAULT_UNITS_OF_MEASURE,
   toUnitFieldOptions,
@@ -105,12 +106,22 @@ export const inventoryStockSections: DynamicFormSection[] = [
     ],
   },
   {
-    id: "warehouse-location",
-    title: "Warehouse & Location",
+    id: "warehouse",
+    title: "Warehouse",
     columns: 2,
     fields: [
-      { name: "warehouse", label: "Warehouse", type: "text", required: true },
-      { name: "location", label: "Location / Bin", type: "text", required: true },
+      {
+        name: "warehouse",
+        label: "Warehouse",
+        type: "custom",
+        required: true,
+        render: () =>
+          createElement(WarehouseField, {
+            name: "warehouse",
+            label: "Warehouse",
+            required: true,
+          }),
+      },
     ],
   },
 ];

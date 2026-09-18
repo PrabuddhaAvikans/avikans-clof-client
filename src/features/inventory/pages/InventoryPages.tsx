@@ -4,3 +4,4 @@ export { InventoryFormPage } from "./InventoryFormPage";
 export { StockMovementsPage } from "./StockMovementsPage";
 export { LowStockPage, StockOverviewPage } from "./LowStockPage";
 export { UnitsOfMeasurePage } from "./UnitsOfMeasurePage";
+export { WarehousesPage } from "./WarehousesPage";

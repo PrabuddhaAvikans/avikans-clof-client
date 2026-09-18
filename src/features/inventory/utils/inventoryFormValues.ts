@@ -1,6 +1,7 @@
 import type { InventoryItem } from "@/types/inventory";
 import { PricingMethod } from "@/types/inventory";
 import type { InventoryFormValues } from "@/features/inventory/schemas/inventorySchema";
+import { DEFAULT_WAREHOUSE_NAME } from "@/lib/warehouses";
 
 export function createDefaultInventoryFormValues(): InventoryFormValues {
   const today = new Date().toISOString().slice(0, 10);
@@ -15,8 +16,8 @@ export function createDefaultInventoryFormValues(): InventoryFormValues {
     supplier: "",
     taxCode: "",
     quantityOnHand: 0,
-    warehouse: "Main Warehouse",
-    location: "",
+    warehouse: DEFAULT_WAREHOUSE_NAME,
+    trackStock: true,
     minStock: 0,
     maxStock: 100,
     reorderLevel: 10,
@@ -45,7 +46,7 @@ export function inventoryItemToFormValues(item: InventoryItem): InventoryFormVal
     taxCode: item.taxCode ?? "",
     quantityOnHand: item.quantityOnHand,
     warehouse: item.warehouse,
-    location: item.location,
+    trackStock: item.itemType !== "service",
     minStock: item.minStock,
     maxStock: item.maxStock,
     reorderLevel: item.reorderLevel,

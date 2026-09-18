@@ -1,5 +1,5 @@
 import { differenceInCalendarDays, parseISO } from "date-fns";
-import { computeTotalCost } from "@/types/product";
+import { computeTotalCost, extraLinesTotal } from "@/types/product";
 import type { AuditLogEntry } from "@/types/audit";
 import type { CostingRequest } from "@/types/costing";
 import type { CreditNote } from "@/types/credit-note";
@@ -14,6 +14,7 @@ import type { ReprocessingBatch } from "@/types/reprocessing";
 import type { ReportDataset, ReportId, ReportKpi, ReportRow } from "@/types/report";
 import type { SalesOrder } from "@/types/sales-order";
 import { calculateJobLaborBreakdown } from "@/lib/manufacturingTasks";
+import { formatContributors } from "@/lib/taskContributors";
 import { getReportDefinition } from "@/features/reports/catalog";
 import {
   agingBucket,
@@ -81,7 +82,6 @@ const builders: Record<ReportId, Builder> = {
       quotationNumber: item.quotationNumber,
       customerName: item.customerName,
       status: item.status,
-      priority: item.priority,
       lineCount: item.lineItems.length,
       totalAmount: item.totalAmount,
       paymentStatus: item.paymentStatus,
@@ -489,15 +489,20 @@ const builders: Record<ReportId, Builder> = {
         actualHours: labor.actualHours,
         regularHours: labor.regularHours,
         overtimeHours: labor.overtimeHours,
+        normalOvertimeHours: labor.normalOvertimeHours,
+        doubleOvertimeHours: labor.doubleOvertimeHours,
         regularCost: labor.regularCost,
         overtimeCost: labor.overtimeCost,
+        normalOvertimeCost: labor.normalOvertimeCost,
+        doubleOvertimeCost: labor.doubleOvertimeCost,
         laborCost: labor.laborCost,
       };
     });
     return {
       kpis: [
         kpi("hours", "Actual hours", sumBy(rows, (row) => Number(row.actualHours))),
-        kpi("ot", "OT hours", sumBy(rows, (row) => Number(row.overtimeHours))),
+        kpi("ot", "Normal OT hours", sumBy(rows, (row) => Number(row.normalOvertimeHours))),
+        kpi("dot", "Double OT hours", sumBy(rows, (row) => Number(row.doubleOvertimeHours))),
         kpi("cost", "Labor cost", sumBy(rows, (row) => Number(row.laborCost)), "currency"),
         kpi("otCost", "OT cost", sumBy(rows, (row) => Number(row.overtimeCost)), "currency"),
       ],
@@ -517,11 +522,14 @@ const builders: Record<ReportId, Builder> = {
         estimatedHours: task.estimatedHours,
         actualHours: task.actualHours ?? 0,
         overtimeHours: task.overtimeHours ?? 0,
+        normalOvertimeHours: task.normalOvertimeHours ?? 0,
+        doubleOvertimeHours: task.doubleOvertimeHours ?? 0,
         plannedQuantity: task.plannedQuantity,
         completedQuantity: task.completedQuantity,
         rejectedQuantity: task.rejectedQuantity,
         wasteQuantity: task.wasteQuantity,
         operatorName: task.operatorName ?? task.assignedToName ?? "",
+        contributors: formatContributors(task.contributors, true) || task.operatorName || task.assignedToName || "",
       })),
     );
     return {
@@ -1039,7 +1047,7 @@ const builders: Record<ReportId, Builder> = {
         machineCost: breakdown?.machineCost ?? 0,
         coatingFinishingCost: breakdown?.coatingFinishingCost ?? 0,
         overheadCost: breakdown?.overheadCost ?? 0,
-        otherCost: breakdown?.otherCost ?? 0,
+        otherCost: (breakdown?.otherCost ?? 0) + extraLinesTotal(breakdown),
         costPrice: breakdown ? computeTotalCost(breakdown) : product.costPrice,
         basePrice: version?.basePrice ?? product.basePrice,
       };

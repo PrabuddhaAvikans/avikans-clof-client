@@ -150,7 +150,9 @@ export function ProductionJobDetailsPanel({
             primary={`${job.laborHours}h`}
             secondary={
               job.overtimeHours > 0
-                ? `${formatCurrency(job.laborCost, "LKR")} · ${job.overtimeHours}h OT`
+                ? `${formatCurrency(job.laborCost, "LKR")} · ${job.normalOvertimeHours}h OT${
+                    job.doubleOvertimeHours > 0 ? ` · ${job.doubleOvertimeHours}h DOT` : ""
+                  }`
                 : formatCurrency(job.laborCost, "LKR")
             }
           />

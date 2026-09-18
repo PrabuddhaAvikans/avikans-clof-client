@@ -38,6 +38,8 @@ export interface ProductionJob {
   blockers: string[];
   laborHours: number;
   overtimeHours: number;
+  normalOvertimeHours: number;
+  doubleOvertimeHours: number;
   laborCost: number;
   overtimeCost: number;
   estimatedCost: number;

@@ -45,7 +45,7 @@ export function createProductFormSections(
         },
         {
           name: 'sku',
-          label: 'SKU',
+          label: 'Product Code',
           type: 'text',
           required: true,
         },

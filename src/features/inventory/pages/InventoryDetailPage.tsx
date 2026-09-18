@@ -147,9 +147,8 @@ export function InventoryDetailPage() {
                       value={formatNumber(item.reorderQuantity)}
                     />
                   </DetailSection>
-                  <DetailSection title="Warehouse & Location">
+                  <DetailSection title="Warehouse">
                     <DetailField label="Warehouse" value={item.warehouse} />
-                    <DetailField label="Location / Bin" value={item.location} />
                     <DetailField
                       label="Last Restocked"
                       value={item.lastRestockedAt ? formatDate(item.lastRestockedAt) : "-"}

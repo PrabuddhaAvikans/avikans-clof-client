@@ -3,6 +3,7 @@ import {
   computeTotalCost,
   type BomItem,
   type CostBreakdown,
+  type CostSheetLine,
   type Product,
   type ProductOperation,
   type ProductSpecifications,
@@ -70,7 +71,10 @@ export function formatSpecValue(
 export function cloneSpecifications(
   specs: ProductSpecifications,
 ): ProductSpecifications {
-  return { ...specs };
+  return {
+    ...specs,
+    accessories: (specs.accessories ?? []).map((item) => ({ ...item })),
+  };
 }
 
 export function cloneBom(bom: BomItem[]): BomItem[] {
@@ -85,7 +89,18 @@ export function cloneOperations(operations: ProductOperation[]): ProductOperatio
 }
 
 export function cloneCostBreakdown(breakdown: CostBreakdown): CostBreakdown {
-  return { ...breakdown };
+  return {
+    ...breakdown,
+    extraLines: (breakdown.extraLines ?? []).map((line) => ({ ...line })),
+  };
+}
+
+function cloneExtraLines(lines?: CostSheetLine[]): CostSheetLine[] {
+  return (lines ?? []).map((line) => ({
+    id: line.id,
+    handle: line.handle,
+    amount: roundMoney(Number(line.amount) || 0),
+  }));
 }
 
 export function estimateFromBomAndOperations(
@@ -94,6 +109,7 @@ export function estimateFromBomAndOperations(
   baseCoating = 0,
   baseOverhead = 0,
   baseOther = 0,
+  extraLines: CostSheetLine[] = [],
 ): CostBreakdown {
   const materialCost = bom.reduce((sum, item) => sum + item.lineCost, 0);
   const labourCost = operations
@@ -110,6 +126,7 @@ export function estimateFromBomAndOperations(
     machineCost: roundMoney(machineCost),
     overheadCost: roundMoney(baseOverhead),
     otherCost: roundMoney(baseOther),
+    extraLines: cloneExtraLines(extraLines),
   };
 }
 
@@ -319,6 +336,7 @@ export function applyCustomizationChanges(
     customization.base.costBreakdown.coatingFinishingCost,
     customization.base.costBreakdown.overheadCost,
     customization.base.costBreakdown.otherCost,
+    customization.base.costBreakdown.extraLines,
   );
 
   const timestamp = new Date().toISOString();

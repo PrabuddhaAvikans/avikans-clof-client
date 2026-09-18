@@ -191,13 +191,11 @@
     },
     {
       "path": "products/categories",
-      "page": "CategoriesPage",
-      "permission": "categories:view"
+      "redirect": "/configuration/categories"
     },
     {
       "path": "products/brands",
-      "page": "BrandsPage",
-      "permission": "products:view"
+      "redirect": "/configuration/brands"
     },
     {
       "path": "products/attributes",
@@ -261,8 +259,11 @@
     },
     {
       "path": "inventory/units",
-      "page": "UnitsOfMeasurePage",
-      "permission": "inventory:view"
+      "redirect": "/configuration/units"
+    },
+    {
+      "path": "inventory/warehouses",
+      "redirect": "/configuration/warehouses"
     },
     {
       "path": "inventory/:id/edit",
@@ -388,6 +389,36 @@
     },
 
     {
+      "path": "configuration",
+      "page": "ConfigurationHubPage"
+    },
+    {
+      "path": "configuration/units",
+      "page": "UnitsOfMeasurePage",
+      "permission": "inventory:view"
+    },
+    {
+      "path": "configuration/warehouses",
+      "page": "WarehousesPage",
+      "permission": "inventory:view"
+    },
+    {
+      "path": "configuration/categories",
+      "page": "CategoriesPage",
+      "permission": "categories:view"
+    },
+    {
+      "path": "configuration/brands",
+      "page": "BrandsPage",
+      "permission": "products:view"
+    },
+    {
+      "path": "configuration/settings",
+      "page": "SystemSettingsPage",
+      "permission": "settings:view"
+    },
+
+    {
       "path": "admin",
       "redirect": "/admin/users"
     },
@@ -423,8 +454,7 @@
     },
     {
       "path": "admin/settings",
-      "page": "SystemSettingsPage",
-      "permission": "settings:view"
+      "redirect": "/configuration/settings"
     },
     {
       "path": "admin/audit-logs",

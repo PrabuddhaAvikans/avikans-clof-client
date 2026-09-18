@@ -23,7 +23,7 @@ export function LowStockPage() {
     () => [
       { accessorKey: "sku", header: "SKU" },
       { accessorKey: "name", header: "Item" },
-      { accessorKey: "location", header: "Location" },
+      { accessorKey: "warehouse", header: "Warehouse" },
       {
         accessorKey: "quantityAvailable",
         header: "Available",

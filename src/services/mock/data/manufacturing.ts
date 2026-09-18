@@ -3,6 +3,7 @@ import type {
   ManufacturingTask,
   ManufacturingTaskHistoryEntry,
   ManufacturingTaskStatus,
+  TaskContributor,
 } from "@/types/manufacturing";
 import {
   createHistoryEntry,
@@ -23,6 +24,8 @@ type TaskSeed = {
   estimatedHours: number;
   actualHours?: number;
   overtimeHours?: number;
+  normalOvertimeHours?: number;
+  doubleOvertimeHours?: number;
   labourCostRate?: number;
   machineCost?: number;
   status: ManufacturingTaskStatus;
@@ -30,6 +33,7 @@ type TaskSeed = {
   assignedToName?: string;
   operatorId?: string;
   operatorName?: string;
+  contributors?: TaskContributor[];
   startedAt?: string;
   completedAt?: string;
   plannedQuantity: number;
@@ -62,6 +66,8 @@ function toTask(jobId: string, seed: TaskSeed, index: number): ManufacturingTask
     estimatedHours: seed.estimatedHours,
     actualHours: seed.actualHours,
     overtimeHours: seed.overtimeHours,
+    normalOvertimeHours: seed.normalOvertimeHours,
+    doubleOvertimeHours: seed.doubleOvertimeHours,
     labourCostRate: seed.labourCostRate,
     machineName: seed.machineName,
     machineCost: seed.machineCost,
@@ -69,6 +75,7 @@ function toTask(jobId: string, seed: TaskSeed, index: number): ManufacturingTask
     assignedToName: seed.assignedToName,
     operatorId: seed.operatorId ?? seed.assignedTo,
     operatorName: seed.operatorName ?? seed.assignedToName,
+    contributors: contributorsFromSeed(seed),
     plannedQuantity: seed.plannedQuantity,
     completedQuantity,
     rejectedQuantity: seed.rejectedQuantity ?? 0,
@@ -84,6 +91,46 @@ function toTask(jobId: string, seed: TaskSeed, index: number): ManufacturingTask
     materialsUsed: [],
     workstation: seed.workstation,
   };
+}
+
+function contributorsFromSeed(seed: TaskSeed): TaskContributor[] {
+  const work = {
+    quantity: seed.status === "completed" ? (seed.completedQuantity ?? seed.plannedQuantity) : 0,
+    rejectedQuantity: 0,
+    wasteQuantity: 0,
+    actualHours: seed.actualHours ?? 0,
+    overtimeHours: seed.overtimeHours ?? 0,
+    normalOvertimeHours: seed.normalOvertimeHours ?? seed.overtimeHours ?? 0,
+    doubleOvertimeHours: seed.doubleOvertimeHours ?? 0,
+    laborCost: 0,
+  };
+  if (seed.contributors?.length) {
+    return seed.contributors.map((person) => ({
+      ...work,
+      contributionPercent: person.contributionPercent,
+      ...person,
+    }));
+  }
+  if (!seed.assignedTo) return [];
+  const status =
+    seed.status === "completed"
+      ? "completed"
+      : seed.status === "in_progress"
+        ? "in_progress"
+        : seed.status === "on_hold"
+          ? "on_hold"
+          : "assigned";
+  return [
+    {
+      userId: seed.assignedTo,
+      userName: seed.assignedToName ?? seed.assignedTo,
+      contributionPercent: seed.status === "completed" ? 100 : 0,
+      ...work,
+      status,
+      startedAt: seed.startedAt,
+      completedAt: seed.completedAt,
+    },
+  ];
 }
 
 function defaultHistory(seed: TaskSeed): ManufacturingTaskHistoryEntry[] {
@@ -194,6 +241,7 @@ const auroraTasks = (qty: number): TaskSeed[] => [
     estimatedHours: 0.33 * qty,
     actualHours: 0.42 * qty,
     overtimeHours: 0.09 * qty,
+    normalOvertimeHours: 0.09 * qty,
     labourCostRate: 500,
     machineCost: 150 * qty,
     status: "completed",
@@ -224,6 +272,38 @@ const auroraTasks = (qty: number): TaskSeed[] => [
     completedQuantity: 6,
     productOperationId: "prd-001-op-30",
     prerequisiteTaskIds: ["tsk-pj1001-02"],
+    contributors: [
+      {
+        userId: "usr-005",
+        userName: "Chaminda Jayasuriya",
+        contributionPercent: 0,
+        quantity: 0,
+        rejectedQuantity: 0,
+        wasteQuantity: 0,
+        actualHours: 0,
+        overtimeHours: 0,
+        normalOvertimeHours: 0,
+        doubleOvertimeHours: 0,
+        laborCost: 0,
+        status: "in_progress",
+        startedAt: "2025-07-21T08:00:00Z",
+      },
+      {
+        userId: "usr-004",
+        userName: "Nuwan Wickramasinghe",
+        contributionPercent: 0,
+        quantity: 0,
+        rejectedQuantity: 0,
+        wasteQuantity: 0,
+        actualHours: 0,
+        overtimeHours: 0,
+        normalOvertimeHours: 0,
+        doubleOvertimeHours: 0,
+        laborCost: 0,
+        status: "in_progress",
+        startedAt: "2025-07-21T10:00:00Z",
+      },
+    ],
   },
   {
     id: "tsk-pj1001-04",
@@ -402,7 +482,11 @@ const rawJobs: JobSeed[] = [
     taskSeeds: [
       { id: "op-005", name: "Metal Fabrication", sequence: 10, workstation: "Fab Bay 2", estimatedHours: 6, actualHours: 5.5, status: "completed", completedAt: "2025-06-20T17:00:00Z", plannedQuantity: 12 },
       { id: "op-006", name: "Powder Coating", sequence: 20, workstation: "Coating Line A", estimatedHours: 3, actualHours: 3, status: "completed", completedAt: "2025-06-22T12:00:00Z", plannedQuantity: 12 },
-      { id: "op-007", name: "Assembly & Wiring", sequence: 30, workstation: "Assembly Line 1", estimatedHours: 4, actualHours: 5.5, overtimeHours: 1.5, labourCostRate: 550, status: "completed", completedAt: "2025-06-25T16:00:00Z", plannedQuantity: 12 },
+      { id: "op-007", name: "Assembly & Wiring", sequence: 30, workstation: "Assembly Line 1", estimatedHours: 4, actualHours: 5.5, overtimeHours: 1.5, normalOvertimeHours: 1, doubleOvertimeHours: 0.5, labourCostRate: 550, status: "completed", completedAt: "2025-06-25T16:00:00Z", plannedQuantity: 12, assignedTo: "usr-005", assignedToName: "Chaminda Jayasuriya", contributors: [
+        { userId: "usr-005", userName: "Chaminda Jayasuriya", contributionPercent: 30, quantity: 4, rejectedQuantity: 0, wasteQuantity: 0, actualHours: 1.65, overtimeHours: 0.45, normalOvertimeHours: 0.3, doubleOvertimeHours: 0.15, laborCost: 0, status: "completed", completedAt: "2025-06-25T16:00:00Z" },
+        { userId: "usr-004", userName: "Nuwan Wickramasinghe", contributionPercent: 50, quantity: 6, rejectedQuantity: 0, wasteQuantity: 0, actualHours: 2.75, overtimeHours: 0.75, normalOvertimeHours: 0.5, doubleOvertimeHours: 0.25, laborCost: 0, status: "completed", completedAt: "2025-06-25T16:00:00Z" },
+        { userId: "usr-006", userName: "Sanduni Rathnayake", contributionPercent: 20, quantity: 2, rejectedQuantity: 0, wasteQuantity: 0, actualHours: 1.1, overtimeHours: 0.3, normalOvertimeHours: 0.2, doubleOvertimeHours: 0.1, laborCost: 0, status: "completed", completedAt: "2025-06-25T16:00:00Z" },
+      ] },
       { id: "op-008", name: "QC", sequence: 40, workstation: "QC Station 1", estimatedHours: 1, actualHours: 1, status: "completed", completedAt: "2025-06-26T10:00:00Z", plannedQuantity: 12 },
     ],
     materialRequirements: [

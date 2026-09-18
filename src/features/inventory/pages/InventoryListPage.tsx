@@ -57,7 +57,6 @@ export function InventoryListPage() {
       { accessorKey: "unit", header: "UoM" },
       { accessorKey: "category", header: "Category" },
       { accessorKey: "warehouse", header: "Warehouse" },
-      { accessorKey: "location", header: "Location" },
       {
         accessorKey: "quantityOnHand",
         header: "On Hand",
@@ -118,7 +117,7 @@ export function InventoryListPage() {
     <PageContainer>
       <PageHeader
         title="Inventory"
-        description="View and manage stock items across locations."
+        description="View and manage stock items by warehouse."
         breadcrumbs={[{ label: "Inventory" }]}
         actions={
           <Button

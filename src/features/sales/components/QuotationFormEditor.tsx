@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useFormikContext } from "formik";
 import { UserPlus } from "lucide-react";
-import { FormikInput, FormikSelect, FormikTextarea } from "@/components/forms";
+import { FormikInput, FormikTextarea } from "@/components/forms";
 import { Button } from "@/components/ui/Button";
 import { FileUploader } from "@/components/ui/FileUploader";
 import { Input } from "@/components/ui/Input";
@@ -23,12 +23,6 @@ import { productService } from "@/services";
 import type { Customer } from "@/types/customer";
 import type { Product } from "@/types/product";
 import type { QuotationProductCustomization } from "@/types/quotation";
-import { Priority } from "@/types/status";
-
-const PRIORITY_OPTIONS = Object.entries(Priority).map(([value, def]) => ({
-  value,
-  label: def.label,
-}));
 
 const TABS = [
   { id: "overview", label: "Overview" },
@@ -176,12 +170,6 @@ export function QuotationFormEditor({
                     </div>
                     <FormikInput name="quoteDate" label="Quote Date" type="date" required />
                     <FormikInput name="validUntil" label="Valid Until" type="date" required />
-                    <FormikSelect
-                      name="priority"
-                      label="Priority"
-                      options={PRIORITY_OPTIONS}
-                      required
-                    />
                   </div>
                 </SalesFormSection>
                 <QuotationLineItemsTable

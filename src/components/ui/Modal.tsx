@@ -25,6 +25,8 @@ export type ModalProps = {
   size?: ModalSize;
   className?: string;
   closeOnOverlayClick?: boolean;
+  zIndexClassName?: string;
+  closeOnEscape?: boolean;
 };
 
 export function Modal({
@@ -36,13 +38,15 @@ export function Modal({
   size = 'md',
   className,
   closeOnOverlayClick = true,
+  zIndexClassName = 'z-50',
+  closeOnEscape = true,
 }: ModalProps) {
   const titleId = useId();
 
   useScrollLock(open);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !closeOnEscape) return;
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -55,12 +59,12 @@ export function Modal({
     return () => {
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [open, onClose]);
+  }, [open, onClose, closeOnEscape]);
 
   if (!open) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className={cn('fixed inset-0 flex items-center justify-center p-4', zIndexClassName)}>
       <div
         className="absolute inset-0 bg-foreground/40 backdrop-blur-[1px]"
         aria-hidden

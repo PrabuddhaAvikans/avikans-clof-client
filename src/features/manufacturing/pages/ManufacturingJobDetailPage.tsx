@@ -49,8 +49,10 @@ import {
   calculateJobLaborBreakdown,
   calculateTaskLaborCost,
   formatDurationHours,
+  formatOvertimeBreakdown,
   isProductionJobCompletable,
 } from "@/lib/manufacturingTasks";
+import { calculateContributorLabor, resolveTaskContributors } from "@/lib/taskContributors";
 import type { ManufacturingTask, ManufacturingTaskAction } from "@/types/manufacturing";
 import { ManufacturingJobStatus, ManufacturingTaskStatus, Priority } from "@/types/status";
 
@@ -61,6 +63,10 @@ export function ManufacturingJobDetailPage() {
   const completeJob = useCompleteManufacturingJob();
   const taskAction = useManufacturingTaskAction();
   const { data: usersData } = useUsers({ page: 1, pageSize: 50 });
+  const dialogUsers = useMemo(
+    () => (usersData?.items ?? []).map((user) => ({ id: user.id, name: user.displayName })),
+    [usersData],
+  );
 
   const [activeTab, setActiveTab] = useState("tasks");
   const [dialogTask, setDialogTask] = useState<ManufacturingTask | null>(null);
@@ -159,7 +165,12 @@ export function ManufacturingJobDetailPage() {
               <SummaryCard title="Labour Cost" value={formatCurrency(labor?.laborCost ?? 0)} />
               <SummaryCard
                 title="Overtime"
-                value={labor && labor.overtimeHours > 0 ? formatDurationHours(labor.overtimeHours) : "None"}
+                value={labor ? formatOvertimeBreakdown(labor) : "None"}
+                description={
+                  labor && labor.overtimeHours > 0
+                    ? `${formatCurrency(labor.overtimeCost)} · OT ${labor.normalOvertimeMultiplier}× · DOT ${labor.doubleOvertimeMultiplier}×`
+                    : undefined
+                }
               />
               <SummaryCard title="Priority" value={statusLabel(Priority, job.priority)} />
             </div>
@@ -235,9 +246,9 @@ export function ManufacturingJobDetailPage() {
                         <th className="px-4 py-3">Status</th>
                         <th className="px-4 py-3 text-right">Est. Time</th>
                         <th className="px-4 py-3 text-right">Actual Time</th>
-                        <th className="px-4 py-3 text-right">OT</th>
+                        <th className="px-4 py-3 text-right">OT / DOT</th>
                         <th className="px-4 py-3 text-right">Labour</th>
-                        <th className="px-4 py-3">Assigned To</th>
+                        <th className="px-4 py-3">People</th>
                         <th className="px-4 py-3">Actions</th>
                       </tr>
                     </thead>
@@ -245,6 +256,7 @@ export function ManufacturingJobDetailPage() {
                       {job.tasks.map((task) => {
                         const actions = allowedTaskActions(task);
                         const taskLabor = task.actualHours ? calculateTaskLaborCost(task) : null;
+                        const people = resolveTaskContributors(task);
                         const prereqNames = task.prerequisiteTaskIds
                           .map((prereqId) => job.tasks.find((item) => item.id === prereqId)?.name)
                           .filter(Boolean);
@@ -277,6 +289,11 @@ export function ManufacturingJobDetailPage() {
                                   Rej {task.rejectedQuantity}
                                 </div>
                               )}
+                              {task.wasteQuantity > 0 && (
+                                <div className="text-[11px] text-muted-foreground">
+                                  Waste {task.wasteQuantity}
+                                </div>
+                              )}
                             </td>
                             <td className="px-4 py-3">
                               <StatusBadge
@@ -290,13 +307,77 @@ export function ManufacturingJobDetailPage() {
                             <td className="px-4 py-3 text-right">{formatDurationHours(task.actualHours)}</td>
                             <td className="px-4 py-3 text-right">
                               {taskLabor && taskLabor.overtimeHours > 0
-                                ? formatDurationHours(taskLabor.overtimeHours)
+                                ? formatOvertimeBreakdown(taskLabor)
                                 : "-"}
                             </td>
                             <td className="px-4 py-3 text-right">
                               {taskLabor ? formatCurrency(taskLabor.laborCost) : "-"}
                             </td>
-                            <td className="px-4 py-3">{task.assignedToName ?? task.operatorName ?? "-"}</td>
+                            <td className="px-4 py-3">
+                              {people.length ? (
+                                <table className="min-w-[22rem] border-collapse text-[11px] leading-4">
+                                  <thead>
+                                    <tr className="text-left text-[10px] uppercase tracking-wide text-muted-foreground">
+                                      <th className="pr-2 font-medium">Person</th>
+                                      <th className="px-1 text-right font-medium">%</th>
+                                      <th className="px-1 text-right font-medium">Qty</th>
+                                      <th className="px-1 text-right font-medium">Rej</th>
+                                      <th className="px-1 text-right font-medium">Waste</th>
+                                      <th className="px-1 text-right font-medium">Hrs</th>
+                                      <th className="px-1 text-right font-medium">OT</th>
+                                      <th className="px-1 text-right font-medium">DOT</th>
+                                      <th className="pl-1 text-right font-medium">Labour</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {people.map((person) => {
+                                      const personLabor = calculateContributorLabor(person, task);
+                                      return (
+                                        <tr key={person.userId}>
+                                          <td className="pr-2 font-medium text-foreground">
+                                            {person.userName}
+                                          </td>
+                                          <td className="px-1 text-right tabular-nums text-muted-foreground">
+                                            {person.contributionPercent || "—"}
+                                          </td>
+                                          <td className="px-1 text-right tabular-nums text-muted-foreground">
+                                            {person.quantity || "—"}
+                                          </td>
+                                          <td className="px-1 text-right tabular-nums text-muted-foreground">
+                                            {person.rejectedQuantity || "—"}
+                                          </td>
+                                          <td className="px-1 text-right tabular-nums text-muted-foreground">
+                                            {person.wasteQuantity || "—"}
+                                          </td>
+                                          <td className="px-1 text-right tabular-nums text-muted-foreground">
+                                            {person.actualHours
+                                              ? formatDurationHours(person.actualHours)
+                                              : "—"}
+                                          </td>
+                                          <td className="px-1 text-right tabular-nums text-muted-foreground">
+                                            {person.normalOvertimeHours
+                                              ? formatDurationHours(person.normalOvertimeHours)
+                                              : "—"}
+                                          </td>
+                                          <td className="px-1 text-right tabular-nums text-muted-foreground">
+                                            {person.doubleOvertimeHours
+                                              ? formatDurationHours(person.doubleOvertimeHours)
+                                              : "—"}
+                                          </td>
+                                          <td className="pl-1 text-right tabular-nums text-muted-foreground">
+                                            {personLabor.laborCost > 0
+                                              ? formatCurrency(personLabor.laborCost)
+                                              : "—"}
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              ) : (
+                                "-"
+                              )}
+                            </td>
                             <td className="px-4 py-3">
                               <div className="flex flex-wrap gap-1">
                                 {actions.start && (
@@ -411,13 +492,17 @@ export function ManufacturingJobDetailPage() {
                         </dd>
                       </div>
                       <div className="flex justify-between">
-                        <dt className="text-muted-foreground">Overtime</dt>
+                        <dt className="text-muted-foreground">Normal OT ({labor?.normalOvertimeMultiplier ?? 1.5}×)</dt>
                         <dd>
-                          {formatDurationHours(labor?.overtimeHours ?? 0)} ·{" "}
-                          {formatCurrency(labor?.overtimeCost ?? 0)}
-                          {labor && labor.overtimeHours > 0
-                            ? ` (${labor.overtimeMultiplier}×)`
-                            : ""}
+                          {formatDurationHours(labor?.normalOvertimeHours ?? 0)} ·{" "}
+                          {formatCurrency(labor?.normalOvertimeCost ?? 0)}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-muted-foreground">Double OT ({labor?.doubleOvertimeMultiplier ?? 2}×)</dt>
+                        <dd>
+                          {formatDurationHours(labor?.doubleOvertimeHours ?? 0)} ·{" "}
+                          {formatCurrency(labor?.doubleOvertimeCost ?? 0)}
                         </dd>
                       </div>
                       <div className="flex justify-between">
@@ -615,7 +700,7 @@ export function ManufacturingJobDetailPage() {
       <TaskActionDialogs
         task={dialogTask}
         mode={dialogMode}
-        users={(usersData?.items ?? []).map((user) => ({ id: user.id, name: user.displayName }))}
+        users={dialogUsers}
         loading={taskAction.isPending}
         onClose={() => {
           setDialogMode(null);

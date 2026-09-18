@@ -15,6 +15,7 @@ import {
   CustomerGroupsPage,
   CustomerListPage,
 } from "@/features/customers/pages/CustomerPages";
+import { ConfigurationHubPage } from "@/features/configuration/pages/ConfigurationHubPage";
 import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
 import { ReportsHubPage, ReportViewerPage } from "@/features/reports/pages/ReportsPages";
 import {
@@ -33,6 +34,7 @@ import {
   StockMovementsPage,
   StockOverviewPage,
   UnitsOfMeasurePage,
+  WarehousesPage,
 } from "@/features/inventory/pages/InventoryPages";
 import {
   ReprocessingBatchDetailPage,
@@ -74,6 +76,7 @@ import { NotFoundPage } from "@/features/shared/pages/NotFoundPage";
 
 export const PAGE_REGISTRY = {
   DashboardPage,
+  ConfigurationHubPage,
   ReportsHubPage,
   ReportViewerPage,
   QuotationWorkspacePage,
@@ -108,6 +111,7 @@ export const PAGE_REGISTRY = {
   StockMovementsPage,
   LowStockPage,
   UnitsOfMeasurePage,
+  WarehousesPage,
   ReprocessingBatchesPage,
   ReprocessingBatchDetailPage,
   ReadyToShipPage,

@@ -13,8 +13,8 @@ export const ROUTES = {
     new: "/products/new",
     detail: (id: string) => `/products/${id}` as const,
     edit: (id: string) => `/products/${id}/edit` as const,
-    categories: "/products/categories",
-    brands: "/products/brands",
+    categories: "/configuration/categories",
+    brands: "/configuration/brands",
     attributes: "/products/attributes",
     priceLists: "/products/price-lists",
   },
@@ -27,7 +27,17 @@ export const ROUTES = {
     movements: "/inventory/movements",
     lowStock: "/inventory/low-stock",
     stock: "/inventory/stock",
-    units: "/inventory/units",
+    units: "/configuration/units",
+    warehouses: "/configuration/warehouses",
+  },
+
+  configuration: {
+    hub: "/configuration",
+    units: "/configuration/units",
+    warehouses: "/configuration/warehouses",
+    categories: "/configuration/categories",
+    brands: "/configuration/brands",
+    settings: "/configuration/settings",
   },
 
   reprocessing: {
@@ -117,7 +127,7 @@ export const ROUTES = {
     roles: "/admin/roles",
     roleGroups: "/admin/role-groups",
     permissions: "/admin/permissions",
-    settings: "/admin/settings",
+    settings: "/configuration/settings",
     auditLogs: "/admin/audit-logs",
   },
 

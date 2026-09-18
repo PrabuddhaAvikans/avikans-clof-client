@@ -155,6 +155,21 @@ export interface ProductSpecifications {
   certifications?: string;
   warranty?: string;
   manufacturingNotes?: string;
+  accessories?: ProductAccessory[];
+}
+
+export interface ProductAccessory {
+  id: string;
+  handle: string;
+  name: string;
+  sku?: string;
+  quantity?: number;
+}
+
+export interface CostSheetLine {
+  id: string;
+  handle: string;
+  amount: number;
 }
 
 export interface CostBreakdown {
@@ -164,10 +179,19 @@ export interface CostBreakdown {
   machineCost: number;
   overheadCost: number;
   otherCost: number;
+  extraLines?: CostSheetLine[];
+  configurationId?: string;
   notes?: string;
 }
 
 export type CostBreakdownInput = Partial<CostBreakdown>;
+
+export function extraLinesTotal(breakdown: Pick<CostBreakdown, "extraLines"> | undefined): number {
+  return (breakdown?.extraLines ?? []).reduce(
+    (sum, line) => sum + (Number(line.amount) || 0),
+    0,
+  );
+}
 
 export function computeTotalCost(breakdown: CostBreakdown): number {
   return (
@@ -176,7 +200,8 @@ export function computeTotalCost(breakdown: CostBreakdown): number {
     breakdown.coatingFinishingCost +
     breakdown.machineCost +
     breakdown.overheadCost +
-    breakdown.otherCost
+    breakdown.otherCost +
+    extraLinesTotal(breakdown)
   );
 }
 
@@ -188,6 +213,8 @@ export function emptyCostBreakdown(): CostBreakdown {
     machineCost: 0,
     overheadCost: 0,
     otherCost: 0,
+    extraLines: [],
+    configurationId: "default",
   };
 }
 

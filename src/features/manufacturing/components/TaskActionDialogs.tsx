@@ -2,16 +2,28 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
-import { Select } from "@/components/ui/Select";
+import { MultiSelect } from "@/components/ui/MultiSelect";
 import { Textarea } from "@/components/ui/Textarea";
-import { remainingQuantity } from "@/lib/manufacturingTasks";
-import { calculateLaborCost, splitLaborHours } from "@/lib/laborCost";
-import { formatCurrency } from "@/lib/format";
+import {
+  TaskContributorsEditor,
+  draftsFromInputs,
+  draftsFromUsers,
+  parsedContributorInputs,
+  type ContributorDraft,
+  type UserOption,
+} from "@/features/manufacturing/components/TaskContributorsEditor";
+import { remainingEstimatedHours, remainingQuantity } from "@/lib/manufacturingTasks";
+import {
+  defaultCompleteContributors,
+  formatContributors,
+  hasCompleteContribution,
+  hasCompleteQuantity,
+  quantityTotal,
+  resolveTaskContributors,
+} from "@/lib/taskContributors";
 import type { ManufacturingTask, ManufacturingTaskAction } from "@/types/manufacturing";
 
 export type TaskDialogMode = "start" | "complete" | "hold" | "notes" | "rework" | null;
-
-type UserOption = { id: string; name: string };
 
 type Props = {
   task: ManufacturingTask | null;
@@ -31,51 +43,49 @@ export function TaskActionDialogs({
   onSubmit,
 }: Props) {
   const remaining = task ? remainingQuantity(task) : 0;
-  const [assignedTo, setAssignedTo] = useState("");
+  const remainingHours = task ? remainingEstimatedHours(task) : 0;
+  const [assignedIds, setAssignedIds] = useState<string[]>([]);
   const [machineName, setMachineName] = useState("");
   const [quantityStarted, setQuantityStarted] = useState(remaining);
-  const [completedQuantity, setCompletedQuantity] = useState(remaining);
-  const [rejectedQuantity, setRejectedQuantity] = useState(0);
-  const [wasteQuantity, setWasteQuantity] = useState(0);
-  const [actualHours, setActualHours] = useState("");
-  const [overtimeHours, setOvertimeHours] = useState("");
+  const [contributors, setContributors] = useState<ContributorDraft[]>([]);
   const [reworkQuantity, setReworkQuantity] = useState(remaining || 1);
   const [reason, setReason] = useState("");
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
     if (!task || !mode) return;
-    setAssignedTo(task.assignedTo ?? "");
+    const existing = resolveTaskContributors(task);
+    setAssignedIds(existing.map((person) => person.userId));
     setMachineName(task.machineName ?? "");
     setQuantityStarted(remainingQuantity(task));
-    setCompletedQuantity(remainingQuantity(task));
-    setRejectedQuantity(0);
-    setWasteQuantity(0);
-    setActualHours(task.actualHours != null ? String(task.actualHours) : "");
-    setOvertimeHours(task.overtimeHours != null ? String(task.overtimeHours) : "");
+    const actor =
+      existing[0] ??
+      (users[0]
+        ? { userId: users[0].id, userName: users[0].name, contributionPercent: 0, status: "assigned" as const }
+        : null);
+    setContributors(
+      actor
+        ? draftsFromInputs(
+            defaultCompleteContributors(existing, actor, {
+              quantity: remainingQuantity(task),
+              estimatedHours: remainingEstimatedHours(task),
+            }),
+          )
+        : [],
+    );
     setReworkQuantity(Math.max(1, remainingQuantity(task) || task.plannedQuantity));
     setReason("");
     setNotes(task.notes ?? "");
-  }, [task, mode]);
+  }, [task?.id, mode, users.length]);
 
   if (!task || !mode) return null;
 
-  const selectedUser = users.find((user) => user.id === assignedTo);
-  const parsedActual = actualHours === "" ? undefined : Number(actualHours);
-  const previewHours =
-    parsedActual != null && !Number.isNaN(parsedActual)
-      ? parsedActual
-      : (task.actualHours ?? task.estimatedHours);
-  const laborPreview = calculateLaborCost({
-    actualHours: previewHours,
-    estimatedHours: task.estimatedHours,
-    overtimeHours: overtimeHours === "" ? undefined : Number(overtimeHours),
-    labourCostRate: task.labourCostRate,
-  });
-  const suggestedOt = splitLaborHours({
-    actualHours: previewHours,
-    estimatedHours: task.estimatedHours,
-  }).overtimeHours;
+  const contributionInputs = parsedContributorInputs(contributors);
+  const qtyTotal = quantityTotal(contributionInputs);
+  const finishingTask = qtyTotal >= remaining && remaining > 0;
+  const contributionOk =
+    !finishingTask ||
+    (hasCompleteContribution(contributionInputs) && hasCompleteQuantity(contributionInputs, remaining));
 
   const title = {
     start: `Start ${task.name}`,
@@ -91,28 +101,43 @@ export function TaskActionDialogs({
         onSubmit({ type: "resume", taskId: task.id, notes: notes || undefined });
         return;
       }
+      const selected = assignedIds
+        .map((id) => users.find((user) => user.id === id))
+        .filter((user): user is UserOption => Boolean(user));
+      const primary = selected[0];
       onSubmit({
         type: "start",
         taskId: task.id,
-        assignedTo: assignedTo || undefined,
-        assignedToName: selectedUser?.name,
-        operatorId: assignedTo || undefined,
-        operatorName: selectedUser?.name,
+        assignedTo: primary?.id,
+        assignedToName: primary?.name,
+        operatorId: primary?.id,
+        operatorName: primary?.name,
         machineName: machineName || undefined,
         quantityStarted,
+        contributors: selected.map((user) => ({
+          userId: user.id,
+          userName: user.name,
+          contributionPercent: 0,
+        })),
         notes: notes || undefined,
       });
       return;
     }
     if (mode === "complete") {
+      if (finishingTask && !contributionOk) return;
       onSubmit({
         type: "complete",
         taskId: task.id,
-        completedQuantity,
-        rejectedQuantity,
-        wasteQuantity,
-        actualHours: actualHours ? Number(actualHours) : undefined,
-        overtimeHours: overtimeHours === "" ? undefined : Number(overtimeHours),
+        completedQuantity: qtyTotal,
+        rejectedQuantity: contributionInputs.reduce(
+          (sum, person) => sum + (person.rejectedQuantity ?? 0),
+          0,
+        ),
+        wasteQuantity: contributionInputs.reduce(
+          (sum, person) => sum + (person.wasteQuantity ?? 0),
+          0,
+        ),
+        contributors: contributionInputs,
         notes: notes || undefined,
       });
       return;
@@ -141,31 +166,45 @@ export function TaskActionDialogs({
       open={Boolean(mode)}
       onClose={onClose}
       title={title}
-      size="md"
+      size={mode === "complete" ? "2xl" : "md"}
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="primary" loading={loading} onClick={handleSubmit}>
+          <Button
+            variant="primary"
+            loading={loading}
+            disabled={
+              mode === "complete" &&
+              remaining > 0 &&
+              (qtyTotal > remaining || (finishingTask && !contributionOk))
+            }
+            onClick={handleSubmit}
+          >
             Save
           </Button>
         </>
       }
     >
-      <div className="space-y-3">
-        <p className="text-sm text-muted-foreground">
+      <div className="space-y-2">
+        <p className="text-xs text-muted-foreground">
           {task.taskNumber} · Planned {task.plannedQuantity} · Completed {task.completedQuantity} ·
           Remaining {remaining}
         </p>
 
         {mode === "start" && (
           <>
-            <Select
-              label="Assigned person (optional)"
-              value={assignedTo}
-              onChange={(event) => setAssignedTo(event.target.value)}
-              options={[{ value: "", label: "Unassigned" }, ...users.map((user) => ({ value: user.id, label: user.name }))]}
+            <MultiSelect
+              label="Assigned people"
+              hint="One or more people can work this task. Quantity, OT, and labour are recorded per person when it is completed."
+              placeholder="Select people"
+              value={assignedIds}
+              onChange={(ids) => {
+                setAssignedIds(ids);
+                setContributors(draftsFromUsers(ids, users, contributors));
+              }}
+              options={users.map((user) => ({ value: user.id, label: user.name }))}
             />
             <Input
               label="Machine / resource (optional)"
@@ -183,72 +222,22 @@ export function TaskActionDialogs({
           </>
         )}
 
+        {mode === "hold" && resolveTaskContributors(task).length > 0 && (
+          <p className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+            Holding work for {formatContributors(resolveTaskContributors(task), false)}
+          </p>
+        )}
+
         {mode === "complete" && (
-          <>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Input
-                label="Completed quantity"
-                type="number"
-                min={0}
-                max={remaining}
-                value={completedQuantity}
-                onChange={(event) => setCompletedQuantity(Number(event.target.value))}
-              />
-              <Input
-                label="Rejected quantity"
-                type="number"
-                min={0}
-                value={rejectedQuantity}
-                onChange={(event) => setRejectedQuantity(Number(event.target.value))}
-              />
-              <Input
-                label="Waste quantity"
-                type="number"
-                min={0}
-                value={wasteQuantity}
-                onChange={(event) => setWasteQuantity(Number(event.target.value))}
-              />
-              <Input
-                label="Actual time (hours)"
-                type="number"
-                min={0}
-                step={0.05}
-                value={actualHours}
-                onChange={(event) => setActualHours(event.target.value)}
-                hint="Leave blank to calculate from start time"
-              />
-              <Input
-                label="Overtime (hours)"
-                type="number"
-                min={0}
-                step={0.05}
-                value={overtimeHours}
-                onChange={(event) => setOvertimeHours(event.target.value)}
-                hint={
-                  suggestedOt > 0
-                    ? `Leave blank to use ${suggestedOt}h above estimate at ${laborPreview.overtimeMultiplier}×`
-                    : `Leave blank unless hours are overtime (${laborPreview.overtimeMultiplier}×)`
-                }
-              />
-            </div>
-            <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-              <p className="font-medium text-foreground">Labour cost</p>
-              <p className="mt-1">
-                Regular {laborPreview.regularHours}h × {formatCurrency(laborPreview.labourRatePerHour)}
-                {laborPreview.overtimeHours > 0
-                  ? ` + OT ${laborPreview.overtimeHours}h × ${formatCurrency(laborPreview.overtimeRatePerHour)}`
-                  : ""}
-                {" = "}
-                <span className="font-medium text-foreground">
-                  {formatCurrency(laborPreview.laborCost)}
-                </span>
-              </p>
-              <p className="mt-1">
-                Estimated time {task.estimatedHours}h
-                {task.labourCostRate != null ? ` · Rate ${formatCurrency(task.labourCostRate)}/h` : " · System labour rate"}
-              </p>
-            </div>
-          </>
+          <TaskContributorsEditor
+            users={users}
+            value={contributors}
+            onChange={setContributors}
+            task={task}
+            remainingQuantity={remaining}
+            remainingHours={remainingHours}
+            requireTotal={finishingTask || qtyTotal > remaining}
+          />
         )}
 
         {mode === "rework" && (
@@ -275,7 +264,8 @@ export function TaskActionDialogs({
           label="Notes"
           value={notes}
           onChange={(event) => setNotes(event.target.value)}
-          rows={3}
+          rows={2}
+          textareaClassName="min-h-[56px] py-1.5"
         />
       </div>
     </Modal>

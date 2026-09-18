@@ -1,7 +1,6 @@
-import type { DynamicFieldConfig, DynamicFormSection, FieldOption } from '@/components/forms/types';
+import type { DynamicFieldConfig, DynamicFormSection } from '@/components/forms/types';
 
 export type QuotationFormFieldsOptions = {
-  priorityOptions?: FieldOption[];
   customerField?: DynamicFieldConfig;
 };
 
@@ -28,12 +27,6 @@ export function createQuotationDetailSections(
       label: 'Valid Until',
       type: 'date',
       required: true,
-    },
-    {
-      name: 'priority',
-      label: 'Priority',
-      type: 'select',
-      options: options.priorityOptions ?? [],
     },
   );
 

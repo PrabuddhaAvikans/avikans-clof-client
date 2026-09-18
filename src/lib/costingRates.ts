@@ -6,7 +6,10 @@ import {
 
 export type CostingRates = {
   labourRatePerHour: number;
+  /** @deprecated Use normalOvertimeMultiplier. Kept in sync for stored configs. */
   overtimeMultiplier: number;
+  normalOvertimeMultiplier: number;
+  doubleOvertimeMultiplier: number;
   machineRatePerHour: number;
   coatingCostPerUnit: number;
   overheadPercent: number;
@@ -15,17 +18,41 @@ export type CostingRates = {
 export const DEFAULT_COSTING_RATES: CostingRates = {
   labourRatePerHour: 500,
   overtimeMultiplier: 1.5,
+  normalOvertimeMultiplier: 1.5,
+  doubleOvertimeMultiplier: 2,
   machineRatePerHour: 200,
   coatingCostPerUnit: 0,
   overheadPercent: 10,
 };
 
-function parseOvertimeMultiplier(value: unknown): number {
+function parseOvertimeMultiplier(value: unknown, fallback: number): number {
   const parsed = Number(value);
   if (value == null || Number.isNaN(parsed) || parsed < 1) {
-    return DEFAULT_COSTING_RATES.overtimeMultiplier;
+    return fallback;
   }
   return parsed;
+}
+
+function normalizeCostingRates(parsed: Partial<CostingRates>): CostingRates {
+  const normalOvertimeMultiplier = parseOvertimeMultiplier(
+    parsed.normalOvertimeMultiplier ?? parsed.overtimeMultiplier,
+    DEFAULT_COSTING_RATES.normalOvertimeMultiplier,
+  );
+  return {
+    labourRatePerHour: Number(parsed.labourRatePerHour) || DEFAULT_COSTING_RATES.labourRatePerHour,
+    overtimeMultiplier: normalOvertimeMultiplier,
+    normalOvertimeMultiplier,
+    doubleOvertimeMultiplier: parseOvertimeMultiplier(
+      parsed.doubleOvertimeMultiplier,
+      DEFAULT_COSTING_RATES.doubleOvertimeMultiplier,
+    ),
+    machineRatePerHour: Number(parsed.machineRatePerHour) || DEFAULT_COSTING_RATES.machineRatePerHour,
+    coatingCostPerUnit: Number(parsed.coatingCostPerUnit) || 0,
+    overheadPercent:
+      parsed.overheadPercent == null
+        ? DEFAULT_COSTING_RATES.overheadPercent
+        : Number(parsed.overheadPercent) || 0,
+  };
 }
 
 const STORAGE_KEY = "ats.costingRates";
@@ -35,34 +62,17 @@ export function loadCostingRates(): CostingRates {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return { ...DEFAULT_COSTING_RATES };
     const parsed = JSON.parse(raw) as Partial<CostingRates>;
-    return {
-      labourRatePerHour: Number(parsed.labourRatePerHour) || DEFAULT_COSTING_RATES.labourRatePerHour,
-      overtimeMultiplier: parseOvertimeMultiplier(parsed.overtimeMultiplier),
-      machineRatePerHour: Number(parsed.machineRatePerHour) || DEFAULT_COSTING_RATES.machineRatePerHour,
-      coatingCostPerUnit: Number(parsed.coatingCostPerUnit) || 0,
-      overheadPercent:
-        parsed.overheadPercent == null
-          ? DEFAULT_COSTING_RATES.overheadPercent
-          : Number(parsed.overheadPercent) || 0,
-    };
+    return normalizeCostingRates(parsed);
   } catch {
     return { ...DEFAULT_COSTING_RATES };
   }
 }
 
-export function saveCostingRates(rates: CostingRates): void {
-  const normalized: CostingRates = {
-    labourRatePerHour: Number(rates.labourRatePerHour) || DEFAULT_COSTING_RATES.labourRatePerHour,
-    overtimeMultiplier: parseOvertimeMultiplier(rates.overtimeMultiplier),
-    machineRatePerHour: Number(rates.machineRatePerHour) || DEFAULT_COSTING_RATES.machineRatePerHour,
-    coatingCostPerUnit: Number(rates.coatingCostPerUnit) || 0,
-    overheadPercent:
-      rates.overheadPercent == null
-        ? DEFAULT_COSTING_RATES.overheadPercent
-        : Number(rates.overheadPercent) || 0,
-  };
+export function saveCostingRates(rates: CostingRates): CostingRates {
+  const normalized = normalizeCostingRates(rates);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
   window.dispatchEvent(new Event("ats-costing-rates-updated"));
+  return normalized;
 }
 
 export type CostingOperationInput = {

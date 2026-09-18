@@ -16,6 +16,7 @@ import { getCurrentVersion, getVersionById, isVersionLocked } from "@/lib/produc
 import { formatCurrency, formatDate } from "@/lib/format";
 import { ProductTypeLabels, computeTotalCost } from "@/types/product";
 import type { ProductVersion } from "@/types/product";
+import { formatCostSheetHandleLabel } from "@/lib/costSheetHandles";
 
 function DetailField({ label, value }: { label: string; value: ReactNode }) {
   return (
@@ -408,12 +409,17 @@ function CostingProfitabilityPanel({
   const markup = totalCost > 0 ? ((sellingPrice - totalCost) / totalCost) * 100 : 0;
 
   const rows = [
-    { label: "Materials", value: cb.materialCost },
-    { label: "Labour", value: cb.labourCost },
-    { label: "Coating / Finishing", value: cb.coatingFinishingCost },
-    { label: "Machine", value: cb.machineCost },
-    { label: "Overhead", value: cb.overheadCost },
-    { label: "Other Expenses", value: cb.otherCost },
+    { key: "material", label: "Materials", value: cb.materialCost },
+    { key: "labour", label: "Labour", value: cb.labourCost },
+    { key: "coating", label: "Coating / Finishing", value: cb.coatingFinishingCost },
+    { key: "machine", label: "Machine", value: cb.machineCost },
+    { key: "overhead", label: "Overhead", value: cb.overheadCost },
+    { key: "other", label: "Other Expenses", value: cb.otherCost },
+    ...(cb.extraLines ?? []).map((line, index) => ({
+      key: line.id || `extra-${index}`,
+      label: formatCostSheetHandleLabel(line.handle),
+      value: line.amount,
+    })),
   ];
 
   return (
@@ -456,7 +462,7 @@ function CostingProfitabilityPanel({
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.label} className="border-b border-border last:border-0">
+                <tr key={row.key} className="border-b border-border last:border-0">
                   <td className="py-2.5 pr-4">{row.label}</td>
                   <td className="py-2.5 pr-4 text-right tabular-nums">
                     {formatCurrency(row.value, currency)}

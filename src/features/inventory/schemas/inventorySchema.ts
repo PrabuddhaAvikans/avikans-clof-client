@@ -32,15 +32,19 @@ export const inventoryFormSchema = yup.object({
   brand: yup.string().optional(),
   supplier: yup.string().optional(),
   taxCode: yup.string().optional(),
-  quantityOnHand: coerceNumber().required().min(0, "Quantity must be 0 or more"),
+  trackStock: yup.boolean().default(true),
+  quantityOnHand: coerceNumber().min(0, "Quantity must be 0 or more").default(0),
   warehouse: yup.string().required("Warehouse is required"),
-  location: yup.string().required("Location is required"),
-  minStock: coerceNumber().required().min(0, "Minimum stock must be 0 or more"),
+  minStock: coerceNumber().min(0, "Minimum stock must be 0 or more").default(0),
   maxStock: coerceNumber()
-    .required()
-    .min(yup.ref("minStock"), "Maximum stock must be at least minimum stock"),
-  reorderLevel: coerceNumber().required().min(0, "Reorder level must be 0 or more"),
-  reorderQuantity: coerceNumber().required().min(0, "Reorder quantity must be 0 or more"),
+    .min(0, "Maximum stock must be 0 or more")
+    .when("trackStock", {
+      is: true,
+      then: (schema) => schema.min(yup.ref("minStock"), "Maximum stock must be at least minimum stock"),
+      otherwise: (schema) => schema.default(0),
+    }),
+  reorderLevel: coerceNumber().min(0, "Reorder level must be 0 or more").default(0),
+  reorderQuantity: coerceNumber().min(0, "Reorder quantity must be 0 or more").default(0),
   buyingPrice: coerceOptionalNumber().min(0, "Buying price must be 0 or more"),
   costPrice: coerceNumber().required().min(0, "Cost price must be 0 or more"),
   pricingMethod: yup.string().oneOf(pricingMethodValues).required("Pricing method is required"),
@@ -99,3 +103,20 @@ export const unitOfMeasureFormSchema = yup.object({
 });
 
 export type UnitOfMeasureFormValues = yup.InferType<typeof unitOfMeasureFormSchema>;
+
+export const warehouseFormSchema = yup.object({
+  code: yup
+    .string()
+    .trim()
+    .required("Warehouse code is required")
+    .max(16, "Use 16 characters or fewer"),
+  name: yup
+    .string()
+    .trim()
+    .required("Warehouse name is required")
+    .max(80, "Use 80 characters or fewer"),
+  address: yup.string().trim().max(200, "Use 200 characters or fewer").optional(),
+  status: yup.string().oneOf(["active", "inactive"] as const).required(),
+});
+
+export type WarehouseFormValues = yup.InferType<typeof warehouseFormSchema>;

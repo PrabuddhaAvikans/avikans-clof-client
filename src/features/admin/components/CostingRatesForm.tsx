@@ -27,8 +27,9 @@ export function CostingRatesForm({ compact = false, readOnly = false, onSaved }:
   };
 
   const handleSave = () => {
-    saveCostingRates(rates);
-    onSaved?.(rates);
+    const saved = saveCostingRates(rates);
+    setRates(saved);
+    onSaved?.(saved);
     toast.success("Costing rates saved");
   };
 
@@ -49,14 +50,24 @@ export function CostingRatesForm({ compact = false, readOnly = false, onSaved }:
         onChange={(event) => update("labourRatePerHour", event.target.value)}
       />
       <Input
-        label={compact ? "OT multiplier" : "Overtime multiplier"}
+        label={compact ? "Normal OT ×" : "Normal OT multiplier"}
         type="number"
         min={1}
         step={0.1}
-        hint={compact ? undefined : "Applied to hours above the task estimate (e.g. 1.5 = time-and-a-half)"}
-        value={rates.overtimeMultiplier}
+        hint={compact ? undefined : "Weekday overtime (e.g. 1.5 = time-and-a-half). Hours above a task estimate default to this type."}
+        value={rates.normalOvertimeMultiplier}
         disabled={readOnly}
-        onChange={(event) => update("overtimeMultiplier", event.target.value)}
+        onChange={(event) => update("normalOvertimeMultiplier", event.target.value)}
+      />
+      <Input
+        label={compact ? "Double OT ×" : "Double OT multiplier"}
+        type="number"
+        min={1}
+        step={0.1}
+        hint={compact ? undefined : "Holiday or Sunday overtime (e.g. 2 = double time). Entered separately when completing a task."}
+        value={rates.doubleOvertimeMultiplier}
+        disabled={readOnly}
+        onChange={(event) => update("doubleOvertimeMultiplier", event.target.value)}
       />
       <Input
         label={compact ? "Machine / hour" : "Machine rate (per hour)"}

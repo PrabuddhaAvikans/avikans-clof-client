@@ -202,10 +202,6 @@ export function QuotationDetailPanel({
             </h3>
             <dl className="space-y-1.5 text-sm">
               <div>
-                <dt className="text-xs text-muted-foreground">Priority</dt>
-                <dd className="font-medium capitalize">{quotation.priority}</dd>
-              </div>
-              <div>
                 <dt className="text-xs text-muted-foreground">Payment Status</dt>
                 <dd className="font-medium capitalize">
                   {quotation.paymentStatus.replace(/_/g, " ")}

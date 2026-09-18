@@ -1,6 +1,7 @@
 import { generateId } from "@/services/http";
 import { computeStandardCosts, DEFAULT_COSTING_RATES } from "@/lib/costingRates";
 import { estimateFromBomAndOperations } from "@/lib/quotationCustomization";
+import { computeTotalCost, extraLinesTotal } from "@/types/product";
 import { mockProductService } from "@/services/mock/mockProductService";
 import type {
   CoatingLineItem,
@@ -100,7 +101,9 @@ export async function resolveSalesOrderLineContext(
       customization.base.costBreakdown.coatingFinishingCost,
       customization.base.costBreakdown.overheadCost,
       customization.base.costBreakdown.otherCost,
+      customization.base.costBreakdown.extraLines,
     );
+    const extraCost = extraLinesTotal(costBreakdown);
 
     return {
       salesOrderLineItemId: line.id,
@@ -119,15 +122,8 @@ export async function resolveSalesOrderLineContext(
       labourCost: costBreakdown.labourCost,
       machineCost: costBreakdown.machineCost,
       coatingCost: costBreakdown.coatingFinishingCost,
-      overheadCost: costBreakdown.overheadCost + costBreakdown.otherCost,
-      totalCost: round2(
-        costBreakdown.materialCost +
-          costBreakdown.labourCost +
-          costBreakdown.machineCost +
-          costBreakdown.coatingFinishingCost +
-          costBreakdown.overheadCost +
-          costBreakdown.otherCost,
-      ),
+      overheadCost: costBreakdown.overheadCost + costBreakdown.otherCost + extraCost,
+      totalCost: round2(computeTotalCost(costBreakdown)),
       customizationId: customization.id,
       customizationStatus: customization.status,
     };
@@ -142,6 +138,7 @@ export async function resolveSalesOrderLineContext(
   const bom = scaleBom(version.bom, line.quantity);
   const operations = scaleOperations(version.operations, line.quantity);
   const costs = computeCostsFromBomAndOps(bom, operations);
+  const extraCost = extraLinesTotal(version.costBreakdown) + (version.costBreakdown.otherCost || 0);
 
   return {
     salesOrderLineItemId: line.id,
@@ -160,8 +157,8 @@ export async function resolveSalesOrderLineContext(
     labourCost: costs.labourCost,
     machineCost: costs.machineCost,
     coatingCost: costs.coatingFinishingCost,
-    overheadCost: costs.overheadCost,
-    totalCost: costs.totalCost,
+    overheadCost: costs.overheadCost + extraCost,
+    totalCost: round2(costs.totalCost + extraCost),
   };
 }
 

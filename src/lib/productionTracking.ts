@@ -84,6 +84,8 @@ export function toProductionJobView(job: ManufacturingJob): ProductionJob {
     blockers,
     laborHours,
     overtimeHours: labor.overtimeHours,
+    normalOvertimeHours: labor.normalOvertimeHours,
+    doubleOvertimeHours: labor.doubleOvertimeHours,
     laborCost: labor.laborCost,
     overtimeCost: labor.overtimeCost,
     estimatedCost: job.estimatedCost,

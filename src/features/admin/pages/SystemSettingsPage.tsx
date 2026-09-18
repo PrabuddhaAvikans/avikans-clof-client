@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Building2, Calculator, Globe, RotateCcw, Save } from "lucide-react";
 import { toast } from "sonner";
+import { ROUTES } from "@/app/config/routes";
 import { PageHeader } from "@/components/feedback/PageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/Button";
@@ -154,7 +155,7 @@ export function SystemSettingsPage() {
       <PageHeader
         title="System Settings"
         description="Company defaults used across quotations, tax, costing, and document numbers."
-        breadcrumbs={[{ label: "Administration" }, { label: "System Settings" }]}
+        breadcrumbs={[{ label: "Configuration", href: ROUTES.configuration.hub }, { label: "System Settings" }]}
         actions={
           canEdit ? (
             <>
@@ -403,7 +404,7 @@ export function SystemSettingsPage() {
                 {section === "costing" && (
                   <SectionCard
                     title="Standard costing rates"
-                    description="Labour and overtime rates used when manufacturing jobs record actual hours. Hours above a task estimate are overtime unless you enter OT separately."
+                    description="Labour and overtime rates used when manufacturing jobs record actual hours. Hours above a task estimate are Normal OT unless you enter Normal OT and Double OT separately."
                   >
                     <CostingRatesForm readOnly={!canEdit} onSaved={setCostingRates} />
                   </SectionCard>

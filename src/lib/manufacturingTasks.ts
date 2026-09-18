@@ -12,15 +12,28 @@ import type {
   TaskMaterialUsage,
 } from "@/types/manufacturing";
 import type { ManufacturingTaskStatus } from "@/types/manufacturing";
-import { roundCost } from "@/lib/bomCosting";
 import { loadCostingRates } from "@/lib/costingRates";
 import {
+  addLaborBreakdowns,
   calculateEstimatedLaborCost,
   calculateLaborCost,
+  emptyLaborBreakdown,
   resolveLabourRatePerHour,
-  splitLaborHours,
   type LaborCostBreakdown,
 } from "@/lib/laborCost";
+import {
+  aggregateContributorWork,
+  defaultCompleteContributors,
+  formatContributors,
+  primaryContributor,
+  quantityTotal,
+  resetContributorProgress,
+  resolveTaskContributors,
+  setContributorStatus,
+  toTaskContributors,
+  uniqueContributorInputs,
+  validateCompleteContributors,
+} from "@/lib/taskContributors";
 
 const TERMINAL_STATUSES: ManufacturingTaskStatus[] = [
   "completed",
@@ -35,6 +48,13 @@ const SATISFIED_PREREQ_STATUSES: ManufacturingTaskStatus[] = [
 
 export function remainingQuantity(task: ManufacturingTask): number {
   return Math.max(0, task.plannedQuantity - task.completedQuantity);
+}
+
+export function remainingEstimatedHours(task: Pick<ManufacturingTask, "estimatedHours" | "plannedQuantity" | "completedQuantity">): number {
+  const planned = Math.max(0, task.plannedQuantity || 0);
+  const remaining = Math.max(0, planned - (task.completedQuantity || 0));
+  if (planned <= 0) return round2(Math.max(0, task.estimatedHours || 0));
+  return round2(((task.estimatedHours || 0) * remaining) / planned);
 }
 
 export function isQcOperation(op: {
@@ -56,6 +76,21 @@ export function formatDurationHours(hours: number | undefined | null): string {
   const h = Math.floor(hours);
   const m = Math.round((hours - h) * 60);
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
+export function formatOvertimeBreakdown(labor: {
+  normalOvertimeHours?: number;
+  doubleOvertimeHours?: number;
+  overtimeHours?: number;
+}): string {
+  const normal = labor.normalOvertimeHours ?? 0;
+  const double = labor.doubleOvertimeHours ?? 0;
+  const parts: string[] = [];
+  if (normal > 0) parts.push(`${formatDurationHours(normal)} OT`);
+  if (double > 0) parts.push(`${formatDurationHours(double)} DOT`);
+  if (parts.length > 0) return parts.join(" · ");
+  if ((labor.overtimeHours ?? 0) > 0) return formatDurationHours(labor.overtimeHours);
+  return "None";
 }
 
 function round2(value: number): number {
@@ -212,12 +247,50 @@ export function calculateJobEstimatedCost(job: Pick<ManufacturingJob, "tasks" | 
 }
 
 export function calculateTaskLaborCost(
-  task: Pick<ManufacturingTask, "actualHours" | "estimatedHours" | "overtimeHours" | "labourCostRate">,
+  task: Pick<
+    ManufacturingTask,
+    | "actualHours"
+    | "estimatedHours"
+    | "overtimeHours"
+    | "normalOvertimeHours"
+    | "doubleOvertimeHours"
+    | "labourCostRate"
+    | "contributors"
+  >,
 ): LaborCostBreakdown {
+  const people = (task.contributors ?? []).filter(
+    (person) =>
+      (person.actualHours ?? 0) > 0 ||
+      (person.normalOvertimeHours ?? 0) > 0 ||
+      (person.doubleOvertimeHours ?? 0) > 0 ||
+      (person.laborCost ?? 0) > 0,
+  );
+  if (people.length > 0) {
+    const rates = loadCostingRates();
+    return people.reduce(
+      (sum, person) =>
+        addLaborBreakdowns(
+          sum,
+          calculateLaborCost({
+            actualHours: person.actualHours ?? 0,
+            estimatedHours: task.estimatedHours * ((person.contributionPercent || 0) / 100),
+            overtimeHours: person.overtimeHours,
+            normalOvertimeHours: person.normalOvertimeHours,
+            doubleOvertimeHours: person.doubleOvertimeHours,
+            labourCostRate: task.labourCostRate,
+            rates,
+          }),
+          rates,
+        ),
+      emptyLaborBreakdown(rates),
+    );
+  }
   return calculateLaborCost({
     actualHours: task.actualHours ?? 0,
     estimatedHours: task.estimatedHours,
     overtimeHours: task.overtimeHours,
+    normalOvertimeHours: task.normalOvertimeHours,
+    doubleOvertimeHours: task.doubleOvertimeHours,
     labourCostRate: task.labourCostRate,
   });
 }
@@ -228,37 +301,12 @@ export function calculateJobLaborBreakdown(
   const rates = loadCostingRates();
   return job.tasks.reduce<LaborCostBreakdown>(
     (sum, task) => {
-      if (!task.isEnabled || (task.actualHours ?? 0) <= 0) return sum;
-      const labor = calculateLaborCost({
-        actualHours: task.actualHours ?? 0,
-        estimatedHours: task.estimatedHours,
-        overtimeHours: task.overtimeHours,
-        labourCostRate: task.labourCostRate,
-        rates,
-      });
-      return {
-        actualHours: roundCost(sum.actualHours + labor.actualHours),
-        regularHours: roundCost(sum.regularHours + labor.regularHours),
-        overtimeHours: roundCost(sum.overtimeHours + labor.overtimeHours),
-        labourRatePerHour: rates.labourRatePerHour,
-        overtimeRatePerHour: roundCost(rates.labourRatePerHour * rates.overtimeMultiplier),
-        overtimeMultiplier: rates.overtimeMultiplier,
-        regularCost: roundCost(sum.regularCost + labor.regularCost),
-        overtimeCost: roundCost(sum.overtimeCost + labor.overtimeCost),
-        laborCost: roundCost(sum.laborCost + labor.laborCost),
-      };
+      if (!task.isEnabled) return sum;
+      const labor = calculateTaskLaborCost(task);
+      if (labor.actualHours <= 0 && labor.laborCost <= 0) return sum;
+      return addLaborBreakdowns(sum, labor, rates);
     },
-    {
-      actualHours: 0,
-      regularHours: 0,
-      overtimeHours: 0,
-      labourRatePerHour: rates.labourRatePerHour,
-      overtimeRatePerHour: roundCost(rates.labourRatePerHour * rates.overtimeMultiplier),
-      overtimeMultiplier: rates.overtimeMultiplier,
-      regularCost: 0,
-      overtimeCost: 0,
-      laborCost: 0,
-    },
+    emptyLaborBreakdown(rates),
   );
 }
 
@@ -422,6 +470,7 @@ export function generateTasksFromOperations(options: {
         createHistoryEntry(id, actor, "created", undefined, "pending", "Generated from product version operation", createdAt),
       ],
       materialsUsed: [],
+      contributors: [],
       workstation: op.workstation,
     };
     return task;
@@ -484,14 +533,29 @@ export function applyStartTask(
   const quantityStarted = action.quantityStarted ?? remainingQuantity(task);
   const operatorId = action.operatorId ?? action.assignedTo ?? actor.userId;
   const operatorName = action.operatorName ?? action.assignedToName ?? actor.userName;
+  const existingContributors = resolveTaskContributors(task);
+  const contributorInputs =
+    action.contributors && action.contributors.length > 0
+      ? action.contributors
+      : existingContributors.length > 0
+        ? existingContributors
+        : [{ userId: operatorId, userName: operatorName, contributionPercent: 0 }];
+  const contributors = toTaskContributors(
+    contributorInputs,
+    "in_progress",
+    now,
+    existingContributors,
+  );
+  const primary = primaryContributor(contributors);
 
   const updatedTask = withHistory(
     {
       ...task,
-      assignedTo: action.assignedTo ?? task.assignedTo,
-      assignedToName: action.assignedToName ?? task.assignedToName,
-      operatorId,
-      operatorName,
+      assignedTo: primary.assignedTo ?? action.assignedTo ?? task.assignedTo,
+      assignedToName: primary.assignedToName ?? action.assignedToName ?? task.assignedToName,
+      operatorId: primary.operatorId ?? operatorId,
+      operatorName: primary.operatorName ?? operatorName,
+      contributors,
       machineName: action.machineName ?? task.machineName,
       startedQuantity: quantityStarted,
       startedAt: task.startedAt ?? now,
@@ -499,10 +563,12 @@ export function applyStartTask(
       notes: action.notes ?? task.notes,
     },
     actor,
-    task.status === "rework_required" ? "started" : "started",
+    "started",
     "in_progress",
     action.notes ??
-      `Started qty ${quantityStarted}${action.machineName ? ` on ${action.machineName}` : ""}`,
+      `Started qty ${quantityStarted}${action.machineName ? ` on ${action.machineName}` : ""}${
+        contributors.length ? ` · ${formatContributors(contributors, false)}` : ""
+      }`,
   );
 
   const nextStatus: ManufacturingJob["status"] =
@@ -531,7 +597,11 @@ export function applyPauseTask(
     invalidState(`Task "${task.name}" is not in progress.`);
   }
   const updated = withHistory(
-    { ...task, pausedAt: nowIso() },
+    {
+      ...task,
+      pausedAt: nowIso(),
+      contributors: setContributorStatus(resolveTaskContributors(task), "paused", nowIso()),
+    },
     actor,
     "paused",
     "ready",
@@ -552,8 +622,13 @@ export function applyResumeTask(
   if (task.status !== "on_hold" && task.status !== "ready" && task.status !== "blocked") {
     invalidState(`Task "${task.name}" cannot be resumed.`);
   }
+  const now = nowIso();
   const updated = withHistory(
-    { ...task, pausedAt: undefined },
+    {
+      ...task,
+      pausedAt: undefined,
+      contributors: setContributorStatus(resolveTaskContributors(task), "in_progress", now),
+    },
     actor,
     "resumed",
     "in_progress",
@@ -575,8 +650,13 @@ export function applyHoldTask(
   if (task.status === "completed" || task.status === "skipped" || task.status === "cancelled") {
     invalidState(`Task "${task.name}" cannot be put on hold.`);
   }
+  const now = nowIso();
   const updated = withHistory(
-    { ...task, pausedAt: nowIso() },
+    {
+      ...task,
+      pausedAt: now,
+      contributors: setContributorStatus(resolveTaskContributors(task), "on_hold", now),
+    },
     actor,
     "on_hold",
     "on_hold",
@@ -665,24 +745,55 @@ export function applyCompleteTask(
     invalidState(`Task "${task.name}" must be in progress before it can be completed.`);
   }
 
-  const addedCompleted = Math.max(0, action.completedQuantity);
+  const addedRework = Math.max(0, action.reworkQuantity ?? 0);
+  const remainingBefore = remainingQuantity(task);
+  const now = nowIso();
+
+  const existingContributors = resolveTaskContributors(task);
+  const contributorInputs = uniqueContributorInputs(
+    action.contributors && action.contributors.length > 0
+      ? action.contributors
+      : defaultCompleteContributors(existingContributors, actor, {
+          quantity: remainingBefore,
+          estimatedHours: task.estimatedHours,
+          actualHours: action.actualHours,
+        }),
+  );
+  const peopleQuantity = quantityTotal(contributorInputs);
+  const addedCompleted = Math.max(
+    0,
+    peopleQuantity > 0 ? peopleQuantity : (action.completedQuantity ?? remainingBefore),
+  );
   const completedQuantity = Math.min(
     task.plannedQuantity,
     task.completedQuantity + addedCompleted,
   );
-  const addedRejected = Math.max(0, action.rejectedQuantity ?? 0);
-  const addedWaste = Math.max(0, action.wasteQuantity ?? 0);
-  const addedRework = Math.max(0, action.reworkQuantity ?? 0);
   const remaining = Math.max(0, task.plannedQuantity - completedQuantity);
   const fullyDone = remaining === 0;
+
+  if (fullyDone) {
+    validateCompleteContributors(contributorInputs, { remainingQuantity: remainingBefore });
+  }
+  const contributors = toTaskContributors(
+    contributorInputs,
+    fullyDone ? "completed" : "in_progress",
+    now,
+    existingContributors,
+    task,
+  );
+  const primary = primaryContributor(contributors);
+  const work = aggregateContributorWork(contributors);
+  const addedRejected = Math.max(0, work.rejectedQuantity || action.rejectedQuantity || 0);
+  const addedWaste = Math.max(0, work.wasteQuantity || action.wasteQuantity || 0);
+
   const actualHours =
-    action.actualHours ??
-    hoursFromStart(task.startedAt, task.actualHours ?? task.estimatedHours);
-  const { overtimeHours } = splitLaborHours({
-    actualHours,
-    estimatedHours: task.estimatedHours,
-    overtimeHours: action.overtimeHours,
-  });
+    work.actualHours > 0
+      ? work.actualHours
+      : (action.actualHours ??
+        hoursFromStart(task.startedAt, task.actualHours ?? task.estimatedHours));
+  const overtimeHours = work.overtimeHours;
+  const normalOvertimeHours = work.normalOvertimeHours;
+  const doubleOvertimeHours = work.doubleOvertimeHours;
   const materialsUsed: TaskMaterialUsage[] = [
     ...task.materialsUsed,
     ...(action.materialsUsed ?? []),
@@ -693,6 +804,9 @@ export function applyCompleteTask(
   );
 
   const nextStatus: ManufacturingTaskStatus = fullyDone ? "completed" : "in_progress";
+  const contributionNote = contributors.length
+    ? ` · ${formatContributors(contributors, fullyDone)}`
+    : "";
   const updated = withHistory(
     {
       ...task,
@@ -702,18 +816,23 @@ export function applyCompleteTask(
       reworkQuantity: task.reworkQuantity + addedRework,
       actualHours,
       overtimeHours,
+      normalOvertimeHours,
+      doubleOvertimeHours,
       actualCost: round2((task.actualCost ?? 0) + materialCost),
       materialsUsed,
+      contributors,
+      assignedTo: primary.assignedTo ?? task.assignedTo,
+      assignedToName: primary.assignedToName ?? task.assignedToName,
       notes: action.notes ?? task.notes,
-      completedAt: fullyDone ? nowIso() : undefined,
-      operatorId: task.operatorId ?? actor.userId,
-      operatorName: task.operatorName ?? actor.userName,
+      completedAt: fullyDone ? now : undefined,
+      operatorId: primary.operatorId ?? task.operatorId ?? actor.userId,
+      operatorName: primary.operatorName ?? task.operatorName ?? actor.userName,
     },
     actor,
     fullyDone ? "completed" : "quantity_updated",
     nextStatus,
     action.notes ??
-      `Completed ${addedCompleted} of ${task.plannedQuantity} (remaining ${remaining})`,
+      `Completed ${addedCompleted} of ${task.plannedQuantity} (remaining ${remaining})${contributionNote}`,
   );
 
   let nextJob: ManufacturingJob = {
@@ -810,6 +929,7 @@ export function applyRecordRework(
     machineCost: original.machineCost,
     assignedTo: original.assignedTo,
     assignedToName: original.assignedToName,
+    contributors: resetContributorProgress(original.contributors),
     plannedQuantity: quantity,
     completedQuantity: 0,
     rejectedQuantity: 0,
@@ -870,6 +990,9 @@ export function applyRecordRework(
       startedAt: undefined,
       actualHours: undefined,
       overtimeHours: undefined,
+      normalOvertimeHours: undefined,
+      doubleOvertimeHours: undefined,
+      contributors: resetContributorProgress(task.contributors),
     };
     if (
       task.status === "completed" ||

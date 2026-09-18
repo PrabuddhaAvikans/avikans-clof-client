@@ -133,7 +133,7 @@ export function auditEntityPath(entity: AuditEntity, entityId: string): string |
     case "Delivery":
       return ROUTES.deliveries.detail(entityId);
     case "Settings":
-      return ROUTES.admin.settings;
+      return ROUTES.configuration.settings;
     default:
       return null;
   }

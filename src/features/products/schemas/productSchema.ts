@@ -74,9 +74,17 @@ export const optionGroupSchema = yup.object({
 });
 
 export const accessorySchema = yup.object({
-  name: yup.string().required(),
-  sku: yup.string().required(),
-  type: yup.string().required(),
+  id: yup.string().optional(),
+  handle: yup.string().optional().default(''),
+  name: yup.string().optional().default(''),
+  sku: yup.string().optional().default(''),
+  quantity: yup.number().min(1).default(1),
+});
+
+export const costSheetLineSchema = yup.object({
+  id: yup.string().required(),
+  handle: yup.string().default(""),
+  amount: yup.number().min(0).default(0),
 });
 
 export const costBreakdownSchema = yup.object({
@@ -86,6 +94,8 @@ export const costBreakdownSchema = yup.object({
   machineCost: yup.number().min(0).default(0),
   overheadCost: yup.number().min(0).default(0),
   otherCost: yup.number().min(0).default(0),
+  extraLines: yup.array(costSheetLineSchema).default([]),
+  configurationId: yup.string().default("default"),
   notes: yup.string().optional(),
   overrideMaterial: yup.boolean().default(false),
   overrideLabour: yup.boolean().default(false),
@@ -97,7 +107,7 @@ export const costBreakdownSchema = yup.object({
 export const productFormSchema = yup.object({
   name: yup.string().min(2, 'Product name must be at least 2 characters').required(),
   code: yup.string().optional(),
-  sku: yup.string().min(2, 'SKU is required').required(),
+  sku: yup.string().min(2, 'Product code is required').required(),
   description: yup.string().min(1, 'Description is required').required(),
   shortDescription: yup.string().optional(),
   categoryId: yup.string().min(1, 'Category is required').required(),

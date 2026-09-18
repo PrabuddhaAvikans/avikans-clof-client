@@ -8,7 +8,6 @@ import {
   type QuotationFormValues,
 } from "@/features/sales/schemas/quotationSchema";
 import { formatCurrency } from "@/lib/format";
-import { Priority } from "@/types/status";
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -30,7 +29,6 @@ export function QuotationFormPreview({
 }: QuotationFormPreviewProps) {
   const { values } = useFormikContext<QuotationFormValues>();
   const totals = computeQuotationTotals(values.lineItems, values.discountAmount ?? 0);
-  const priorityLabel = Priority[values.priority as keyof typeof Priority]?.label ?? values.priority;
 
   return (
     <aside className="space-y-3">
@@ -55,7 +53,6 @@ export function QuotationFormPreview({
         <dl className="mt-3">
           <Row label="Quote Date" value={values.quoteDate} />
           <Row label="Valid Until" value={values.validUntil} />
-          <Row label="Priority" value={priorityLabel} />
           <Row
             label="Attachments"
             value={String(values.attachments?.length ?? 0)}

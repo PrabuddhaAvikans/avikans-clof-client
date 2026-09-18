@@ -47,6 +47,44 @@ export interface TaskMaterialUsage {
   cost?: number;
 }
 
+export type TaskContributorStatus =
+  | "assigned"
+  | "in_progress"
+  | "paused"
+  | "on_hold"
+  | "completed";
+
+export interface TaskContributor {
+  userId: string;
+  userName: string;
+  contributionPercent: number;
+  quantity: number;
+  rejectedQuantity: number;
+  wasteQuantity: number;
+  actualHours: number;
+  overtimeHours: number;
+  normalOvertimeHours: number;
+  doubleOvertimeHours: number;
+  laborCost: number;
+  status: TaskContributorStatus;
+  startedAt?: string;
+  pausedAt?: string;
+  completedAt?: string;
+}
+
+export type TaskContributorInput = {
+  userId: string;
+  userName: string;
+  contributionPercent?: number;
+  quantity?: number;
+  rejectedQuantity?: number;
+  wasteQuantity?: number;
+  actualHours?: number;
+  overtimeHours?: number;
+  normalOvertimeHours?: number;
+  doubleOvertimeHours?: number;
+};
+
 export interface ManufacturingRework {
   id: string;
   reworkNumber: string;
@@ -80,6 +118,8 @@ export interface ManufacturingTask {
   estimatedHours: number;
   actualHours?: number;
   overtimeHours?: number;
+  normalOvertimeHours?: number;
+  doubleOvertimeHours?: number;
   labourCostRate?: number;
   machineName?: string;
   machineCost?: number;
@@ -88,6 +128,7 @@ export interface ManufacturingTask {
   assignedToName?: string;
   operatorId?: string;
   operatorName?: string;
+  contributors: TaskContributor[];
   plannedQuantity: number;
   completedQuantity: number;
   rejectedQuantity: number;
@@ -208,6 +249,7 @@ export type ManufacturingTaskAction =
       operatorName?: string;
       machineName?: string;
       quantityStarted?: number;
+      contributors?: TaskContributorInput[];
       notes?: string;
     }
   | { type: "pause"; taskId: string; notes?: string }
@@ -216,12 +258,15 @@ export type ManufacturingTaskAction =
   | {
       type: "complete";
       taskId: string;
-      completedQuantity: number;
+      completedQuantity?: number;
       rejectedQuantity?: number;
       wasteQuantity?: number;
       reworkQuantity?: number;
       actualHours?: number;
       overtimeHours?: number;
+      normalOvertimeHours?: number;
+      doubleOvertimeHours?: number;
+      contributors?: TaskContributorInput[];
       notes?: string;
       materialsUsed?: TaskMaterialUsage[];
     }
