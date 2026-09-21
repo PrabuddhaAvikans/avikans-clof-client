@@ -1,5 +1,6 @@
 import { createContext, useContext, useId, useState, type ReactNode } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { getNodeText } from '@/lib/hoverTitle';
 import { cn } from '@/lib/utils';
 
 type AccordionContextValue = {
@@ -84,6 +85,7 @@ export function AccordionTrigger({ value, children, className }: AccordionTrigge
       id={triggerId}
       aria-expanded={isOpen}
       aria-controls={panelId}
+      title={getNodeText(children)}
       onClick={() => toggle(value)}
       className={cn(
         'flex w-full items-center justify-between py-4 text-left text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',

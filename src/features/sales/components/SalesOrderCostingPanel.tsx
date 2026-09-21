@@ -6,6 +6,7 @@ import { MappedStatusBadge } from "@/features/shared/components/MappedStatusBadg
 import {
   canConfirmSalesOrder,
   getConfirmBlockReason,
+  getSalesOrderOriginLabel,
 } from "@/features/sales/lib/salesOrderFlow";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -42,19 +43,23 @@ export function SalesOrderCostingPanel({
   const blockReason = getConfirmBlockReason(order, costing);
 
   return (
-    <div className={cn(workspacePanelShell, className)}>
+    <div className={cn(workspacePanelShell, "lg:h-auto", className)}>
       <div className="border-b border-border px-4 py-3">
         <h2 className="text-sm font-semibold text-foreground">Estimation & Costing</h2>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          Required before order confirmation
+          {order.quotationId
+            ? `${getSalesOrderOriginLabel(order)} · BOM from quoted / customized lines`
+            : `${getSalesOrderOriginLabel(order)} · BOM from product master`}
         </p>
       </div>
 
-      <div className={workspacePanelBody}>
+      <div className={cn(workspacePanelBody, "space-y-3 lg:flex-none")}>
         {!costing ? (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              This sales order has no estimation or costing request yet.
+              {order.quotationId
+                ? "Generate estimation from this quotation sales order BOM, then send it to costing approval."
+                : "Generate estimation from this direct sales order product BOM, then send it to costing approval."}
             </p>
             <Button
               type="button"
@@ -64,36 +69,42 @@ export function SalesOrderCostingPanel({
               loading={isCreating}
               onClick={onCreateCosting}
             >
-              Create estimation request
+              Generate BOM estimation
             </Button>
           </div>
         ) : (
           <>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-              <div className="rounded-md border border-border p-3">
+              <div className="rounded-md border border-border px-3 py-2.5">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">1. Estimation</p>
                 <div className="mt-1">
                   <MappedStatusBadge statusMap={CoatingStatus} value={costing.coatingStatus} dot />
                 </div>
-                <p className="mt-2 text-sm tabular-nums font-medium">
+                <p className="mt-1.5 text-sm tabular-nums font-medium">
                   {formatCurrency(coatingTotal, costing.currency)}
                 </p>
+                {costing.estimationProductLines.length > 0 && (
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    {costing.estimationMaterials.length} BOM item
+                    {costing.estimationMaterials.length !== 1 ? "s" : ""}
+                  </p>
+                )}
               </div>
-              <div className="rounded-md border border-border p-3">
+              <div className="rounded-md border border-border px-3 py-2.5">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">2. Approval</p>
                 <div className="mt-1">
                   <MappedStatusBadge statusMap={CostingRequestStatus} value={costing.status} dot />
                 </div>
-                <p className="mt-2 text-sm tabular-nums font-medium">
+                <p className="mt-1.5 text-sm tabular-nums font-medium">
                   {formatCurrency(costing.totalEstimate, costing.currency)}
                 </p>
               </div>
-              <div className="rounded-md border border-border p-3">
+              <div className="rounded-md border border-border px-3 py-2.5">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">3. Confirm</p>
-                <p className="mt-2 text-sm font-medium">
+                <p className="mt-1.5 text-sm font-medium">
                   {confirmReady ? "Ready" : "Locked"}
                 </p>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-0.5 text-xs text-muted-foreground">
                   {confirmReady ? "Costing approved" : "Awaiting approval"}
                 </p>
               </div>
@@ -101,6 +112,11 @@ export function SalesOrderCostingPanel({
 
             <p className="text-xs text-muted-foreground">{costing.requestNumber}</p>
 
+            {costing.coatingStatus !== "pending" && costing.status !== "approved" && (
+              <p className="rounded-md border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                BOM estimation is ready. Costing approval is the next step.
+              </p>
+            )}
             {blockReason && (
               <p className="rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-warning">
                 {blockReason}
@@ -113,6 +129,17 @@ export function SalesOrderCostingPanel({
             )}
 
             <div className="flex flex-wrap gap-2">
+              <Link to={ROUTES.costing.forOrder(order.id)}>
+                <Button
+                  type="button"
+                  variant={costing.coatingStatus === "pending" ? "outline" : "primary"}
+                  size="sm"
+                  leftIcon={<Calculator className="h-4 w-4" />}
+                  disabled={costing.coatingStatus === "pending"}
+                >
+                  Open approval
+                </Button>
+              </Link>
               <Link to={ROUTES.estimation.forOrder(order.id)}>
                 <Button
                   type="button"
@@ -120,18 +147,7 @@ export function SalesOrderCostingPanel({
                   size="sm"
                   leftIcon={<Layers className="h-4 w-4" />}
                 >
-                  Open estimation
-                </Button>
-              </Link>
-              <Link to={ROUTES.costing.forOrder(order.id)}>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  leftIcon={<Calculator className="h-4 w-4" />}
-                  disabled={costing.coatingStatus === "pending"}
-                >
-                  Open approval
+                  Review estimation
                 </Button>
               </Link>
             </div>

@@ -1,4 +1,5 @@
 import { createContext, useContext, useId, type ReactNode } from 'react';
+import { getNodeText } from '@/lib/hoverTitle';
 import { cn } from '@/lib/utils';
 
 type TabsContextValue = {
@@ -66,6 +67,7 @@ export function Tab({ value, children, disabled, className }: TabProps) {
       aria-selected={isSelected}
       aria-controls={panelId}
       disabled={disabled}
+      title={getNodeText(children)}
       onClick={() => onChange(value)}
       className={cn(
         'relative -mb-px rounded-t-lg px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',

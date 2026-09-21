@@ -141,7 +141,17 @@ export function SalesOrderReviewPage() {
               </section>
             </div>
 
-            <div className="mt-8 flex gap-3">
+            <div className="mt-8 flex flex-wrap gap-3">
+              {costing && costing.coatingStatus !== "pending" && costing.status !== "approved" && (
+                <Button onClick={() => navigate(ROUTES.costing.forOrder(order.id))}>
+                  Go to costing approval
+                </Button>
+              )}
+              {costing?.coatingStatus === "pending" && (
+                <Button onClick={() => navigate(ROUTES.estimation.forOrder(order.id))}>
+                  Open product estimation
+                </Button>
+              )}
               <Button
                 onClick={() => void handleConfirm()}
                 loading={confirmOrder.isPending}

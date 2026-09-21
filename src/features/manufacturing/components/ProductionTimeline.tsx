@@ -49,7 +49,7 @@ export function ProductionTimeline({
             const lineBlocks = blocks.filter((block) => block.line === line);
             return (
               <div key={line} className="grid grid-cols-[64px_1fr] items-center gap-2">
-                <p className="truncate text-[11px] font-medium text-foreground">{line}</p>
+                <p className="truncate text-[11px] font-medium text-foreground" title={line}>{line}</p>
                 <div className="relative h-8 border-y border-border bg-[linear-gradient(to_right,transparent_calc(100%/12-1px),var(--border)_calc(100%/12-1px),var(--border)_calc(100%/12),transparent_calc(100%/12))] bg-[length:calc(100%/12)_100%]">
                   <div
                     className="pointer-events-none absolute inset-y-0 z-10 w-px bg-foreground"
@@ -74,7 +74,7 @@ export function ProductionTimeline({
                         )}
                         style={{ left: `${left}%`, width: `${Math.max(width, 3.5)}%` }}
                       >
-                        <span className="truncate text-[9px] font-medium leading-none">
+                        <span className="truncate text-[9px] font-medium leading-none" title={`${block.jobNumber} · ${block.label}`}>
                           {block.jobNumber.replace("JOB-", "")} {block.label}
                         </span>
                       </button>

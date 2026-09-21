@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { AlertCircle, Check, Circle } from 'lucide-react';
+import { AlertCircle, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type StepStatus = 'completed' | 'current' | 'pending' | 'error';
@@ -18,32 +18,64 @@ export type StepperProps = {
   className?: string;
 };
 
-function StepIcon({ status }: { status: StepStatus }) {
+function StepIcon({
+  status,
+  title,
+  compact,
+}: {
+  status: StepStatus;
+  title: string;
+  compact?: boolean;
+}) {
+  const box = compact ? 'h-4 w-4' : 'h-8 w-8';
+
   if (status === 'completed') {
     return (
-      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-success text-success-foreground">
-        <Check className="h-4 w-4" />
+      <span
+        title={title}
+        className={cn(
+          'flex items-center justify-center rounded-full bg-success text-success-foreground',
+          box,
+        )}
+      >
+        <Check className={compact ? 'h-2.5 w-2.5' : 'h-4 w-4'} strokeWidth={2.75} />
       </span>
     );
   }
+
   if (status === 'error') {
     return (
-      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-destructive text-destructive-foreground">
-        <AlertCircle className="h-4 w-4" />
+      <span
+        title={title}
+        className={cn(
+          'flex items-center justify-center rounded-full bg-destructive text-destructive-foreground',
+          box,
+        )}
+      >
+        <AlertCircle className={compact ? 'h-2.5 w-2.5' : 'h-4 w-4'} />
       </span>
     );
   }
+
   if (status === 'current') {
     return (
-      <span className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-primary bg-card text-sm font-semibold text-primary">
-        <Circle className="h-3 w-3 fill-primary text-primary" />
+      <span
+        title={title}
+        className={cn(
+          'flex items-center justify-center rounded-full border border-foreground bg-card',
+          box,
+        )}
+      >
+        <span className={cn('rounded-full bg-foreground', compact ? 'h-1.5 w-1.5' : 'h-2.5 w-2.5')} />
       </span>
     );
   }
+
   return (
-    <span className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-muted text-sm font-medium text-muted-foreground">
-      <Circle className="h-3 w-3" />
-    </span>
+    <span
+      title={title}
+      className={cn('rounded-full border border-border bg-card', box)}
+    />
   );
 }
 
@@ -52,33 +84,43 @@ export function Stepper({ steps, orientation = 'horizontal', className }: Steppe
     return (
       <ol className={cn('space-y-0', className)}>
         {steps.map((step, index) => (
-          <li key={step.id} className="flex gap-4">
-            <div className="flex flex-col items-center">
-              <StepIcon status={step.status} />
+          <li
+            key={step.id}
+            className="flex gap-2.5"
+            data-status={step.status}
+            title={step.description ? `${step.label} — ${step.description}` : step.label}
+          >
+            <div className="flex w-4 shrink-0 flex-col items-center">
+              <StepIcon status={step.status} title={step.label} compact />
               {index < steps.length - 1 && (
                 <div
                   className={cn(
-                    'my-1 w-px flex-1 min-h-8',
-                    step.status === 'completed' ? 'bg-success' : 'bg-border',
+                    'mt-1 w-px flex-1',
+                    step.status === 'completed' ? 'bg-success/70' : 'bg-border',
                   )}
                 />
               )}
             </div>
-            <div className={cn('min-w-0 flex-1 pb-8', index === steps.length - 1 && 'pb-0')}>
-              <p
-                className={cn(
-                  'text-sm font-medium',
-                  step.status === 'current' && 'text-primary',
-                  step.status === 'error' && 'text-destructive',
-                  step.status === 'pending' && 'text-muted-foreground',
+            <div className={cn('min-w-0 flex-1 pb-2.5', index === steps.length - 1 && 'pb-0')}>
+              <div className="flex items-baseline justify-between gap-2">
+                <p
+                  className={cn(
+                    'truncate text-[13px] leading-4',
+                    step.status === 'current' && 'font-semibold text-foreground',
+                    step.status === 'completed' && 'font-medium text-foreground',
+                    step.status === 'error' && 'font-medium text-destructive',
+                    step.status === 'pending' && 'font-medium text-muted-foreground',
+                  )}
+                >
+                  {step.label}
+                </p>
+                {step.description && (
+                  <p className="max-w-[55%] truncate text-[11px] leading-4 text-muted-foreground">
+                    {step.description}
+                  </p>
                 )}
-              >
-                {step.label}
-              </p>
-              {step.description && (
-                <p className="mt-0.5 text-xs text-muted-foreground">{step.description}</p>
-              )}
-              {step.content && <div className="mt-2">{step.content}</div>}
+              </div>
+              {step.content && <div className="mt-1.5">{step.content}</div>}
             </div>
           </li>
         ))}
@@ -89,7 +131,11 @@ export function Stepper({ steps, orientation = 'horizontal', className }: Steppe
   return (
     <ol className={cn('flex w-full items-start', className)}>
       {steps.map((step, index) => (
-        <li key={step.id} className="flex flex-1 flex-col items-center text-center">
+        <li
+          key={step.id}
+          className="flex flex-1 flex-col items-center text-center"
+          title={step.description ? `${step.label} — ${step.description}` : step.label}
+        >
           <div className="flex w-full items-center">
             {index > 0 && (
               <div
@@ -99,7 +145,7 @@ export function Stepper({ steps, orientation = 'horizontal', className }: Steppe
                 )}
               />
             )}
-            <StepIcon status={step.status} />
+            <StepIcon status={step.status} title={step.label} />
             {index < steps.length - 1 && (
               <div
                 className={cn(

@@ -87,7 +87,7 @@ export function AttachmentPanel({
                   className="shrink-0 text-muted-foreground"
                 />
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-foreground underline-offset-2 hover:underline cursor-pointer">
+                  <p className="truncate text-sm font-medium text-foreground underline-offset-2 hover:underline cursor-pointer" title={attachment.name}>
                     {attachment.name}
                   </p>
                   {attachment.size !== undefined && (

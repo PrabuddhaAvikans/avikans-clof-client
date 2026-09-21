@@ -62,6 +62,7 @@ export function Pagination({
               options={pageSizeOptions.map((size) => ({ value: String(size), label: String(size) }))}
               className="w-20"
               aria-label="Page size"
+              title="Rows per page"
             />
           </div>
         )}

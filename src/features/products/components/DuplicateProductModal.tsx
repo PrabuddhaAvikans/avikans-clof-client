@@ -220,7 +220,7 @@ export function DuplicateProductModal({
           <dl className="mt-3 space-y-2 rounded-md border border-border bg-muted/20 px-3 py-2.5 text-sm">
             <div className="flex justify-between gap-3">
               <dt className="text-muted-foreground">Name</dt>
-              <dd className="max-w-[60%] truncate text-right font-medium text-foreground">
+              <dd className="max-w-[60%] truncate text-right font-medium text-foreground" title={summary.name}>
                 {summary.name}
               </dd>
             </div>

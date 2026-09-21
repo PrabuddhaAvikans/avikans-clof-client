@@ -1,5 +1,6 @@
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
+import { getNodeText, resolveHoverTitle } from '@/lib/hoverTitle';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from './button-variants';
 
@@ -26,11 +27,14 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       disabled,
       children,
       type = 'button',
+      title,
+      'aria-label': ariaLabel,
       ...props
     },
     ref,
   ) => {
     const isDisabled = disabled || loading;
+    const hoverTitle = resolveHoverTitle(title, ariaLabel, getNodeText(children));
 
     return (
       <button
@@ -40,6 +44,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         aria-busy={loading || undefined}
         className={cn(buttonVariants({ variant, size }), className)}
         {...props}
+        aria-label={ariaLabel}
+        title={hoverTitle}
       >
         {loading ? (
           <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />

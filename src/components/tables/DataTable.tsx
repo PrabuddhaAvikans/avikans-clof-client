@@ -12,6 +12,7 @@ import {
   type VisibilityState,
 } from '@tanstack/react-table';
 import { ArrowDown, ArrowUp, ArrowUpDown, Columns3 } from 'lucide-react';
+import { getNodeText } from '@/lib/hoverTitle';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Pagination } from '@/components/ui/Pagination';
@@ -184,6 +185,9 @@ export function DataTable<TData>({
                     const canSort = enableSorting && header.column.getCanSort();
                     const sorted = header.column.getIsSorted();
 
+                    const headerContent = flexRender(header.column.columnDef.header, header.getContext());
+                    const headerLabel = getNodeText(headerContent) ?? header.id;
+
                     return (
                       <th
                         key={header.id}
@@ -191,14 +195,22 @@ export function DataTable<TData>({
                           headerPad,
                           'whitespace-nowrap text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground',
                         )}
+                        title={headerLabel}
                       >
                         {header.isPlaceholder ? null : canSort ? (
                           <button
                             type="button"
                             className="inline-flex items-center gap-1 hover:text-foreground"
+                            title={
+                              sorted === 'asc'
+                                ? `Sort ${headerLabel} descending`
+                                : sorted === 'desc'
+                                  ? `Clear sort on ${headerLabel}`
+                                  : `Sort by ${headerLabel}`
+                            }
                             onClick={header.column.getToggleSortingHandler()}
                           >
-                            {flexRender(header.column.columnDef.header, header.getContext())}
+                            {headerContent}
                             {sorted === 'asc' ? (
                               <ArrowUp className="h-3.5 w-3.5" />
                             ) : sorted === 'desc' ? (
@@ -208,7 +220,7 @@ export function DataTable<TData>({
                             )}
                           </button>
                         ) : (
-                          flexRender(header.column.columnDef.header, header.getContext())
+                          headerContent
                         )}
                       </th>
                     );
@@ -238,11 +250,18 @@ export function DataTable<TData>({
                       getRowClassName?.(row.original),
                     )}
                   >
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className={cn(cellPad, 'whitespace-nowrap text-foreground')}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
+                    {row.getVisibleCells().map((cell) => {
+                      const cellContent = flexRender(cell.column.columnDef.cell, cell.getContext());
+                      return (
+                        <td
+                          key={cell.id}
+                          className={cn(cellPad, 'whitespace-nowrap text-foreground')}
+                          title={getNodeText(cellContent)}
+                        >
+                          {cellContent}
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))
               )}

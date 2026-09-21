@@ -89,6 +89,10 @@ export function applyEstimationMaterials(
       alternativeItemId: mat.alternativeItemId,
       alternativeItemName: mat.alternativeItemName,
       notes: mat.notes,
+      salesOrderLineItemId: mat.salesOrderLineItemId,
+      sourceType: mat.sourceType,
+      sourceProductName: mat.sourceProductName,
+      productVersionLabel: mat.productVersionLabel,
     };
   });
 
@@ -145,6 +149,10 @@ export function applyCoatingItems(
       quantity,
       unitCost,
       lineTotal: round2(unitCost * quantity),
+      salesOrderLineItemId: item.salesOrderLineItemId,
+      sourceType: item.sourceType,
+      productVersionLabel: item.productVersionLabel,
+      productSku: item.productSku,
     };
   });
 
@@ -176,6 +184,7 @@ export function buildCostingFromSalesOrder(
     status?: CostingRequestStatusValue;
     coatingUnitCost?: number;
     lineContexts?: EstimationLineContext[];
+    autoSubmitted?: boolean;
   },
 ): CostingRequest {
   const coatingStatus = options?.coatingStatus ?? "pending";
@@ -241,7 +250,7 @@ export function buildCostingFromSalesOrder(
       ? buildEstimationNotes(order, lineContexts)
       : coatingStatus === "pending"
         ? "Enter finish, process, and unit cost before submitting for costing approval."
-        : "Estimation submitted from sales order workflow.",
+        : "Estimation generated from the sales order and sent for costing approval.",
     requester: {
       name: order.createdByName,
       title: "Sales",
@@ -257,9 +266,13 @@ export function buildCostingFromSalesOrder(
     history: [
       {
         id: `h-${order.id}-1`,
-        action: lineContexts
-          ? "Created from quotation sales order (BOM & customization snapshot)"
-          : "Created from sales order",
+        action: order.quotationId
+          ? options?.autoSubmitted
+            ? "Created from quotation sales order with BOM snapshot (auto-submitted for approval)"
+            : "Created from quotation sales order (BOM & customization snapshot)"
+          : options?.autoSubmitted
+            ? "Created from direct sales order with product master BOM (auto-submitted for approval)"
+            : "Created from direct sales order",
         userName: order.createdByName,
         timestamp: order.createdAt,
       },
@@ -270,13 +283,12 @@ export function buildCostingFromSalesOrder(
     quotationNumber: order.quotationNumber,
   };
 
-  const coatingInputs = (lineContexts
+  const coatingInputs = lineContexts
     ? contextsToCoatingItems(lineContexts, order.id)
-    : buildCoatingItemsFromOrder(order)
-  ).map((item) => ({
-    ...item,
-    unitCost: coatingUnitCost,
-  }));
+    : buildCoatingItemsFromOrder(order).map((item) => ({
+        ...item,
+        unitCost: coatingUnitCost,
+      }));
 
   request = applyCoatingItems(request, coatingInputs);
 
@@ -297,7 +309,9 @@ export function buildCostingFromSalesOrder(
     request.history = [
       {
         id: `h-${order.id}-2`,
-        action: "Estimation submitted",
+        action: options?.autoSubmitted
+          ? "Estimation auto-submitted for costing approval"
+          : "Estimation submitted",
         userName: order.createdByName,
         timestamp: order.createdAt,
       },

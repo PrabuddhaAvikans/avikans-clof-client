@@ -11,11 +11,18 @@ import {
 } from "@/features/sales/schemas/quotationSchema";
 import { applyListQuery, cloneData } from "@/services/mock/helpers";
 import { initialCustomers } from "@/services/mock/data/customers";
-import { initialQuotations } from "@/services/mock/data/quotations";
 import { initialUsers } from "@/services/mock/data/users";
 import { initialSalesOrders } from "@/services/mock/data/sales-orders";
 import { initialSalesOrderCostingRequests } from "@/services/mock/data/sales-order-costing";
 import { mockCostingService } from "@/services/mock/mockCostingService";
+import {
+  attachSalesOrderToQuotation,
+  peekMockQuotation,
+} from "@/services/mock/mockQuotationService";
+import {
+  deepCloneCustomization,
+  lockCustomization,
+} from "@/lib/quotationCustomization";
 import { loadSystemSettings } from "@/lib/systemSettings";
 import type { SalesOrder, SalesOrderLineItem } from "@/types/sales-order";
 
@@ -89,11 +96,16 @@ export const mockSalesOrderService: SalesOrderService = {
       ? undefined
       : customer.shippingAddresses?.[customer.activeShippingAddressIndex ?? 0];
 
-    const quotation = data.quotationId
-      ? initialQuotations.find((q) => q.id === data.quotationId)
-      : undefined;
+    const quotation = data.quotationId ? peekMockQuotation(data.quotationId) : undefined;
 
-    const lineItems = buildLineItems(data.lineItems);
+    const lineItems = buildLineItems(
+      data.lineItems.map((item) => ({
+        ...item,
+        customization: item.customization
+          ? lockCustomization(deepCloneCustomization(item.customization))
+          : undefined,
+      })),
+    );
     const totals = computeTotals(lineItems, data.discountAmount ?? 0);
     const timestamp = nowIso();
 
@@ -103,8 +115,8 @@ export const mockSalesOrderService: SalesOrderService = {
       customerId: customer.id,
       customerName: customer.name,
       customerEmail: customer.email,
-      quotationId: data.quotationId,
-      quotationNumber: quotation?.quotationNumber,
+      quotationId: data.quotationId ?? quotation?.id,
+      quotationNumber: data.quotationNumber ?? quotation?.quotationNumber,
       status: "draft",
       priority: data.priority,
       lineItems,
@@ -127,6 +139,10 @@ export const mockSalesOrderService: SalesOrderService = {
     const costing = await mockCostingService.createFromSalesOrder(order);
     order.costingRequestId = costing.id;
 
+    if (order.quotationId) {
+      attachSalesOrderToQuotation(order.quotationId, order.id);
+    }
+
     return order;
   },
 
@@ -146,7 +162,17 @@ export const mockSalesOrderService: SalesOrderService = {
       ...totals,
       updatedAt: nowIso(),
     };
-    return salesOrders[index];
+    const updated = salesOrders[index];
+
+    if (
+      data.lineItems &&
+      ["draft", "pending_review", "submitted"].includes(updated.status)
+    ) {
+      const costing = await mockCostingService.syncFromSalesOrder(updated);
+      updated.costingRequestId = costing.id;
+    }
+
+    return updated;
   },
 
   async delete(id) {

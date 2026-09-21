@@ -1,5 +1,6 @@
 import { cva, type VariantProps } from 'class-variance-authority';
 import type { HTMLAttributes } from 'react';
+import { getNodeText, resolveHoverTitle } from '@/lib/hoverTitle';
 import { cn } from '@/lib/utils';
 
 const badgeVariants = cva(
@@ -43,10 +44,15 @@ export function StatusBadge({
   size = 'sm',
   dot = false,
   children,
+  title,
   ...props
 }: StatusBadgeProps) {
   return (
-    <span className={cn(badgeVariants({ variant, size }), className)} {...props}>
+    <span
+      className={cn(badgeVariants({ variant, size }), className)}
+      {...props}
+      title={resolveHoverTitle(title, getNodeText(children))}
+    >
       {dot && (
         <span
           className={cn(

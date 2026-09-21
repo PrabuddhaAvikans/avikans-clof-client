@@ -7,13 +7,29 @@ export type SwitchProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | '
 };
 
 export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
-  ({ className, label, description, id: idProp, disabled, checked, onChange, ...props }, ref) => {
+  (
+    {
+      className,
+      label,
+      description,
+      id: idProp,
+      disabled,
+      checked,
+      onChange,
+      title,
+      'aria-label': ariaLabel,
+      ...props
+    },
+    ref,
+  ) => {
     const generatedId = useId();
     const id = idProp ?? generatedId;
+    const hoverTitle = title ?? label ?? description ?? ariaLabel;
 
     return (
       <label
         htmlFor={id}
+        title={hoverTitle}
         className={cn(
           'flex cursor-pointer items-start justify-between gap-3',
           disabled && 'cursor-not-allowed opacity-50',
@@ -35,6 +51,7 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
             disabled={disabled}
             checked={checked}
             onChange={onChange}
+            aria-label={ariaLabel}
             className="peer sr-only"
             {...props}
           />

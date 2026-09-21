@@ -46,10 +46,11 @@ export function Breadcrumbs({ className }: BreadcrumbsProps) {
               )}
               <li>
                 {isLast ? (
-                  <span className="font-medium text-foreground">{crumb.label}</span>
+                  <span className="font-medium text-foreground" title={crumb.label}>{crumb.label}</span>
                 ) : (
                   <Link
                     to={crumb.path}
+                    title={crumb.label}
                     className="inline-flex items-center gap-1 hover:text-foreground"
                   >
                     {index === 0 && <Home className="h-3.5 w-3.5" aria-hidden />}

@@ -63,8 +63,8 @@ export function ProductionJobsTable({
         header: "Product",
         cell: ({ row }) => (
           <div className="min-w-[110px] max-w-[160px]">
-            <p className="truncate font-medium text-foreground">{row.original.productName}</p>
-            <p className="truncate text-[10px] text-muted-foreground">
+            <p className="truncate font-medium text-foreground" title={row.original.productName}>{row.original.productName}</p>
+            <p className="truncate text-[10px] text-muted-foreground" title={`${row.original.customerName} · ${row.original.productSku}`}>
               {row.original.customerName} · {row.original.productSku}
             </p>
           </div>

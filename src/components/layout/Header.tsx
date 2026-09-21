@@ -186,6 +186,7 @@ export function Header() {
                       key={item.label}
                       to={item.path}
                       role="menuitem"
+                      title={`Create ${item.label}`}
                       className="flex items-center gap-2 px-3 py-2 text-sm text-popover-foreground hover:bg-muted"
                       onClick={() => setQuickCreateOpen(false)}
                     >
@@ -214,6 +215,8 @@ export function Header() {
               type="button"
               className="flex items-center gap-2 rounded-md px-1.5 py-1 text-left hover:bg-muted"
               onClick={() => setProfileOpen((open) => !open)}
+              title={`${displayName} (${role})`}
+              aria-label={`${displayName} account menu`}
               aria-expanded={profileOpen}
               aria-haspopup="menu"
             >
@@ -221,10 +224,10 @@ export function Header() {
                 {displayName.charAt(0)}
               </span>
               <span className="hidden min-w-0 lg:block">
-                <span className="block truncate text-[13px] font-medium text-foreground">
+                <span className="block truncate text-[13px] font-medium text-foreground" title={displayName}>
                   {displayName}
                 </span>
-                <span className="block truncate text-[11px] text-muted-foreground">
+                <span className="block truncate text-[11px] text-muted-foreground" title={role}>
                   {role}
                 </span>
               </span>
@@ -249,6 +252,7 @@ export function Header() {
                   <button
                     type="button"
                     role="menuitem"
+                    title="Users & roles"
                     className="flex w-full items-center gap-2 px-3 py-2 text-sm text-popover-foreground hover:bg-muted"
                     onClick={() => {
                       setProfileOpen(false);
@@ -262,6 +266,7 @@ export function Header() {
                 <button
                   type="button"
                   role="menuitem"
+                  title="Log out"
                   className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-muted"
                   onClick={handleLogout}
                 >

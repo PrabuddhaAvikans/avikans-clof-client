@@ -177,7 +177,7 @@ export function CostingApprovalWorkspacePage() {
     <PageContainer maxWidth="full" className="py-3">
       <PageHeader
         title="Costing & Approval Workspace"
-        description="Quotation → Sales Order → Product Estimation → Costing Approval → Confirm."
+        description="Sales order generates a BOM estimation automatically. Approve costing here before the order can be confirmed."
         className="mb-2"
         actions={
           <>

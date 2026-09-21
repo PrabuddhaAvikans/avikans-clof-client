@@ -124,12 +124,12 @@ export function EstimationListPanel({
                   )}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <p className="truncate text-sm font-medium text-primary">
+                    <p className="truncate text-sm font-medium text-primary" title={item.salesOrderNumber ?? item.requestNumber}>
                       {item.salesOrderNumber ?? item.requestNumber}
                     </p>
                     <MappedStatusBadge statusMap={CoatingStatus} value={item.coatingStatus} dot />
                   </div>
-                  <p className="truncate text-xs text-foreground">{item.customerName}</p>
+                  <p className="truncate text-xs text-foreground" title={item.customerName}>{item.customerName}</p>
                   <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
                     <span>{formatDate(item.requestedDate)}</span>
                     <span className="tabular-nums font-medium text-foreground">

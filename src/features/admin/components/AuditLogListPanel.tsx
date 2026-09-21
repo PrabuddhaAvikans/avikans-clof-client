@@ -72,13 +72,14 @@ export function AuditLogListPanel({
                     type="button"
                     ref={selected ? selectedRef : undefined}
                     onClick={() => onSelect(item.id)}
+                    title={item.entityLabel || item.entity}
                     className={cn(
                       "flex w-full flex-col gap-1 px-3 py-2.5 text-left transition-colors hover:bg-muted/50",
                       selected && "bg-primary/5 hover:bg-primary/5",
                     )}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <p className="truncate text-sm font-medium text-foreground">
+                      <p className="truncate text-sm font-medium text-foreground" title={item.entityLabel || item.entity}>
                         {item.entityLabel || item.entity}
                       </p>
                       <StatusBadge variant={auditSeverityVariant(item.severity)} dot size="sm">
@@ -89,7 +90,7 @@ export function AuditLogListPanel({
                       <StatusBadge variant={auditActionVariant(item.action)} size="sm">
                         {AUDIT_ACTION_LABELS[item.action]}
                       </StatusBadge>
-                      <span className="truncate text-xs text-muted-foreground">{item.details}</span>
+                      <span className="truncate text-xs text-muted-foreground" title={item.details}>{item.details}</span>
                     </div>
                     <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
                       <span>{item.userName}</span>

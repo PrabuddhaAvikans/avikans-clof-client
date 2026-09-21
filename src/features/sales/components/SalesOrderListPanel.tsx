@@ -138,6 +138,7 @@ export function SalesOrderListPanel({
                       onSelect(item.id);
                     }
                   }}
+                  title={item.orderNumber}
                   className={cn(
                     "flex w-full cursor-pointer flex-col gap-1.5 px-3 py-2.5 text-left transition-colors hover:bg-muted/50",
                     selectedId === item.id && "bg-primary/5 hover:bg-primary/5",
@@ -145,7 +146,7 @@ export function SalesOrderListPanel({
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex min-w-0 items-center gap-1">
-                      <p className="truncate text-sm font-medium text-primary">
+                      <p className="truncate text-sm font-medium text-primary" title={item.orderNumber}>
                         {item.orderNumber}
                       </p>
                       <Link
@@ -164,9 +165,9 @@ export function SalesOrderListPanel({
                       dot
                     />
                   </div>
-                  <p className="truncate text-xs text-foreground">{item.customerName}</p>
+                  <p className="truncate text-xs text-foreground" title={item.customerName}>{item.customerName}</p>
                   {item.quotationNumber && (
-                    <p className="truncate text-[11px] text-muted-foreground">
+                    <p className="truncate text-[11px] text-muted-foreground" title={`From ${item.quotationNumber}`}>
                       From {item.quotationNumber}
                     </p>
                   )}

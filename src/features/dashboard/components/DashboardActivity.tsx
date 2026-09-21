@@ -102,10 +102,13 @@ function ChangeRows({ changes }: { changes: DashboardActivityChange[] }) {
     <dl className="mt-2 space-y-1">
       {visible.map((change) => (
         <div key={change.field} className="grid grid-cols-[4.5rem_minmax(0,1fr)] items-baseline gap-x-2">
-          <dt className="truncate text-[11px] leading-4 text-muted-foreground">
+          <dt className="truncate text-[11px] leading-4 text-muted-foreground" title={auditFieldLabel(change.field)}>
             {auditFieldLabel(change.field)}
           </dt>
-          <dd className="min-w-0 truncate text-[11px] leading-4">
+          <dd
+            className="min-w-0 truncate text-[11px] leading-4"
+            title={change.from ? `${prettyValue(change.from)} → ${prettyValue(change.to)}` : prettyValue(change.to)}
+          >
             {change.from ? (
               <>
                 <span className="text-muted-foreground">{prettyValue(change.from)}</span>
@@ -131,11 +134,15 @@ function ChangeRows({ changes }: { changes: DashboardActivityChange[] }) {
 function ActivityMarker({ action }: { action?: AuditAction }) {
   const Icon = action ? ACTION_ICONS[action] : Circle;
   const variant = action ? auditActionVariant(action) : "neutral";
-  const tone = ACTION_TONE[variant] ?? ACTION_TONE.neutral;
+  const tone =
+    variant in ACTION_TONE
+      ? ACTION_TONE[variant as keyof typeof ACTION_TONE]
+      : ACTION_TONE.neutral;
 
   return (
     <span
       className={cn("relative z-10 flex h-7 w-7 items-center justify-center rounded-full", tone.wrap)}
+      title={action ? (AUDIT_ACTION_LABELS[action] ?? action) : "Activity"}
       aria-hidden
     >
       <Icon className={cn("h-3.5 w-3.5", tone.icon)} strokeWidth={1.75} />
@@ -161,11 +168,11 @@ function ActivityEntry({
       <div className="min-w-0">
         <div className="grid grid-cols-[minmax(0,1fr)_3.5rem] items-center gap-x-2">
           {entry.href ? (
-            <span className="truncate text-[13px] font-medium leading-5 text-foreground group-hover:underline">
+            <span className="truncate text-[13px] font-medium leading-5 text-foreground group-hover:underline" title={title}>
               {title}
             </span>
           ) : (
-            <p className="truncate text-[13px] font-medium leading-5 text-foreground">{title}</p>
+            <p className="truncate text-[13px] font-medium leading-5 text-foreground" title={title}>{title}</p>
           )}
           <time
             dateTime={entry.timestamp}
@@ -182,13 +189,13 @@ function ActivityEntry({
               {AUDIT_ACTION_LABELS[action] ?? action}
             </StatusBadge>
           )}
-          <span className="truncate text-[11px] leading-none text-muted-foreground">
+          <span className="truncate text-[11px] leading-none text-muted-foreground" title={entityTypeLabel(entry.type)}>
             {entityTypeLabel(entry.type)}
           </span>
         </div>
 
         {entry.description && entry.description !== title && (
-          <p className="mt-1.5 line-clamp-2 text-[12px] leading-4 text-muted-foreground">
+          <p className="mt-1.5 line-clamp-2 text-[12px] leading-4 text-muted-foreground" title={entry.description}>
             {entry.description}
           </p>
         )}
@@ -199,11 +206,12 @@ function ActivityEntry({
           <div className="mt-2 flex h-5 items-center gap-2">
             <span
               className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-[9px] font-semibold tracking-wide text-neutral-500"
+              title={entry.user}
               aria-hidden
             >
               {getAuditInitials(entry.user)}
             </span>
-            <span className="min-w-0 truncate text-[11px] leading-none text-muted-foreground">
+            <span className="min-w-0 truncate text-[11px] leading-none text-muted-foreground" title={entry.user}>
               {entry.user}
             </span>
           </div>
@@ -287,15 +295,16 @@ export function DashboardActivityRail({
         )}
       >
         {isDesktop ? (
-          <h2 className="min-w-0 truncate text-sm font-semibold text-foreground">Recent activity</h2>
+          <h2 className="min-w-0 truncate text-sm font-semibold text-foreground" title="Recent activity">Recent activity</h2>
         ) : (
           <button
             type="button"
             onClick={() => setOpen((current) => !current)}
             className="flex min-w-0 flex-1 items-center gap-2 text-left"
+            title={open ? "Hide recent activity" : "Show recent activity"}
             aria-expanded={open}
           >
-            <h2 className="truncate text-sm font-semibold text-foreground">Recent activity</h2>
+            <h2 className="truncate text-sm font-semibold text-foreground" title="Recent activity">Recent activity</h2>
             <ChevronDown
               className={cn(
                 "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
@@ -307,7 +316,7 @@ export function DashboardActivityRail({
         <div className="flex shrink-0 items-center gap-2">
           <span className="text-[11px] tabular-nums text-muted-foreground">{entries.length}</span>
           {href && (
-            <Link to={href} className="text-[11px] font-medium text-foreground hover:underline">
+            <Link to={href} className="text-[11px] font-medium text-foreground hover:underline" title="View all activity">
               All
             </Link>
           )}

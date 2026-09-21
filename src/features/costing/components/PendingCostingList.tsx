@@ -149,10 +149,10 @@ export function PendingCostingList({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-primary">
+                        <p className="truncate text-sm font-medium text-primary" title={item.salesOrderNumber ?? item.requestNumber}>
                           {item.salesOrderNumber ?? item.requestNumber}
                         </p>
-                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground" title={`${item.customerName}${item.salesOrderNumber ? ` · ${item.requestNumber}` : ""}`}>
                           {item.customerName}
                           {item.salesOrderNumber ? ` · ${item.requestNumber}` : ""}
                         </p>

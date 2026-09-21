@@ -139,7 +139,9 @@ export function EstimationDetailPanel({
         {request.estimationProductLines.length > 0 && (
           <section className="rounded-md border border-border bg-muted/20 p-3">
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Quotation product lines
+              {request.quotationNumber
+                ? `Quoted product lines (${request.quotationNumber})`
+                : "Direct sales order product lines"}
             </h3>
             <div className="space-y-2">
               {request.estimationProductLines.map((line) => (
@@ -218,6 +220,10 @@ export function EstimationDetailPanel({
                 alternativeItemId: m.alternativeItemId,
                 alternativeItemName: m.alternativeItemName,
                 notes: m.notes,
+                salesOrderLineItemId: m.salesOrderLineItemId,
+                sourceType: m.sourceType,
+                sourceProductName: m.sourceProductName,
+                productVersionLabel: m.productVersionLabel,
               })),
               notes: request.notes,
             }}
@@ -363,7 +369,9 @@ export function EstimationDetailPanel({
                     {values.materials.length === 0 ? (
                       <div className="rounded-md border border-dashed border-border p-6 text-center">
                         <p className="text-sm text-muted-foreground">
-                          BOM items from the quotation will appear here when available. Use Add Item for extras.
+                          {request.quotationId
+                            ? "BOM items from the quotation (standard version and customized lines) appear here automatically. Use Add Item for extras."
+                            : "BOM items from the product master appear here automatically. Use Add Item for extras."}
                         </p>
                       </div>
                     ) : (

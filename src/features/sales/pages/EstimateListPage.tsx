@@ -13,6 +13,7 @@ import {
   X,
   ArrowRightLeft,
 } from "lucide-react";
+import { toast } from "sonner";
 import { ROUTES } from "@/app/config/routes";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/feedback/PageHeader";
@@ -202,7 +203,14 @@ export function EstimateListPage() {
               onClick: () =>
                 void convertToOrder
                   .mutateAsync(q.id)
-                  .then((so) => navigate(ROUTES.salesOrders.detail(so.id))),
+                  .then((so) => {
+                    toast.success(
+                      so.quotationNumber
+                        ? `Sales order created from ${so.quotationNumber}. BOM estimation sent for costing approval.`
+                        : "Sales order created. BOM estimation sent for costing approval.",
+                    );
+                    navigate(ROUTES.costing.forOrder(so.id));
+                  }),
             });
           }
 

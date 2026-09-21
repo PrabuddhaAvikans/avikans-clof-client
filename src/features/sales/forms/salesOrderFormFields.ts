@@ -1,8 +1,7 @@
-import type { DynamicFieldConfig, DynamicFormSection, FieldOption } from '@/components/forms/types';
+import type { DynamicFieldConfig, DynamicFormSection } from '@/components/forms/types';
 import { COUNTRY_OPTIONS } from '@/lib/countries';
 
 export type SalesOrderFormFieldsOptions = {
-  priorityOptions?: FieldOption[];
   customerField?: DynamicFieldConfig;
 };
 
@@ -18,12 +17,6 @@ export function createSalesOrderDetailSections(
   }
 
   fields.push(
-    {
-      name: 'priority',
-      label: 'Priority',
-      type: 'select',
-      options: options.priorityOptions ?? [],
-    },
     {
       name: 'requestedDeliveryDate',
       label: 'Requested Delivery',

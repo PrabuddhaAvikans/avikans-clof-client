@@ -26,7 +26,7 @@ function PreviewRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-3 border-b border-border py-1.5 last:border-0">
       <dt className="text-[11px] text-muted-foreground">{label}</dt>
-      <dd className="max-w-[60%] truncate text-right text-[12px] font-medium text-foreground">
+      <dd className="max-w-[60%] truncate text-right text-[12px] font-medium text-foreground" title={value || "-"}>
         {value || "-"}
       </dd>
     </div>
@@ -66,10 +66,10 @@ export function ProductFormPreview({
             </p>
             <div className="mt-1 flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="truncate text-[12px] font-semibold tabular-nums text-foreground">
+                <p className="truncate text-[12px] font-semibold tabular-nums text-foreground" title={values.sku || "Product code"}>
                   {values.sku || "Product code"}
                 </p>
-                <p className="truncate text-sm font-semibold text-foreground">
+                <p className="truncate text-sm font-semibold text-foreground" title={values.name || "Product name"}>
                   {values.name || "Product name"}
                 </p>
               </div>

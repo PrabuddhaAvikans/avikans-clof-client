@@ -225,7 +225,7 @@ export function CostingDetailPanel({
                       <AttachmentIcon type={attachment.type} fileName={attachment.name} />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="cursor-pointer truncate text-sm font-medium underline-offset-2 hover:underline">
+                      <p className="cursor-pointer truncate text-sm font-medium underline-offset-2 hover:underline" title={attachment.name}>
                         {attachment.name}
                       </p>
                       <p className="text-xs text-muted-foreground">

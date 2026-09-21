@@ -26,7 +26,7 @@ export function DashboardKpiStrip({ items }: { items: DashboardKpi[] }) {
         const body = (
           <div className="flex h-full flex-col rounded-lg border border-border bg-card px-3.5 py-2.5 transition-colors hover:bg-muted/40">
             <div className="flex min-h-[14px] items-baseline justify-between gap-2">
-              <p className="truncate text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              <p className="truncate text-[10px] font-medium uppercase tracking-wider text-muted-foreground" title={item.label}>
                 {item.label}
               </p>
               <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
@@ -43,11 +43,11 @@ export function DashboardKpiStrip({ items }: { items: DashboardKpi[] }) {
         );
 
         return item.href ? (
-          <Link key={item.id} to={item.href} className="min-w-0">
+          <Link key={item.id} to={item.href} className="min-w-0" title={item.label}>
             {body}
           </Link>
         ) : (
-          <div key={item.id} className="min-w-0">
+          <div key={item.id} className="min-w-0" title={item.label}>
             {body}
           </div>
         );
@@ -64,10 +64,10 @@ export function DashboardStatRow({ items }: { items: DashboardStat[] }) {
       {items.map((item) => {
         const body = (
           <div className="flex items-baseline justify-between gap-2 px-3 py-2">
-            <span className="truncate text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            <span className="truncate text-[10px] font-medium uppercase tracking-wider text-muted-foreground" title={item.label}>
               {item.label}
             </span>
-            <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
+            <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground" title={String(item.value)}>
               {item.value}
             </span>
           </div>
@@ -77,12 +77,13 @@ export function DashboardStatRow({ items }: { items: DashboardStat[] }) {
           <Link
             key={item.id}
             to={item.href}
+            title={item.label}
             className="min-w-0 bg-card transition-colors hover:bg-muted/40"
           >
             {body}
           </Link>
         ) : (
-          <div key={item.id} className="min-w-0 bg-card">
+          <div key={item.id} className="min-w-0 bg-card" title={item.label}>
             {body}
           </div>
         );

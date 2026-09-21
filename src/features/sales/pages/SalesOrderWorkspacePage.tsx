@@ -34,6 +34,8 @@ import {
   workspaceGrid,
   workspaceGridCol,
   workspacePanelFill,
+  workspacePanelGrow,
+  workspacePanelHug,
 } from "@/lib/panelLayout";
 
 export function SalesOrderWorkspacePage() {
@@ -143,11 +145,12 @@ export function SalesOrderWorkspacePage() {
     if (!activeOrder) return;
     try {
       const created = await createCosting.mutateAsync(activeOrder);
-      toast.success(`Estimation request ${created.requestNumber} created`);
+      toast.success(`BOM estimation ${created.requestNumber} created and sent for costing approval`);
+      navigate(ROUTES.costing.forOrder(activeOrder.id));
     } catch {
       toast.error("Failed to create estimation request");
     }
-  }, [activeOrder, createCosting]);
+  }, [activeOrder, createCosting, navigate]);
 
   const handleCancel = useCallback(async () => {
     if (!activeOrder) return;
@@ -241,11 +244,11 @@ export function SalesOrderWorkspacePage() {
   );
 
   return (
-    <PageContainer maxWidth="full" className="py-3">
+    <PageContainer maxWidth="full" className="flex min-h-0 flex-col py-3 lg:h-full lg:overflow-hidden">
       <PageHeader
         title="Sales Orders"
-        description="Quotation → Sales Order → Product Estimation → Costing Approval → Confirm."
-        className="mb-2"
+        description="Sales order generates a BOM estimation automatically, then costing goes to approval before confirm."
+        className="mb-2 shrink-0"
         actions={
           <>
             <Button
@@ -303,9 +306,10 @@ export function SalesOrderWorkspacePage() {
         error={error ? "Failed to load sales orders." : null}
         onRetry={() => void refetch()}
         loadingVariant="card"
+        className="flex min-h-0 flex-1 flex-col"
       >
         <div className={workspaceGrid}>
-          <div className={cn("min-h-[18rem] lg:col-span-3", workspaceGridCol)}>
+          <div className={cn("min-h-[18rem] lg:col-span-3 lg:overflow-hidden", workspaceGridCol)}>
             <SalesOrderListPanel
               items={data?.items ?? []}
               totalCount={data?.totalCount ?? 0}
@@ -330,16 +334,17 @@ export function SalesOrderWorkspacePage() {
             />
           </div>
 
-          <div className={cn("min-h-[24rem] lg:col-span-5", workspaceGridCol)}>
+          <div className={cn("min-h-[24rem] lg:col-span-5 lg:overflow-hidden", workspaceGridCol)}>
             <SalesOrderDetailPanel order={activeOrder} className={workspacePanelFill} />
           </div>
 
-          <div className={cn("flex min-h-[18rem] flex-col gap-2 lg:col-span-4", workspaceGridCol)}>
+          <div className={cn("flex min-h-0 flex-col gap-2 lg:col-span-4 lg:overflow-hidden", workspaceGridCol)}>
             <SalesOrderCostingPanel
               order={activeOrder}
               costing={orderCosting ?? null}
               onCreateCosting={() => void handleCreateCosting()}
               isCreating={createCosting.isPending}
+              className={workspacePanelHug}
             />
             <SalesOrderWorkflowPanel
               order={activeOrder}
@@ -356,7 +361,7 @@ export function SalesOrderWorkspacePage() {
               canApplyCreditNote={canApplyCreditNote}
               isConfirming={confirmOrder.isPending}
               isCancelling={cancelOrder.isPending}
-              className={workspacePanelFill}
+              className={workspacePanelGrow}
             />
           </div>
         </div>

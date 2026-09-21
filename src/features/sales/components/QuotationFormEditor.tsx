@@ -1,12 +1,9 @@
 import { useState } from "react";
 import { useFormikContext } from "formik";
-import { UserPlus } from "lucide-react";
 import { FormikInput, FormikTextarea } from "@/components/forms";
-import { Button } from "@/components/ui/Button";
 import { FileUploader } from "@/components/ui/FileUploader";
-import { Input } from "@/components/ui/Input";
 import { Tabs, TabList, Tab, TabPanel } from "@/components/ui/Tabs";
-import { CustomerSelectorModal } from "@/features/shared/components/CustomerSelectorModal";
+import { CustomerPickerField } from "@/features/shared/components/CustomerPickerField";
 import { ProductSelectorModal } from "@/features/shared/components/ProductSelectorModal";
 import { QuotationConfigureProductModal } from "@/features/sales/components/QuotationConfigureProductModal";
 import { QuotationCustomizeModal } from "@/features/sales/components/QuotationCustomizeModal";
@@ -20,7 +17,6 @@ import {
   type QuotationLineItemFormValues,
 } from "@/features/sales/schemas/quotationSchema";
 import { productService } from "@/services";
-import type { Customer } from "@/types/customer";
 import type { Product } from "@/types/product";
 import type { QuotationProductCustomization } from "@/types/quotation";
 
@@ -31,32 +27,6 @@ const TABS = [
   { id: "notes", label: "Notes" },
   { id: "attachments", label: "Attachments" },
 ] as const;
-
-function CustomerPicker({ onOpen }: { onOpen: () => void }) {
-  const { values, errors } = useFormikContext<QuotationFormValues>();
-  return (
-    <div className="flex items-end gap-1.5">
-      <Input
-        label="Customer"
-        value={values.customerName ?? ""}
-        readOnly
-        error={typeof errors.customerId === "string" ? errors.customerId : undefined}
-        className="flex-1"
-        required
-      />
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="h-9"
-        onClick={onOpen}
-        aria-label="Select customer"
-      >
-        <UserPlus className="h-4 w-4" />
-      </Button>
-    </div>
-  );
-}
 
 function TotalsCard() {
   const { values } = useFormikContext<QuotationFormValues>();
@@ -81,7 +51,6 @@ export function QuotationFormEditor({
   const isModal = variant === "modal";
 
   const [tab, setTab] = useState("overview");
-  const [customerModalOpen, setCustomerModalOpen] = useState(false);
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [configureOpen, setConfigureOpen] = useState(false);
   const [customizeOpen, setCustomizeOpen] = useState(false);
@@ -166,7 +135,7 @@ export function QuotationFormEditor({
                 <SalesFormSection title="Quotation Details">
                   <div className="grid gap-2 sm:grid-cols-2">
                     <div className="sm:col-span-2">
-                      <CustomerPicker onOpen={() => setCustomerModalOpen(true)} />
+                      <CustomerPickerField />
                     </div>
                     <FormikInput name="quoteDate" label="Quote Date" type="date" required />
                     <FormikInput name="validUntil" label="Valid Until" type="date" required />
@@ -280,15 +249,6 @@ export function QuotationFormEditor({
         </TabPanel>
       </Tabs>
 
-      <CustomerSelectorModal
-        open={customerModalOpen}
-        onClose={() => setCustomerModalOpen(false)}
-        onSelect={(customer: Customer) => {
-          void formik.setFieldValue("customerId", customer.id);
-          void formik.setFieldValue("customerName", customer.name);
-          setCustomerModalOpen(false);
-        }}
-      />
       <ProductSelectorModal
         open={productModalOpen}
         onClose={() => setProductModalOpen(false)}

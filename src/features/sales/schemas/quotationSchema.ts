@@ -23,18 +23,19 @@ export const quotationLineItemSchema = yup.object({
   taxPercent: coerceNumber().required().min(0).max(100),
   isCustomized: yup.boolean().optional(),
   customization: yup.mixed().optional(),
+  requiresManufacturing: yup.boolean().optional(),
 });
 
 export const quotationFormSchema = yup
   .object({
-    customerId: yup.string().required('Customer is required'),
+    customerId: yup.string().trim().required('Select a customer to continue'),
     customerName: yup.string().optional(),
     validUntil: yup.string().required('Valid until date is required'),
     quoteDate: yup.string().required('Quote date is required'),
     priority: yup.string().oneOf(['low', 'medium', 'high', 'urgent'] as const).required(),
     lineItems: yup
       .array(quotationLineItemSchema)
-      .min(1, 'At least one product is required')
+      .min(1, 'Add at least one product to continue')
       .required(),
     discountAmount: coerceNumber().min(0).optional(),
     notes: yup.string().optional(),

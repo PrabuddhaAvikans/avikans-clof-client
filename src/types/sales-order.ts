@@ -23,6 +23,7 @@ export interface SalesOrderLineItem {
   quantityInManufacturing: number;
   isCustomized?: boolean;
   customization?: QuotationProductCustomization;
+  requiresManufacturing?: boolean;
 }
 
 export interface SalesOrder {

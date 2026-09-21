@@ -44,7 +44,7 @@ export function CreditNoteDetailPanel({
         accessorKey: "note",
         header: "Description",
         cell: ({ row }) => (
-          <span className="max-w-[16rem] truncate whitespace-normal text-left">
+          <span className="max-w-[16rem] truncate whitespace-normal text-left" title={row.original.note || "-"}>
             {row.original.note || "-"}
           </span>
         ),

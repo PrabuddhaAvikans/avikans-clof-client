@@ -60,6 +60,7 @@ export function RadioGroup({
           <label
             key={option.value}
             htmlFor={optionId}
+            title={option.description ? `${option.label} — ${option.description}` : option.label}
             className={cn(
               'flex cursor-pointer items-start gap-2',
               isDisabled && 'cursor-not-allowed opacity-50',

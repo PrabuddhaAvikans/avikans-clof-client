@@ -15,6 +15,7 @@ export interface SalesOrderListFilters extends PaginatedRequest {
 export interface SalesOrderFormData {
   customerId: string;
   quotationId?: string;
+  quotationNumber?: string;
   lineItems: Omit<SalesOrderLineItem, "id" | "lineTotal" | "quantityDelivered" | "quantityInManufacturing">[];
   priority: PriorityValue;
   requestedDeliveryDate?: string;

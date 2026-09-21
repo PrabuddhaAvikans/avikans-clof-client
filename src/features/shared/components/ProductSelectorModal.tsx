@@ -12,6 +12,11 @@ import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatCurrency } from "@/lib/format";
 import { getProductScopeLabel, isDefaultCatalogProduct } from "@/lib/productOwner";
+import {
+  fulfillmentLabel,
+  getProductFulfillment,
+} from "@/lib/productManufacturing";
+import { getCurrentVersion } from "@/lib/productVersion";
 import type { Product } from "@/types/product";
 
 export type ProductSelectorModalProps = {
@@ -21,6 +26,7 @@ export type ProductSelectorModalProps = {
   title?: string;
   customerId?: string;
   customerName?: string;
+  showManufacturing?: boolean;
 };
 
 export function ProductSelectorModal({
@@ -30,6 +36,7 @@ export function ProductSelectorModal({
   title = "Select Product",
   customerId,
   customerName,
+  showManufacturing = false,
 }: ProductSelectorModalProps) {
   const [search, setSearch] = useState("");
   const filterByCustomer = customerId !== undefined;
@@ -91,6 +98,28 @@ export function ProductSelectorModal({
           );
         },
       },
+      ...(showManufacturing
+        ? [
+            {
+              id: "fulfillment",
+              header: "Production",
+              cell: ({ row }) => {
+                const version = row.original.versions.length
+                  ? getCurrentVersion(row.original)
+                  : undefined;
+                const fulfillment = getProductFulfillment(row.original, version);
+                return (
+                  <StatusBadge
+                    variant={fulfillment === "manufacture" ? "warning" : "success"}
+                    size="sm"
+                  >
+                    {fulfillmentLabel(fulfillment)}
+                  </StatusBadge>
+                );
+              },
+            } satisfies ColumnDef<Product>,
+          ]
+        : []),
       {
         accessorKey: "basePrice",
         header: "Price",
@@ -113,7 +142,7 @@ export function ProductSelectorModal({
         ),
       },
     ],
-    [onClose, onSelect],
+    [onClose, onSelect, showManufacturing],
   );
 
   return (
@@ -125,6 +154,12 @@ export function ProductSelectorModal({
           placeholder="Search products..."
         />
         {scopeHint && <p className="text-xs text-muted-foreground">{scopeHint}</p>}
+        {showManufacturing && (
+          <p className="text-xs text-muted-foreground">
+            Existing products can ship as-is. Products that need manufacturing will create a
+            production job after costing.
+          </p>
+        )}
         <PageContent
           isLoading={isLoading}
           error={error ? "Failed to load products." : null}

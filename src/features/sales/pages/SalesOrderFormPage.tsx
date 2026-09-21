@@ -1,27 +1,24 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useFormikContext } from "formik";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import {
-  ArrowLeft,
-  Save,
-  UserPlus,
-} from "lucide-react";
+import { ArrowLeft, Save } from "lucide-react";
+import { toast } from "sonner";
 import { ROUTES } from "@/app/config/routes";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/feedback/PageHeader";
 import { PageContent } from "@/components/feedback/PageStates";
 import {
   FormikForm,
-  FormikCheckbox,
   FormikInput,
   FormikSelect,
   FormikTextarea,
 } from "@/components/forms";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Tabs, TabList, Tab, TabPanel } from "@/components/ui/Tabs";
-import { CustomerSelectorModal } from "@/features/shared/components/CustomerSelectorModal";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { CustomerPickerField } from "@/features/shared/components/CustomerPickerField";
 import { ProductSelectorModal } from "@/features/shared/components/ProductSelectorModal";
+import { QuotationConfigureProductModal } from "@/features/sales/components/QuotationConfigureProductModal";
+import { QuotationCustomizeModal } from "@/features/sales/components/QuotationCustomizeModal";
 import { QuotationLineItemsTable } from "@/features/sales/components/QuotationLineItemsTable";
 import { SalesFormSection } from "@/features/sales/components/SalesFormSection";
 import { SalesOrderFormPreview } from "@/features/sales/components/SalesOrderFormPreview";
@@ -29,6 +26,7 @@ import {
   salesOrderFormSchema,
   type SalesOrderFormValues,
 } from "@/features/sales/schemas/salesOrderSchema";
+import type { QuotationLineItemFormValues } from "@/features/sales/schemas/quotationSchema";
 import {
   useCreateSalesOrder,
   useSalesOrder,
@@ -36,21 +34,15 @@ import {
 } from "@/features/sales/hooks/useSalesOrders";
 import { useQuotation } from "@/features/sales/hooks/useQuotations";
 import { COUNTRY_OPTIONS, DEFAULT_COUNTRY } from "@/lib/countries";
-import { Priority } from "@/types/status";
+import { getCurrentVersion, getVersionById } from "@/lib/productVersion";
+import {
+  orderNeedsManufacturing,
+  productNeedsManufacturing,
+} from "@/lib/productManufacturing";
+import { productService } from "@/services";
 import type { Customer } from "@/types/customer";
 import type { Product } from "@/types/product";
-
-const PRIORITY_OPTIONS = Object.entries(Priority).map(([value, def]) => ({
-  value,
-  label: def.label,
-}));
-
-const TABS = [
-  { id: "overview", label: "Overview" },
-  // { id: "lines", label: "Line Items" },
-  // { id: "delivery", label: "Delivery" },
-  { id: "notes", label: "Notes" },
-] as const;
+import type { QuotationProductCustomization } from "@/types/quotation";
 
 const EMPTY_ADDRESS = {
   line1: "",
@@ -61,43 +53,94 @@ const EMPTY_ADDRESS = {
   country: DEFAULT_COUNTRY,
 };
 
-function CustomerPicker({ onOpen }: { onOpen: () => void }) {
-  const { values, errors } = useFormikContext<SalesOrderFormValues>();
-  return (
-    <div className="flex items-end gap-1.5">
-      <Input
-        label="Customer"
-        value={values.customerName ?? ""}
-        readOnly
-        error={typeof errors.customerId === "string" ? errors.customerId : undefined}
-        className="flex-1"
-        required
-      />
-      <Button type="button" variant="outline" size="sm" className="h-9" onClick={onOpen} aria-label="Select customer">
-        <UserPlus className="h-4 w-4" />
-      </Button>
-    </div>
-  );
+function ManufacturingFromLinesSync() {
+  const { values, setFieldValue } = useFormikContext<SalesOrderFormValues>();
+  const needsManufacturing = orderNeedsManufacturing(values.lineItems);
+
+  useEffect(() => {
+    if (values.requiresManufacturing === needsManufacturing) return;
+    void setFieldValue("requiresManufacturing", needsManufacturing, false);
+  }, [needsManufacturing, setFieldValue, values.requiresManufacturing]);
+
+  return null;
 }
 
-function DeliverySection() {
-  return (
-    <SalesFormSection title="Delivery Address" description="Ship-to location for this order.">
-      <div className="grid gap-2 sm:grid-cols-2">
-        <FormikInput name="deliveryAddress.line1" label="Address Line 1" required className="sm:col-span-2" />
-        <FormikInput name="deliveryAddress.line2" label="Address Line 2" className="sm:col-span-2" />
-        <FormikInput name="deliveryAddress.city" label="City" required />
-        <FormikInput name="deliveryAddress.state" label="State / Province" required />
-        <FormikInput name="deliveryAddress.postalCode" label="Postal Code" required />
-        <FormikSelect
-          name="deliveryAddress.country"
-          label="Country"
-          options={[...COUNTRY_OPTIONS]}
-          required
-        />
-      </div>
-    </SalesFormSection>
-  );
+function applyCustomerAddress(customer: Customer) {
+  const billingActive =
+    customer.billingAddresses?.[customer.activeBillingAddressIndex] ??
+    customer.billingAddresses?.[0];
+  const deliveryActive = customer.deliverySameAsBilling
+    ? billingActive
+    : customer.shippingAddresses?.[customer.activeShippingAddressIndex ?? 0] ??
+      billingActive;
+
+  return {
+    ...deliveryActive,
+    country: deliveryActive?.country || DEFAULT_COUNTRY,
+  };
+}
+
+type FormLineSource = {
+  productId: string;
+  productSku: string;
+  productName: string;
+  description?: string;
+  productVersionId?: string;
+  productVersionLabel?: string;
+  quantity: number;
+  unitPrice: number;
+  discountPercent: number;
+  taxPercent: number;
+  isCustomized?: boolean;
+  customization?: SalesOrderFormValues["lineItems"][number]["customization"];
+  requiresManufacturing?: boolean;
+};
+
+function toFormLineItem(item: FormLineSource): SalesOrderFormValues["lineItems"][number] {
+  return {
+    productId: item.productId,
+    productSku: item.productSku,
+    productName: item.productName,
+    description: item.description,
+    productVersionId: item.productVersionId,
+    productVersionLabel: item.productVersionLabel,
+    quantity: item.quantity,
+    unitPrice: item.unitPrice,
+    discountPercent: item.discountPercent,
+    taxPercent: item.taxPercent,
+    isCustomized: item.isCustomized,
+    customization: item.customization,
+    requiresManufacturing: item.requiresManufacturing,
+  };
+}
+
+function withLineFulfillment(
+  line: QuotationLineItemFormValues,
+  product: Product | null,
+): SalesOrderFormValues["lineItems"][number] {
+  const version = product
+    ? (line.productVersionId
+        ? getVersionById(product, line.productVersionId)
+        : undefined) ??
+      (product.versions.length ? getCurrentVersion(product) : undefined)
+    : undefined;
+
+  return {
+    ...line,
+    requiresManufacturing:
+      Boolean(line.isCustomized) ||
+      (product ? productNeedsManufacturing(product, version) : true),
+  };
+}
+
+function manufacturingHint(lineItems: SalesOrderFormValues["lineItems"]) {
+  if (lineItems.length === 0) {
+    return "Follows the products you add";
+  }
+  if (orderNeedsManufacturing(lineItems)) {
+    return "At least one product needs production";
+  }
+  return "All products can ship as existing stock";
 }
 
 export function SalesOrderFormPage() {
@@ -108,9 +151,16 @@ export function SalesOrderFormPage() {
   const customerIdParam = searchParams.get("customerId");
   const quotationIdParam = searchParams.get("quotationId");
 
-  const [tab, setTab] = useState("overview");
-  const [customerModalOpen, setCustomerModalOpen] = useState(false);
   const [productModalOpen, setProductModalOpen] = useState(false);
+  const [configureOpen, setConfigureOpen] = useState(false);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [configureVersionId, setConfigureVersionId] = useState("");
+  const [configureQuantity, setConfigureQuantity] = useState(1);
+  const [configureUnitPrice, setConfigureUnitPrice] = useState(0);
+  const [editingLineIndex, setEditingLineIndex] = useState<number | null>(null);
+  const [existingCustomization, setExistingCustomization] =
+    useState<QuotationProductCustomization | null>(null);
 
   const { data: order, isLoading, error } = useSalesOrder(id ?? "");
   const { data: fromQuotation } = useQuotation(quotationIdParam ?? "");
@@ -125,23 +175,10 @@ export function SalesOrderFormPage() {
         quotationId: order.quotationId,
         priority: order.priority,
         requestedDeliveryDate: order.requestedDeliveryDate?.slice(0, 10),
-        lineItems: order.lineItems.map((item) => ({
-          productId: item.productId,
-          productSku: item.productSku,
-          productName: item.productName,
-          description: item.description,
-          productVersionId: item.productVersionId,
-          productVersionLabel: item.productVersionLabel,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          discountPercent: item.discountPercent,
-          taxPercent: item.taxPercent,
-          isCustomized: item.isCustomized,
-          customization: item.customization,
-        })),
+        lineItems: order.lineItems.map(toFormLineItem),
         discountAmount: order.discountAmount,
         notes: order.notes ?? "",
-        requiresManufacturing: order.manufacturingJobIds.length > 0,
+        requiresManufacturing: orderNeedsManufacturing(order.lineItems),
         deliveryAddress: {
           ...(order.shippingAddress ?? order.billingAddress),
           country:
@@ -155,23 +192,10 @@ export function SalesOrderFormPage() {
         customerName: fromQuotation.customerName,
         quotationId: fromQuotation.id,
         priority: fromQuotation.priority,
-        lineItems: fromQuotation.lineItems.map((item) => ({
-          productId: item.productId,
-          productSku: item.productSku,
-          productName: item.productName,
-          description: item.description,
-          productVersionId: item.productVersionId,
-          productVersionLabel: item.productVersionLabel,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          discountPercent: item.discountPercent,
-          taxPercent: item.taxPercent,
-          isCustomized: item.isCustomized,
-          customization: item.customization,
-        })),
+        lineItems: fromQuotation.lineItems.map(toFormLineItem),
         discountAmount: fromQuotation.discountAmount,
         notes: fromQuotation.notes ?? "",
-        requiresManufacturing: true,
+        requiresManufacturing: orderNeedsManufacturing(fromQuotation.lineItems),
         deliveryAddress: {
           ...(fromQuotation.shippingAddress ?? fromQuotation.billingAddress),
           country:
@@ -188,7 +212,7 @@ export function SalesOrderFormPage() {
       lineItems: [],
       discountAmount: 0,
       notes: "",
-      requiresManufacturing: true,
+      requiresManufacturing: false,
       deliveryAddress: { ...EMPTY_ADDRESS },
     };
   }, [order, fromQuotation, customerIdParam, quotationIdParam]);
@@ -199,6 +223,7 @@ export function SalesOrderFormPage() {
     const payload = {
       customerId: values.customerId,
       quotationId: values.quotationId,
+      quotationNumber: fromQuotation?.quotationNumber ?? order?.quotationNumber,
       lineItems: values.lineItems,
       priority: values.priority,
       requestedDeliveryDate: values.requestedDeliveryDate,
@@ -208,10 +233,20 @@ export function SalesOrderFormPage() {
 
     if (isEdit && id) {
       await updateOrder.mutateAsync({ id, data: payload });
-      navigate(ROUTES.salesOrders.review(id));
+      toast.success(
+        values.quotationId
+          ? "Sales order saved. Quotation BOM estimation is ready for costing approval."
+          : "Sales order saved. Product BOM estimation is ready for costing approval.",
+      );
+      navigate(ROUTES.costing.forOrder(id));
     } else {
       const created = await createOrder.mutateAsync(payload);
-      navigate(ROUTES.salesOrders.review(created.id));
+      toast.success(
+        created.quotationNumber
+          ? `Sales order created from ${created.quotationNumber}. BOM estimation sent for costing approval.`
+          : "Direct sales order created. Product BOM estimation sent for costing approval.",
+      );
+      navigate(ROUTES.costing.forOrder(created.id));
     }
   };
 
@@ -227,14 +262,50 @@ export function SalesOrderFormPage() {
           onSubmit={handleSubmit}
           enableReinitialize
         >
-          {(formik) => (
+          {(formik) => {
+            const appendOrReplaceLine = (line: QuotationLineItemFormValues) => {
+              const nextLine = withLineFulfillment(line, selectedProduct);
+              if (editingLineIndex !== null) {
+                const next = [...formik.values.lineItems];
+                next[editingLineIndex] = {
+                  ...next[editingLineIndex],
+                  ...nextLine,
+                };
+                void formik.setFieldValue("lineItems", next);
+                setEditingLineIndex(null);
+                return;
+              }
+              void formik.setFieldValue("lineItems", [...formik.values.lineItems, nextLine]);
+            };
+
+            const openCustomizeForLine = async (index: number) => {
+              const line = formik.values.lineItems[index];
+              if (!line) return;
+              try {
+                const product = await productService.getById(line.productId);
+                setSelectedProduct(product);
+                setConfigureVersionId(line.productVersionId || product.currentVersionId);
+                setConfigureQuantity(line.quantity);
+                setConfigureUnitPrice(line.unitPrice);
+                setExistingCustomization(
+                  (line.customization as QuotationProductCustomization | undefined) ?? null,
+                );
+                setEditingLineIndex(index);
+                setCustomizeOpen(true);
+              } catch {
+                toast.error("This product is no longer in the catalog.");
+              }
+            };
+
+            return (
             <>
+              <ManufacturingFromLinesSync />
               <PageHeader
                 title={isEdit ? "Edit Sales Order" : "Add / Configure Sales Order"}
                 description={
                   fromQuotation
-                    ? `From quotation ${fromQuotation.quotationNumber}`
-                    : "Create a sales order with lines, delivery, and manufacturing flags."
+                    ? `From quotation ${fromQuotation.quotationNumber}. Quoted products carry into costing.`
+                    : "Select a customer, add products, then send the order for costing."
                 }
                 className="mb-2"
                 breadcrumbs={[
@@ -246,7 +317,7 @@ export function SalesOrderFormPage() {
                   <div className="flex flex-wrap items-center gap-1.5">
                     <Link to={ROUTES.salesOrders.list}>
                       <Button type="button" variant="outline" size="sm" leftIcon={<ArrowLeft className="h-3.5 w-3.5" />}>
-                        Back to Sales Orders
+                        Back
                       </Button>
                     </Link>
                     <Button
@@ -259,134 +330,161 @@ export function SalesOrderFormPage() {
                       Save Draft
                     </Button>
                     <Button type="submit" variant="primary" size="sm" loading={busy}>
-                      Continue to Review
+                      Save and send to costing
                     </Button>
                   </div>
                 }
               />
 
-              <Tabs value={tab} onChange={setTab}>
-                <TabList className="gap-0 overflow-x-auto">
-                  {TABS.map((item) => (
-                    <Tab key={item.id} value={item.id} className="whitespace-nowrap rounded-none px-3 py-2 text-[12px]">
-                      {item.label}
-                    </Tab>
-                  ))}
-                </TabList>
-
-                <TabPanel value="overview" className="pt-3">
-                  <div className="grid grid-cols-1 gap-3 xl:grid-cols-12">
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:col-span-9">
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-12">
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:col-span-9">
+                    <SalesFormSection title="Order Details">
                       <div className="space-y-3">
-                        <SalesFormSection title="Order Details">
-                          <div className="grid gap-2 sm:grid-cols-2">
-                            <div className="sm:col-span-2">
-                              <CustomerPicker onOpen={() => setCustomerModalOpen(true)} />
-                            </div>
-                            <FormikSelect name="priority" label="Priority" options={PRIORITY_OPTIONS} required />
-                            <FormikInput name="requestedDeliveryDate" label="Requested Delivery" type="date" />
-                            <div className="sm:col-span-2">
-                              <FormikCheckbox name="requiresManufacturing" label="Requires Manufacturing" />
-                            </div>
-                            <FormikInput name="discountAmount" label="Additional Discount (LKR)" type="number" min={0} step={0.01} />
-                          </div>
-                        </SalesFormSection>
-                        <QuotationLineItemsTable
-                          onAddProduct={() => setProductModalOpen(true)}
-                          description="Products and quantities for this sales order."
+                        <CustomerPickerField
+                          variant="profile"
+                          onSelect={(customer: Customer) => {
+                            void formik.setFieldValue(
+                              "deliveryAddress",
+                              applyCustomerAddress(customer),
+                            );
+                          }}
                         />
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <FormikInput
+                            name="requestedDeliveryDate"
+                            label="Requested Delivery"
+                            type="date"
+                          />
+                          <div className="flex flex-col gap-1.5">
+                            <span className="text-xs font-medium leading-none text-foreground">
+                              Manufacturing
+                            </span>
+                            <div className="flex min-h-9 items-center gap-2 rounded-md border border-input bg-card px-3 py-1.5 shadow-xs">
+                              <StatusBadge
+                                variant={
+                                  orderNeedsManufacturing(formik.values.lineItems)
+                                    ? "warning"
+                                    : "success"
+                                }
+                                size="sm"
+                              >
+                                {orderNeedsManufacturing(formik.values.lineItems)
+                                  ? "Required"
+                                  : "Not required"}
+                              </StatusBadge>
+                              <span className="text-[11px] text-muted-foreground">
+                                {manufacturingHint(formik.values.lineItems)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="space-y-3">
-                        <DeliverySection />
-                        <SalesFormSection title="Notes">
-                          <FormikTextarea name="notes" label="Internal Notes" rows={5} />
-                        </SalesFormSection>
-                      </div>
-                    </div>
-                    <div className="xl:col-span-3 xl:sticky xl:top-[72px] xl:self-start">
-                      <SalesOrderFormPreview />
-                    </div>
-                  </div>
-                </TabPanel>
-
-                <TabPanel value="lines" className="pt-3">
-                  <div className="grid gap-3 lg:grid-cols-3">
-                    <div className="lg:col-span-2">
-                      <QuotationLineItemsTable
-                        onAddProduct={() => setProductModalOpen(true)}
-                        description="Products and quantities for this sales order."
-                      />
-                    </div>
-                    <SalesOrderFormPreview />
-                  </div>
-                </TabPanel>
-
-                <TabPanel value="delivery" className="pt-3">
-                  <div className="grid gap-3 lg:grid-cols-3">
-                    <div className="space-y-3 lg:col-span-2">
-                      <SalesFormSection title="Schedule">
-                        <FormikInput name="requestedDeliveryDate" label="Requested Delivery Date" type="date" />
-                      </SalesFormSection>
-                      <DeliverySection />
-                    </div>
-                    <SalesOrderFormPreview />
-                  </div>
-                </TabPanel>
-
-                <TabPanel value="notes" className="pt-3">
-                  <div className="grid gap-3 lg:grid-cols-3">
-                    <SalesFormSection title="Notes" className="lg:col-span-2">
-                      <FormikTextarea name="notes" label="Internal Notes" rows={8} />
                     </SalesFormSection>
+                    <div className="space-y-3">
+                      <SalesFormSection title="Delivery Address" description="Ship-to location for this order.">
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <FormikInput
+                            name="deliveryAddress.line1"
+                            label="Address Line 1"
+                            required
+                            className="sm:col-span-2"
+                          />
+                          <FormikInput name="deliveryAddress.line2" label="Address Line 2" className="sm:col-span-2" />
+                          <FormikInput name="deliveryAddress.city" label="City" required />
+                          <FormikInput name="deliveryAddress.state" label="State / Province" required />
+                          <FormikInput name="deliveryAddress.postalCode" label="Postal Code" required />
+                          <FormikSelect
+                            name="deliveryAddress.country"
+                            label="Country"
+                            options={[...COUNTRY_OPTIONS]}
+                            required
+                          />
+                        </div>
+                      </SalesFormSection>
+                      <SalesFormSection title="Notes">
+                        <FormikTextarea name="notes" label="Internal Notes" rows={5} />
+                      </SalesFormSection>
+                    </div>
+                  </div>
+                  <div className="xl:col-span-3 xl:sticky xl:top-[72px] xl:self-start">
                     <SalesOrderFormPreview />
                   </div>
-                </TabPanel>
-              </Tabs>
+                </div>
+                <QuotationLineItemsTable
+                  title="Line Items"
+                  description="Add as standard or customize specs, BOM, and operations for this order without changing the master product."
+                  emptyHint="Add products to set quantities, prices, and whether they ship as existing stock or need manufacturing. Use Customize for customer-specific configurations."
+                  showFulfillment
+                  onAddProduct={() => setProductModalOpen(true)}
+                  onCustomizeLine={(index) => {
+                    void openCustomizeForLine(index);
+                  }}
+                />
+              </div>
 
-              <CustomerSelectorModal
-                open={customerModalOpen}
-                onClose={() => setCustomerModalOpen(false)}
-                onSelect={(customer: Customer) => {
-                  void formik.setFieldValue("customerId", customer.id);
-                  void formik.setFieldValue("customerName", customer.name);
-                  const billingActive =
-                    customer.billingAddresses?.[customer.activeBillingAddressIndex] ??
-                    customer.billingAddresses?.[0];
-                  const deliveryActive = customer.deliverySameAsBilling
-                    ? billingActive
-                    : customer.shippingAddresses?.[customer.activeShippingAddressIndex ?? 0] ??
-                      billingActive;
-                  void formik.setFieldValue("deliveryAddress", {
-                    ...deliveryActive,
-                    country: deliveryActive?.country || DEFAULT_COUNTRY,
-                  });
-                  setCustomerModalOpen(false);
-                }}
-              />
               <ProductSelectorModal
                 open={productModalOpen}
                 onClose={() => setProductModalOpen(false)}
                 customerId={formik.values.customerId}
                 customerName={formik.values.customerName}
+                showManufacturing
                 onSelect={(product: Product) => {
-                  void formik.setFieldValue("lineItems", [
-                    ...formik.values.lineItems,
-                    {
-                      productId: product.id,
-                      productSku: product.sku,
-                      productName: product.name,
-                      description: product.description,
-                      quantity: 1,
-                      unitPrice: product.basePrice,
-                      discountPercent: 0,
-                      taxPercent: 18,
-                    },
-                  ]);
+                  setSelectedProduct(product);
+                  setEditingLineIndex(null);
+                  setExistingCustomization(null);
                   setProductModalOpen(false);
+                  setConfigureOpen(true);
+                }}
+              />
+              <QuotationConfigureProductModal
+                open={configureOpen}
+                product={selectedProduct}
+                documentLabel="sales order"
+                onClose={() => {
+                  setConfigureOpen(false);
+                  setSelectedProduct(null);
+                }}
+                onAddStandard={(line) => {
+                  appendOrReplaceLine(line);
+                  setConfigureOpen(false);
+                  setSelectedProduct(null);
+                }}
+                onCustomize={({ product, versionId, quantity, unitPrice }) => {
+                  setSelectedProduct(product);
+                  setConfigureVersionId(versionId);
+                  setConfigureQuantity(quantity);
+                  setConfigureUnitPrice(unitPrice);
+                  setExistingCustomization(null);
+                  setConfigureOpen(false);
+                  setCustomizeOpen(true);
+                }}
+              />
+              <QuotationCustomizeModal
+                open={customizeOpen}
+                product={selectedProduct}
+                versionId={configureVersionId}
+                quantity={configureQuantity}
+                unitPrice={configureUnitPrice}
+                documentLabel="sales order"
+                existingCustomization={existingCustomization}
+                onClose={() => {
+                  setCustomizeOpen(false);
+                  setExistingCustomization(null);
+                  if (editingLineIndex === null) {
+                    setSelectedProduct(null);
+                  }
+                }}
+                onSave={(line) => {
+                  appendOrReplaceLine(line);
+                  setCustomizeOpen(false);
+                  setExistingCustomization(null);
+                  setSelectedProduct(null);
                 }}
               />
             </>
-          )}
+            );
+          }}
         </FormikForm>
       </PageContent>
     </PageContainer>

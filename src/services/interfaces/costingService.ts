@@ -24,6 +24,10 @@ export type EstimationMaterialInput = Pick<
   | "alternativeItemId"
   | "alternativeItemName"
   | "notes"
+  | "salesOrderLineItemId"
+  | "sourceType"
+  | "sourceProductName"
+  | "productVersionLabel"
 >;
 
 export type CoatingSubmitData = {
@@ -42,6 +46,7 @@ export interface CostingService {
   getById(id: string): Promise<CostingRequest>;
   getBySalesOrderId(salesOrderId: string): Promise<CostingRequest | null>;
   createFromSalesOrder(order: SalesOrder): Promise<CostingRequest>;
+  syncFromSalesOrder(order: SalesOrder): Promise<CostingRequest>;
   submitCoating(id: string, data: CoatingSubmitData): Promise<CostingRequest>;
   approve(id: string, comment?: string): Promise<CostingRequest>;
   reject(id: string, comment: string): Promise<CostingRequest>;

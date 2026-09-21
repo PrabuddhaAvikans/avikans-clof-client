@@ -17,6 +17,7 @@ import {
 import { resolveSalesOrderLineContexts } from "@/lib/costingFromQuotationLine";
 import { applyListQuery, cloneData } from "@/services/mock/helpers";
 import { initialCostingRequests } from "@/services/mock/data/costing";
+import { initialSalesOrders } from "@/services/mock/data/sales-orders";
 import { initialSalesOrderCostingRequests } from "@/services/mock/data/sales-order-costing";
 import type { CostingRequest } from "@/types/costing";
 import type { SalesOrder } from "@/types/sales-order";
@@ -35,6 +36,74 @@ function findRequest(id: string): CostingRequest {
 function nextRequestNumber(): string {
   const year = new Date().getFullYear();
   return `CR-${year}-${String(costingRequests.length + 1).padStart(4, "0")}`;
+}
+
+function isOpenSalesOrder(order: SalesOrder): boolean {
+  return ["draft", "pending_review", "submitted"].includes(order.status);
+}
+
+function upsertCostingRequest(request: CostingRequest): CostingRequest {
+  const index = costingRequests.findIndex((item) => item.id === request.id);
+  if (index >= 0) {
+    costingRequests[index] = request;
+  } else {
+    costingRequests.unshift(request);
+  }
+  return request;
+}
+
+async function buildBomCostingFromOrder(
+  order: SalesOrder,
+  existing?: CostingRequest,
+): Promise<CostingRequest> {
+  const lineContexts = await resolveSalesOrderLineContexts(order);
+  const autoSubmit =
+    !existing ||
+    (isOpenSalesOrder(order) &&
+      existing.status !== "rejected" &&
+      existing.status !== "approved" &&
+      existing.status !== "changes_requested" &&
+      (existing.coatingStatus === "pending" || existing.estimationProductLines.length === 0));
+
+  const request = buildCostingFromSalesOrder(order, {
+    requestNumber: existing?.requestNumber ?? nextRequestNumber(),
+    coatingStatus: autoSubmit ? "submitted" : existing?.coatingStatus ?? "submitted",
+    status: autoSubmit ? "in_review" : existing?.status ?? "in_review",
+    lineContexts,
+    autoSubmitted: autoSubmit,
+  });
+
+  if (existing) {
+    request.id = existing.id;
+    if (!autoSubmit) {
+      request.approvalLevels = existing.approvalLevels;
+      request.history = existing.history;
+      request.status = existing.status;
+      request.coatingStatus = existing.coatingStatus;
+    }
+  }
+
+  return request;
+}
+
+let seedHydration: Promise<void> | null = null;
+
+async function hydrateSeedEstimations(): Promise<void> {
+  const ordersById = new Map(initialSalesOrders.map((order) => [order.id, order]));
+  for (let index = 0; index < costingRequests.length; index += 1) {
+    const request = costingRequests[index];
+    if (!request.salesOrderId || request.estimationProductLines.length > 0) continue;
+    const order = ordersById.get(request.salesOrderId);
+    if (!order) continue;
+    costingRequests[index] = await buildBomCostingFromOrder(order, request);
+  }
+}
+
+function ensureSeedHydrated(): Promise<void> {
+  if (!seedHydration) {
+    seedHydration = hydrateSeedEstimations();
+  }
+  return seedHydration;
 }
 
 function advanceApprovalLevels(request: CostingRequest, action: "approved" | "rejected"): void {
@@ -73,6 +142,7 @@ function addHistoryEntry(
 
 export const mockCostingService: CostingService = {
   async list(filters) {
+    await ensureSeedHydrated();
     await delay();
     return applyListQuery(
       costingRequests,
@@ -89,32 +159,42 @@ export const mockCostingService: CostingService = {
   },
 
   async getById(id) {
+    await ensureSeedHydrated();
     await delay();
     return findRequest(id);
   },
 
   async getBySalesOrderId(salesOrderId) {
+    await ensureSeedHydrated();
     await delay();
     return costingRequests.find((item) => item.salesOrderId === salesOrderId) ?? null;
   },
 
   async createFromSalesOrder(order: SalesOrder) {
+    await ensureSeedHydrated();
     await delay();
     const existing = costingRequests.find((item) => item.salesOrderId === order.id);
-    if (existing) return existing;
+    if (existing && existing.status === "approved") return existing;
+    if (existing && existing.estimationProductLines.length > 0 && existing.coatingStatus !== "pending") {
+      return existing;
+    }
 
-    const lineContexts = await resolveSalesOrderLineContexts(order);
-    const request = buildCostingFromSalesOrder(order, {
-      requestNumber: nextRequestNumber(),
-      coatingStatus: "pending",
-      status: "pending",
-      lineContexts,
-    });
-    costingRequests.unshift(request);
-    return request;
+    const request = await buildBomCostingFromOrder(order, existing);
+    return upsertCostingRequest(request);
+  },
+
+  async syncFromSalesOrder(order: SalesOrder) {
+    await ensureSeedHydrated();
+    const existing = costingRequests.find((item) => item.salesOrderId === order.id);
+    if (existing && (existing.status === "approved" || existing.status === "rejected")) {
+      return existing;
+    }
+    const request = await buildBomCostingFromOrder(order, existing);
+    return upsertCostingRequest(request);
   },
 
   async submitCoating(id, data: CoatingSubmitData) {
+    await ensureSeedHydrated();
     await delay();
     const index = costingRequests.findIndex((item) => item.id === id);
     if (index === -1) notFoundError("CostingRequest", id);
@@ -140,6 +220,7 @@ export const mockCostingService: CostingService = {
   },
 
   async approve(id, comment) {
+    await ensureSeedHydrated();
     await delay();
     const request = findRequest(id);
     if (request.coatingStatus === "pending") {
@@ -161,6 +242,7 @@ export const mockCostingService: CostingService = {
   },
 
   async reject(id, comment) {
+    await ensureSeedHydrated();
     await delay();
     const request = findRequest(id);
     advanceApprovalLevels(request, "rejected");
@@ -171,6 +253,7 @@ export const mockCostingService: CostingService = {
   },
 
   async requestChanges(id, comment) {
+    await ensureSeedHydrated();
     await delay();
     const request = findRequest(id);
     request.status = "changes_requested";

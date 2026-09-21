@@ -23,6 +23,15 @@ const FULFILLMENT_ORDER: SalesOrderStatusValue[] = [
   "completed",
 ];
 
+export function getSalesOrderOriginLabel(
+  order: Pick<SalesOrder, "quotationId" | "quotationNumber"> | null | undefined,
+): string {
+  if (!order) return "Sales order";
+  if (order.quotationNumber) return `From quotation ${order.quotationNumber}`;
+  if (order.quotationId) return "From quotation";
+  return "Direct sales order";
+}
+
 export function isCostingApproved(costing: CostingRequest | null | undefined): boolean {
   return costing?.status === "approved";
 }
@@ -51,7 +60,7 @@ export function getConfirmBlockReason(
     return "Create estimation and costing for this sales order first.";
   }
   if (costing.coatingStatus === "pending") {
-    return "Submit product estimation before costing approval.";
+    return "Product estimation is still pending. Submit it, or regenerate BOM from the sales order.";
   }
   if (costing.status !== "approved") {
     return "Costing must be approved before confirming this order.";
@@ -119,7 +128,7 @@ export function buildSalesOrderFlowSteps(
     );
 
     if (step.id === "quotation") {
-      description = order.quotationNumber ?? "Manual order";
+      description = order.quotationNumber ?? "Direct (no quotation)";
       if (order.quotationId) status = index < currentIndex || currentIndex > 0 ? "completed" : status;
     }
 
@@ -131,6 +140,9 @@ export function buildSalesOrderFlowSteps(
       if (!costing) description = "Not created";
       else if (costing.coatingStatus === "pending") description = "Awaiting estimation";
       else if (costing.coatingStatus === "skipped") description = "Not required";
+      else if (costing.estimationProductLines.length > 0) {
+        description = order.quotationId ? "BOM from quotation" : "BOM from product";
+      }
       else description = "Submitted";
     }
 

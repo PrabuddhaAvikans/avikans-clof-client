@@ -25,6 +25,7 @@ export type QuotationCustomizeModalProps = {
   versionId: string;
   quantity: number;
   unitPrice: number;
+  documentLabel?: string;
   existingCustomization?: QuotationProductCustomization | null;
   onClose: () => void;
   onSave: (line: QuotationLineItemFormValues) => void;
@@ -46,6 +47,7 @@ export function QuotationCustomizeModal({
   versionId,
   quantity,
   unitPrice,
+  documentLabel = "quotation",
   existingCustomization,
   onClose,
   onSave,
@@ -200,7 +202,8 @@ export function QuotationCustomizeModal({
               </span>
             </p>
             <p className="text-[12px] text-muted-foreground">
-              Quotation-level configuration. Master product is not modified.
+              {documentLabel.charAt(0).toUpperCase() + documentLabel.slice(1)}-level
+              configuration. Master product is not modified.
             </p>
           </div>
           <MappedStatusBadge

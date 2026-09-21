@@ -68,7 +68,7 @@ export function CustomerSelectorModal({
                   >
                     <div className="min-w-0">
                       <p className="font-medium text-foreground">{customer.name}</p>
-                      <p className="truncate text-sm text-muted-foreground">
+                      <p className="truncate text-sm text-muted-foreground" title={`${customer.email} · ${customer.code}`}>
                         {customer.email} · {customer.code}
                       </p>
                     </div>

@@ -20,11 +20,11 @@ export function DashboardPanel({
   return (
     <section className={cn("flex min-h-0 min-w-0 flex-col overflow-hidden rounded-lg border border-border bg-card", className)}>
       <div className="flex h-10 items-center justify-between gap-2 border-b border-border px-3.5">
-        <h3 className="truncate text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <h3 className="truncate text-[10px] font-semibold uppercase tracking-wider text-muted-foreground" title={title}>
           {title}
         </h3>
         {href && (
-          <Link to={href} className="shrink-0 text-[11px] font-medium text-foreground hover:underline">
+          <Link to={href} className="shrink-0 text-[11px] font-medium text-foreground hover:underline" title={`View all ${title}`}>
             All
           </Link>
         )}
@@ -55,6 +55,7 @@ export function DashboardCompactList({
         <li key={row.id}>
           <Link
             to={row.href ?? "#"}
+            title={row.reference}
             className={cn(
               "grid items-center gap-x-3 px-3.5 py-2.5 hover:bg-muted/40",
               showAmount
@@ -64,8 +65,8 @@ export function DashboardCompactList({
             )}
           >
             <div className="min-w-0">
-              <p className="truncate text-[13px] font-medium leading-5 text-foreground">{row.reference}</p>
-              <p className="truncate text-[11px] leading-4 text-muted-foreground">
+              <p className="truncate text-[13px] font-medium leading-5 text-foreground" title={row.reference}>{row.reference}</p>
+              <p className="truncate text-[11px] leading-4 text-muted-foreground" title={row.customer || row.title}>
                 {row.customer || row.title}
               </p>
             </div>

@@ -14,14 +14,14 @@ function coerceNumber() {
 export const salesOrderLineItemSchema = quotationLineItemSchema;
 
 export const salesOrderFormSchema = yup.object({
-  customerId: yup.string().required('Customer is required'),
+  customerId: yup.string().trim().required('Select a customer to continue'),
   customerName: yup.string().optional(),
   quotationId: yup.string().optional(),
   priority: yup.string().oneOf(['low', 'medium', 'high', 'urgent'] as const).required(),
   requestedDeliveryDate: yup.string().optional(),
   lineItems: yup
     .array(salesOrderLineItemSchema)
-    .min(1, 'At least one line item is required')
+    .min(1, 'Add at least one product to continue')
     .required(),
   discountAmount: coerceNumber().min(0).optional(),
   notes: yup.string().optional(),

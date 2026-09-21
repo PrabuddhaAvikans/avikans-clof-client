@@ -16,6 +16,7 @@ import type { QuotationLineItemFormValues } from "@/features/sales/schemas/quota
 export type QuotationConfigureProductModalProps = {
   open: boolean;
   product: Product | null;
+  documentLabel?: string;
   onClose: () => void;
   onAddStandard: (line: QuotationLineItemFormValues) => void;
   onCustomize: (args: {
@@ -29,6 +30,7 @@ export type QuotationConfigureProductModalProps = {
 export function QuotationConfigureProductModal({
   open,
   product,
+  documentLabel = "quotation",
   onClose,
   onAddStandard,
   onCustomize,
@@ -179,9 +181,9 @@ export function QuotationConfigureProductModal({
             version pricing and specifications without changes.
           </p>
           <p className="mt-1">
-            <span className="font-medium text-foreground">Customize:</span> create a
-            quotation-level configuration for this customer. The master product stays
-            unchanged.
+            <span className="font-medium text-foreground">Customize:</span> create a{" "}
+            {documentLabel}-level configuration for this customer. The master product
+            stays unchanged.
           </p>
         </div>
       </div>

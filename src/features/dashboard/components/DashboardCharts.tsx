@@ -32,7 +32,7 @@ export function ChartCard({
   return (
     <section className={cn("min-w-0 overflow-hidden rounded-lg border border-border bg-card p-3.5", className)}>
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h3 className="truncate text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <h3 className="truncate text-[10px] font-semibold uppercase tracking-wider text-muted-foreground" title={title}>
           {title}
         </h3>
         {legend}

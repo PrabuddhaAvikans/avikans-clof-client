@@ -124,6 +124,7 @@ export interface QuotationLineItem {
   lineTotal: number;
   isCustomized?: boolean;
   customization?: QuotationProductCustomization;
+  requiresManufacturing?: boolean;
 }
 
 export interface Quotation {

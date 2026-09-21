@@ -126,13 +126,14 @@ export function SearchableSelect({
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={open}
+        title={selected?.label ?? placeholder}
         onClick={() => !disabled && setOpen((prev) => !prev)}
         className={cn(
           'flex h-9 w-full items-center justify-between rounded-lg border border-input bg-card px-3 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
           error && 'border-destructive focus-visible:ring-destructive',
         )}
       >
-        <span className={cn('truncate', !selected && 'text-muted-foreground')}>
+        <span className={cn('truncate', !selected && 'text-muted-foreground')} title={selected?.label ?? placeholder}>
           {selected?.label ?? placeholder}
         </span>
         <span className="ml-2 flex shrink-0 items-center gap-1">
@@ -141,6 +142,7 @@ export function SearchableSelect({
               role="button"
               tabIndex={0}
               aria-label="Clear selection"
+              title="Clear selection"
               onClick={handleClear}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -180,6 +182,7 @@ export function SearchableSelect({
                   role="option"
                   aria-selected={option.value === value}
                   disabled={option.disabled}
+                  title={option.label}
                   onClick={() => handleSelect(option.value)}
                   className={cn(
                     'flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50',

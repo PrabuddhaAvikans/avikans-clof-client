@@ -78,7 +78,7 @@ export function MobileNav() {
           <div className="min-w-0">
             <BrandLogo className="h-9 max-w-[180px]" />
             {appSubtitle ? (
-              <p className="mt-0.5 truncate text-[10px] text-sidebar-muted">
+              <p className="mt-0.5 truncate text-[10px] text-sidebar-muted" title={appSubtitle}>
                 {appSubtitle}
               </p>
             ) : null}
@@ -134,6 +134,7 @@ function MobileNavItem({
           type="button"
           onClick={() => onToggleGroup(item.id)}
           className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent"
+          title={item.label}
           aria-expanded={isExpanded}
         >
           <Icon className="h-4 w-4 shrink-0" aria-hidden />
@@ -186,6 +187,7 @@ function MobileNavLink({ item, onNavigate, siblingPaths = [] }: MobileNavLinkPro
       to={item.path}
       onClick={onNavigate}
       end={siblingPaths.length > 0}
+      title={item.label}
       aria-current={active ? "page" : undefined}
       className={cn(
         "flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",

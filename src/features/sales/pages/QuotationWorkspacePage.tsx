@@ -112,9 +112,13 @@ export function QuotationWorkspacePage() {
     if (!activeQuotation) return;
     try {
       const order = await convertToOrder.mutateAsync(activeQuotation.id);
-      toast.success("Converted to sales order");
+      toast.success(
+        order.quotationNumber
+          ? `Sales order created from ${order.quotationNumber}. BOM estimation sent for costing approval.`
+          : "Sales order created. BOM estimation sent for costing approval.",
+      );
       setConvertOpen(false);
-      navigate(ROUTES.salesOrders.detail(order.id));
+      navigate(ROUTES.costing.forOrder(order.id));
     } catch {
       toast.error("Failed to convert quotation");
     }

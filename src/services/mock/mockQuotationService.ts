@@ -32,6 +32,29 @@ let quotations = cloneData(initialQuotations).map((quotation) => ({
   revisions: ensureQuotationRevisions(quotation),
 }));
 
+export function peekMockQuotation(id: string): Quotation | undefined {
+  return quotations.find((quotation) => quotation.id === id);
+}
+
+export function attachSalesOrderToQuotation(quotationId: string, salesOrderId: string): void {
+  const index = quotations.findIndex((quotation) => quotation.id === quotationId);
+  if (index === -1) return;
+
+  const quotation = quotations[index];
+  quotations[index] = {
+    ...quotation,
+    lineItems: quotation.lineItems.map((item) => ({
+      ...item,
+      customization: item.customization
+        ? lockCustomization(deepCloneCustomization(item.customization))
+        : undefined,
+    })),
+    status: "converted",
+    salesOrderId,
+    updatedAt: nowIso(),
+  };
+}
+
 function buildLineItems(
   items: Omit<QuotationLineItem, "id" | "lineTotal">[],
 ): QuotationLineItem[] {
@@ -317,6 +340,7 @@ export const mockQuotationService: QuotationService = {
     const salesOrder = await mockSalesOrderService.create({
       customerId: quotation.customerId,
       quotationId: quotation.id,
+      quotationNumber: quotation.quotationNumber,
       lineItems: frozenLines.map((item) => ({
         productId: item.productId,
         productSku: item.productSku,

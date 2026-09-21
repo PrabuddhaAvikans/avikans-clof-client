@@ -32,6 +32,7 @@ export function Timeline({ events, className }: TimelineProps) {
             <div className="absolute left-[15px] top-8 h-[calc(100%-2rem)] w-px bg-border" aria-hidden />
           )}
           <div
+            title={event.title}
             className={cn(
               'relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-card bg-muted text-muted-foreground',
             )}

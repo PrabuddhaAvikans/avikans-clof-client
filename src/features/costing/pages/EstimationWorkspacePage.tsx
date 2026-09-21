@@ -34,7 +34,7 @@ export function EstimationWorkspacePage() {
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
   const [coatingStatusFilter, setCoatingStatusFilter] = useState<CoatingStatusValue | "">(
-    salesOrderIdParam ? "" : "pending",
+    "",
   );
 
   const { data, isLoading, error, refetch } = useCostingRequests({
@@ -93,7 +93,7 @@ export function EstimationWorkspacePage() {
     <PageContainer maxWidth="full" className="py-3">
       <PageHeader
         title="Product Estimation"
-        description="Quotation → Sales Order → Product Estimation → Costing Approval → Confirm."
+        description="Sales order products generate a BOM estimation automatically. Review here only if costing requests changes; otherwise continue to approval."
         className="mb-2"
         actions={
           <>

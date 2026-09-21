@@ -119,6 +119,7 @@ export function RowActions({
                       ? "text-destructive hover:bg-destructive/5"
                       : "text-foreground hover:bg-muted",
                   )}
+                  title={action.label}
                   onClick={() => {
                     setOpen(false);
                     action.onClick();

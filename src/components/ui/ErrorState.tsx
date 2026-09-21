@@ -28,7 +28,7 @@ export function ErrorState({
       <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
         <AlertTriangle className="h-6 w-6" />
       </div>
-      <h3 className="text-base font-semibold text-foreground">{title}</h3>
+      <h3 className="text-base font-semibold text-foreground" title={title}>{title}</h3>
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">{message}</p>
       {onRetry && (
         <Button variant="outline" className="mt-4" onClick={onRetry}>

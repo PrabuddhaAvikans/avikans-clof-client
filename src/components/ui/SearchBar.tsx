@@ -59,6 +59,7 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
           onChange={onChange}
           disabled={disabled}
           placeholder={placeholder}
+          title={props.title ?? label ?? placeholder}
           className={cn(
             'flex h-9 w-full appearance-none items-center rounded-md border border-input bg-card py-0 pl-9 text-sm leading-none text-foreground transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none',
             showShortcutHint ? 'pr-20' : hasValue ? 'pr-9' : 'pr-3',
@@ -75,6 +76,7 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
           <button
             type="button"
             aria-label="Clear search"
+            title="Clear search"
             onClick={() => onClear?.()}
             className="absolute right-3 top-1/2 -translate-y-1/2 rounded text-muted-foreground hover:text-foreground"
           >

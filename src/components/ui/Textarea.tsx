@@ -42,6 +42,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           className,
         )}
         {...props}
+        title={props.title ?? label ?? props.placeholder}
       />
     );
 

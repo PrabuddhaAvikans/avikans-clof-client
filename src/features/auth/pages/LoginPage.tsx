@@ -196,6 +196,7 @@ export function LoginPage() {
                         type="button"
                         className="text-muted-foreground hover:text-foreground"
                         aria-label={showPassword ? "Hide password" : "Show password"}
+                        title={showPassword ? "Hide password" : "Show password"}
                         onClick={() => setShowPassword((open) => !open)}
                       >
                         {showPassword ? (
@@ -212,6 +213,7 @@ export function LoginPage() {
                     <button
                       type="button"
                       className="text-xs font-medium text-info hover:underline"
+                      title="Forgot password?"
                       onClick={() =>
                         toast.message("Password reset", {
                           description:
@@ -245,6 +247,7 @@ export function LoginPage() {
                     <button
                       type="button"
                       className="mt-1.5 text-[11px] font-medium text-info hover:underline"
+                      title="Fill demo credentials"
                       onClick={() => {
                         void formik.setValues({
                           email: DEMO_LOGIN_EMAIL,

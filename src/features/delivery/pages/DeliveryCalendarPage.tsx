@@ -130,6 +130,7 @@ export function DeliveryCalendarPage() {
                       <li key={delivery.id}>
                         <Link
                           to={ROUTES.deliveries.detail(delivery.id)}
+                          title={`${delivery.deliveryNumber} · ${delivery.customerName}`}
                           className="block truncate rounded px-1 py-0.5 text-xs hover:bg-muted"
                         >
                           <StatusBadge

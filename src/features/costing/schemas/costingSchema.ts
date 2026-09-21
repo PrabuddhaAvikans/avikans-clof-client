@@ -36,6 +36,10 @@ export const estimationMaterialSchema = yup.object({
   alternativeItemId: yup.string().optional(),
   alternativeItemName: yup.string().optional(),
   notes: yup.string().optional(),
+  salesOrderLineItemId: yup.string().optional(),
+  sourceType: yup.mixed<"standard" | "customized">().oneOf(["standard", "customized"]).optional(),
+  sourceProductName: yup.string().optional(),
+  productVersionLabel: yup.string().optional(),
 });
 
 export const coatingSubmitSchema = yup.object({

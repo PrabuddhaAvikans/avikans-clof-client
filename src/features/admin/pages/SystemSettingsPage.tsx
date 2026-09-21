@@ -52,7 +52,7 @@ const SECTIONS = [
   {
     id: "costing",
     label: "Costing rates",
-    description: "Labour, overtime, and overhead",
+    description: "Labour and overtime",
     icon: Calculator,
   },
   // {

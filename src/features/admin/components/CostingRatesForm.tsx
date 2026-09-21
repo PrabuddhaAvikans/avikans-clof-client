@@ -69,37 +69,6 @@ export function CostingRatesForm({ compact = false, readOnly = false, onSaved }:
         disabled={readOnly}
         onChange={(event) => update("doubleOvertimeMultiplier", event.target.value)}
       />
-      <Input
-        label={compact ? "Machine / hour" : "Machine rate (per hour)"}
-        type="number"
-        min={0}
-        step={0.01}
-        hint={compact ? undefined : "Used when an operation has no machine cost"}
-        value={rates.machineRatePerHour}
-        disabled={readOnly}
-        onChange={(event) => update("machineRatePerHour", event.target.value)}
-      />
-      <Input
-        label={compact ? "Coating / unit" : "Coating / finishing (per unit)"}
-        type="number"
-        min={0}
-        step={0.01}
-        hint={compact ? undefined : "Fixed coating cost applied to each product"}
-        value={rates.coatingCostPerUnit}
-        disabled={readOnly}
-        onChange={(event) => update("coatingCostPerUnit", event.target.value)}
-      />
-      <Input
-        label="Overhead (%)"
-        type="number"
-        min={0}
-        max={100}
-        step={0.1}
-        hint={compact ? undefined : "Applied on material + labour + machine + coating"}
-        value={rates.overheadPercent}
-        disabled={readOnly}
-        onChange={(event) => update("overheadPercent", event.target.value)}
-      />
       {!readOnly && (
         <div className={compact ? "flex flex-wrap gap-2" : "flex flex-wrap gap-2 sm:col-span-2"}>
           <Button type="button" variant="primary" size="sm" leftIcon={<Save className="h-4 w-4" />} onClick={handleSave}>

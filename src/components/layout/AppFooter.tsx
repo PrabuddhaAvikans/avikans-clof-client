@@ -20,6 +20,7 @@ export function AppFooter() {
             <a
               key={link.label}
               href={link.href}
+              title={link.label}
               className="hover:text-foreground"
             >
               {link.label}

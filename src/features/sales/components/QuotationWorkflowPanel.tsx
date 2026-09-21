@@ -100,7 +100,7 @@ export function QuotationWorkflowPanel({
       <div className="border-b border-border px-4 py-3">
         <h2 className="text-sm font-semibold text-foreground">Quotation Workflow</h2>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          Quotation → Sales Order → Product Estimation → Approval → Confirm
+          Quotation → Sales Order → Product Estimation (auto BOM) → Approval → Confirm
         </p>
       </div>
 
@@ -145,12 +145,12 @@ export function QuotationWorkflowPanel({
               <Check className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
               <div>
                 <p className="text-sm font-medium text-foreground">
-                  {quotation.salesOrderId ? "Continue estimation & costing" : "Ready to convert"}
+                  {quotation.salesOrderId ? "Continue costing approval" : "Ready to convert"}
                 </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   {quotation.salesOrderId
-                    ? "Estimation must be submitted and costing approved before the order can be confirmed."
-                    : "Convert this quotation to create a sales order."}
+                    ? "A BOM estimation is generated from the sales order. Costing must be approved before the order can be confirmed."
+                    : "Convert this quotation to create a sales order. Estimation with BOM is generated automatically."}
                 </p>
               </div>
             </div>

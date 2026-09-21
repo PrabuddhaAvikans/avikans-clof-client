@@ -239,6 +239,7 @@ export function SalesOrderDetailPanel({ order, className }: SalesOrderDetailPane
                     <div className="min-w-0">
                       <Link
                         to={ROUTES.products.detail(item.productId)}
+                        title={item.productName}
                         className="truncate text-sm font-medium text-primary hover:underline"
                       >
                         {item.productName}

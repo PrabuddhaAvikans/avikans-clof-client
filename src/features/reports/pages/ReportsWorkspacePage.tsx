@@ -403,7 +403,7 @@ export function ReportsWorkspacePage() {
                             )}
                           >
                             <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                            <span className="min-w-0 truncate text-[13px] font-medium leading-5">
+                            <span className="min-w-0 truncate text-[13px] font-medium leading-5" title={report.title}>
                               {report.title}
                             </span>
                           </button>

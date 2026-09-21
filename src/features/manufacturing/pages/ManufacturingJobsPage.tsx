@@ -454,7 +454,7 @@ export function ManufacturingJobsPage() {
                   {areaOverview.map((area) => (
                     <div key={area.name} className="border border-border bg-background p-2.5">
                       <div className="mb-1.5 flex items-center justify-between gap-2">
-                        <p className="truncate text-[12px] font-medium text-foreground">
+                        <p className="truncate text-[12px] font-medium text-foreground" title={area.name}>
                           {area.name}
                         </p>
                         <span className="text-[11px] tabular-nums text-muted-foreground">

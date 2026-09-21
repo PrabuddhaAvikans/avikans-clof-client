@@ -8,9 +8,23 @@ export type CheckboxProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> 
 };
 
 export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
-  ({ className, label, indeterminate = false, id: idProp, disabled, checked, ...props }, ref) => {
+  (
+    {
+      className,
+      label,
+      indeterminate = false,
+      id: idProp,
+      disabled,
+      checked,
+      title,
+      'aria-label': ariaLabel,
+      ...props
+    },
+    ref,
+  ) => {
     const generatedId = useId();
     const id = idProp ?? generatedId;
+    const hoverTitle = title ?? label ?? ariaLabel;
 
     const setRef = (element: HTMLInputElement | null) => {
       if (element) {
@@ -26,6 +40,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
     return (
       <label
         htmlFor={id}
+        title={hoverTitle}
         className={cn(
           'inline-flex cursor-pointer items-center gap-2',
           disabled && 'cursor-not-allowed opacity-50',
@@ -39,6 +54,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
             id={id}
             disabled={disabled}
             checked={checked}
+            aria-label={ariaLabel}
             className="peer sr-only"
             {...props}
           />

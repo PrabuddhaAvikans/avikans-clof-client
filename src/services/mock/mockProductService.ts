@@ -305,6 +305,14 @@ export const mockProductService: ProductService = {
   },
 };
 
+export function findMockProduct(id: string): Product {
+  return findProduct(id);
+}
+
+export function tryFindMockProduct(id: string): Product | undefined {
+  return products.find((product) => product.id === id);
+}
+
 export function resetMockProducts(): void {
   products = cloneData(initialProducts).map(migrateLegacyProduct);
 }

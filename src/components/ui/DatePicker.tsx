@@ -46,6 +46,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
             inputClassName,
           )}
           {...props}
+          title={props.title ?? label ?? props.placeholder}
         />
       </div>
     );

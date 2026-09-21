@@ -1,9 +1,13 @@
 export const workspaceGrid =
-  "grid grid-cols-1 gap-2 lg:grid-cols-12 lg:min-h-[calc(100dvh-11rem)]";
+  "grid min-h-0 grid-cols-1 gap-2 lg:grid-cols-12 lg:h-full lg:overflow-hidden";
 
 export const workspaceGridCol = "lg:min-h-0";
 
 export const workspacePanelFill = "lg:h-full";
+
+export const workspacePanelHug = "shrink-0 lg:h-auto";
+
+export const workspacePanelGrow = "min-h-0 flex-1 overflow-hidden lg:h-auto";
 
 export const workspacePanelShell =
   "flex flex-col rounded-lg border border-border bg-card shadow-xs lg:h-full lg:overflow-hidden";

@@ -6,16 +6,19 @@ import { FormikInput } from "@/components/forms";
 import { Button } from "@/components/ui/Button";
 import { MappedStatusBadge } from "@/features/shared/components/MappedStatusBadge";
 import { SalesFormSection } from "@/features/sales/components/SalesFormSection";
+import { cn } from "@/lib/utils";
 import {
   computeLineAmounts,
   computeQuotationTotals,
   type QuotationLineItemFormValues,
 } from "@/features/sales/schemas/quotationSchema";
 import { getChangedSpecDiffs } from "@/lib/quotationCustomization";
+import { lineNeedsManufacturing } from "@/lib/productManufacturing";
 import { getAppCountryConfig } from "@/lib/countryConfig";
 import { formatCurrency } from "@/lib/format";
 import type { QuotationProductCustomization } from "@/types/quotation";
 import { QuotationCustomizationStatus } from "@/types/status";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 
 type LineItemFormValues = {
   lineItems: QuotationLineItemFormValues[];
@@ -27,6 +30,9 @@ interface QuotationLineItemsTableProps {
   onCustomizeLine?: (index: number) => void;
   title?: string;
   description?: string;
+  emptyHint?: string;
+  className?: string;
+  showFulfillment?: boolean;
 }
 
 export function QuotationLineItemsTable({
@@ -34,12 +40,18 @@ export function QuotationLineItemsTable({
   onCustomizeLine,
   title = "Line Items",
   description = "Add products with quantity, unit price, discounts, and tax rates. Use Customize for customer-specific configurations without changing the master product.",
+  emptyHint = "Add products to set quantities, prices, and tax.",
+  className,
+  showFulfillment = false,
 }: QuotationLineItemsTableProps) {
-  const { values, errors } = useFormikContext<LineItemFormValues>();
+  const { values, errors, submitCount } = useFormikContext<LineItemFormValues>();
   const documentTotals = computeQuotationTotals(
     values.lineItems,
     values.discountAmount ?? 0,
   );
+  const lineItemsError =
+    submitCount > 0 && typeof errors.lineItems === "string" ? errors.lineItems : undefined;
+  const isEmpty = values.lineItems.length === 0;
 
   const lineTotals = values.lineItems.map((item) => computeLineAmounts(item));
   const linesExclVat = lineTotals.reduce((sum, line) => sum + line.net, 0);
@@ -51,26 +63,51 @@ export function QuotationLineItemsTable({
     <SalesFormSection
       title={title}
       description={description}
+      className={className}
       action={
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-7 shrink-0 text-[11px] text-blue-600"
-          leftIcon={<PackagePlus className="h-4 w-4" aria-hidden />}
-          onClick={onAddProduct}
-        >
-          Add Product
-        </Button>
+        isEmpty ? undefined : (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 shrink-0 text-[11px] text-primary"
+            leftIcon={<PackagePlus className="h-4 w-4" aria-hidden />}
+            onClick={onAddProduct}
+          >
+            Add Product
+          </Button>
+        )
       }
     >
-      {typeof errors.lineItems === "string" && (
-        <p className="mb-2 text-[12px] text-red-600">{errors.lineItems}</p>
-      )}
-      <FieldArray name="lineItems">
-        {({ remove }) => (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[860px] text-[12px]">
+      {isEmpty ? (
+        <div
+          className={cn(
+            "flex flex-col items-center justify-center rounded-md border border-dashed bg-muted/40 px-4 py-8 text-center",
+            lineItemsError ? "border-destructive/40" : "border-border",
+          )}
+        >
+          <p className={cn("text-sm font-medium", lineItemsError ? "text-destructive" : "text-foreground")}>
+            {lineItemsError ?? "No products yet"}
+          </p>
+          <p className="mt-1 max-w-xs text-[12px] text-muted-foreground">
+            {emptyHint}
+          </p>
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            className="mt-3"
+            leftIcon={<PackagePlus className="h-4 w-4" aria-hidden />}
+            onClick={onAddProduct}
+          >
+            Add Product
+          </Button>
+        </div>
+      ) : (
+        <FieldArray name="lineItems">
+          {({ remove }) => (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[860px] text-[12px]">
               <thead>
                 <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted-foreground">
                   <th className="py-1.5 pr-2">Product</th>
@@ -85,14 +122,7 @@ export function QuotationLineItemsTable({
                 </tr>
               </thead>
               <tbody>
-                {values.lineItems.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} className="py-6 text-center text-muted-foreground">
-                      No products added yet.
-                    </td>
-                  </tr>
-                ) : (
-                  values.lineItems.map((item, index) => {
+                {values.lineItems.map((item, index) => {
                     const amounts = computeLineAmounts(item);
                     const customization = item.customization as
                       | QuotationProductCustomization
@@ -141,6 +171,18 @@ export function QuotationLineItemsTable({
                               <span className="text-[10px] text-muted-foreground">
                                 Standard
                               </span>
+                            )}
+                            {showFulfillment && (
+                              <StatusBadge
+                                variant={
+                                  lineNeedsManufacturing(item) ? "warning" : "success"
+                                }
+                                size="sm"
+                              >
+                                {lineNeedsManufacturing(item)
+                                  ? "Needs manufacturing"
+                                  : "Existing product"}
+                              </StatusBadge>
                             )}
                             {onCustomizeLine && (
                               <Button
@@ -226,8 +268,7 @@ export function QuotationLineItemsTable({
                         </td>
                       </tr>
                     );
-                  })
-                )}
+                  })}
               </tbody>
               {values.lineItems.length > 0 && (
                 <tfoot>
@@ -261,6 +302,7 @@ export function QuotationLineItemsTable({
           </div>
         )}
       </FieldArray>
+      )}
     </SalesFormSection>
   );
 }

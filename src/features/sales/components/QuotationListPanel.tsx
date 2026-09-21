@@ -127,13 +127,14 @@ export function QuotationListPanel({
                 <button
                   type="button"
                   onClick={() => onSelect(item.id)}
+                  title={item.quotationNumber}
                   className={cn(
                     "flex w-full flex-col gap-1.5 px-3 py-2.5 text-left transition-colors hover:bg-muted/50",
                     selectedId === item.id && "bg-primary/5 hover:bg-primary/5",
                   )}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <p className="truncate text-sm font-medium text-primary">
+                    <p className="truncate text-sm font-medium text-primary" title={item.quotationNumber}>
                       {item.quotationNumber}
                     </p>
                     <MappedStatusBadge
@@ -142,7 +143,7 @@ export function QuotationListPanel({
                       dot
                     />
                   </div>
-                  <p className="truncate text-xs text-foreground">{item.customerName}</p>
+                  <p className="truncate text-xs text-foreground" title={item.customerName}>{item.customerName}</p>
                   <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
                     <span>{formatDate(item.createdAt)}</span>
                     <span className="tabular-nums font-medium text-foreground">

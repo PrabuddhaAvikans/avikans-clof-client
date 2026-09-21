@@ -36,5 +36,9 @@ export function AttachmentIcon({
   const kind = resolveAttachmentKind({ type, fileName, mimeType });
   const Icon = KIND_ICONS[kind];
 
-  return <Icon className={cn('h-4 w-4', className)} aria-hidden />;
+  return (
+    <span title={fileName}>
+      <Icon className={cn('h-4 w-4', className)} aria-hidden />
+    </span>
+  );
 }

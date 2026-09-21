@@ -37,6 +37,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   ) => {
     const generatedId = useId();
     const id = idProp ?? generatedId;
+    const selectedLabel = options.find((option) => option.value === String(props.value ?? ''))?.label;
 
     const select = (
       <div className={cn('relative', className)}>
@@ -51,6 +52,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             selectClassName,
           )}
           {...props}
+          title={props.title ?? label ?? selectedLabel ?? placeholder}
         >
           {placeholder && (
             <option value="" disabled>

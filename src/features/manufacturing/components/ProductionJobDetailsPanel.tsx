@@ -61,7 +61,7 @@ export function ProductionJobDetailsPanel({
           <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
             Job detail
           </p>
-          <p className="truncate text-sm font-semibold text-foreground">{job.jobNumber}</p>
+          <p className="truncate text-sm font-semibold text-foreground" title={job.jobNumber}>{job.jobNumber}</p>
         </div>
         <StatusBadge variant={statusVariantForJob(job.status)} size="sm">
           {job.statusLabel}
@@ -74,7 +74,7 @@ export function ProductionJobDetailsPanel({
             <Package className="h-4 w-4 text-muted-foreground" aria-hidden />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate font-medium text-foreground">{job.productName}</p>
+            <p className="truncate font-medium text-foreground" title={job.productName}>{job.productName}</p>
             <p className="text-[10px] text-muted-foreground">{job.productSku}</p>
             <div className="mt-1.5 grid grid-cols-3 gap-1 text-[10px]">
               <Meta label="Qty" value={String(job.quantity)} />
@@ -198,7 +198,7 @@ function Meta({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <p className="text-muted-foreground">{label}</p>
-      <p className="truncate font-medium text-foreground">{value}</p>
+      <p className="truncate font-medium text-foreground" title={value}>{value}</p>
     </div>
   );
 }

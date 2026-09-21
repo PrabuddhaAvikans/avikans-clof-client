@@ -35,15 +35,16 @@ export function PageHeader({
                 <li key={`${item.label}-${index}`} className="flex items-center gap-1">
                   {index > 0 && <ChevronRight className="h-3 w-3" aria-hidden />}
                   {isLast || (!item.href && !item.onClick) ? (
-                    <span className="font-medium text-foreground">{item.label}</span>
+                    <span className="font-medium text-foreground" title={item.label}>{item.label}</span>
                   ) : item.href ? (
-                    <a href={item.href} className="hover:text-foreground">
+                    <a href={item.href} className="hover:text-foreground" title={item.label}>
                       {item.label}
                     </a>
                   ) : (
                     <button
                       type="button"
                       onClick={item.onClick}
+                      title={item.label}
                       className="hover:text-foreground"
                     >
                       {item.label}
@@ -58,7 +59,7 @@ export function PageHeader({
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-[1.375rem] font-semibold tracking-tight text-foreground">{title}</h1>
+          <h1 className="text-[1.375rem] font-semibold tracking-tight text-foreground" title={title}>{title}</h1>
           {description && (
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{description}</p>
           )}

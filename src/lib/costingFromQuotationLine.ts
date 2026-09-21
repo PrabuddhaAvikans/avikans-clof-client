@@ -2,7 +2,7 @@ import { generateId } from "@/services/http";
 import { computeStandardCosts, DEFAULT_COSTING_RATES } from "@/lib/costingRates";
 import { estimateFromBomAndOperations } from "@/lib/quotationCustomization";
 import { computeTotalCost, extraLinesTotal } from "@/types/product";
-import { mockProductService } from "@/services/mock/mockProductService";
+import { tryFindMockProduct } from "@/services/mock/mockProductService";
 import type {
   CoatingLineItem,
   CostingLineItem,
@@ -98,9 +98,9 @@ export async function resolveSalesOrderLineContext(
     const costBreakdown = estimateFromBomAndOperations(
       bom,
       operations,
-      customization.base.costBreakdown.coatingFinishingCost,
-      customization.base.costBreakdown.overheadCost,
-      customization.base.costBreakdown.otherCost,
+      round2(customization.base.costBreakdown.coatingFinishingCost * line.quantity),
+      round2(customization.base.costBreakdown.overheadCost * line.quantity),
+      round2(customization.base.costBreakdown.otherCost * line.quantity),
       customization.base.costBreakdown.extraLines,
     );
     const extraCost = extraLinesTotal(costBreakdown);
@@ -129,28 +129,33 @@ export async function resolveSalesOrderLineContext(
     };
   }
 
-  const product = await mockProductService.getById(line.productId);
-  const version =
-    product.versions.find((item) => item.id === line.productVersionId) ??
-    product.versions.find((item) => item.id === product.currentVersionId) ??
-    product.versions[product.versions.length - 1];
+  const product = tryFindMockProduct(line.productId);
+  const version = product
+    ? product.versions.find((item) => item.id === line.productVersionId) ??
+      product.versions.find((item) => item.id === product.currentVersionId) ??
+      product.versions[product.versions.length - 1]
+    : undefined;
 
-  const bom = scaleBom(version.bom, line.quantity);
-  const operations = scaleOperations(version.operations, line.quantity);
-  const costs = computeCostsFromBomAndOps(bom, operations);
-  const extraCost = extraLinesTotal(version.costBreakdown) + (version.costBreakdown.otherCost || 0);
+  const bom = version ? scaleBom(version.bom, line.quantity) : [];
+  const operations = version ? scaleOperations(version.operations, line.quantity) : [];
+  const coatingTotal = round2(((version?.costBreakdown.coatingFinishingCost || 0) * line.quantity));
+  const costs = computeCostsFromBomAndOps(bom, operations, coatingTotal);
+  const extraCost = version
+    ? extraLinesTotal(version.costBreakdown) * line.quantity +
+      (version.costBreakdown.otherCost || 0) * line.quantity
+    : 0;
 
   return {
     salesOrderLineItemId: line.id,
     productId: line.productId,
     productSku: line.productSku,
     productName: line.productName,
-    productVersionId: version.id,
-    productVersionLabel: version.label,
+    productVersionId: version?.id,
+    productVersionLabel: version?.label,
     quantity: line.quantity,
     unitPrice: line.unitPrice,
     sourceType: "standard",
-    specifications: version.specifications,
+    specifications: version?.specifications ?? {},
     bom,
     operations,
     materialCost: costs.materialCost,
@@ -220,20 +225,23 @@ export function contextsToCoatingItems(
   contexts: EstimationLineContext[],
   orderId: string,
 ): CoatingLineItem[] {
-  return contexts.map((context, index) => ({
-    id: `coat-${orderId}-${index + 1}`,
-    productId: context.productId,
-    productName: context.productName,
-    finish: resolveFinish(context.specifications),
-    process: resolveProcess(context.specifications),
-    quantity: context.quantity,
-    unitCost: 0,
-    lineTotal: 0,
-    salesOrderLineItemId: context.salesOrderLineItemId,
-    sourceType: context.sourceType,
-    productVersionLabel: context.productVersionLabel,
-    productSku: context.productSku,
-  }));
+  return contexts.map((context, index) => {
+    const unitCost = context.quantity > 0 ? round2(context.coatingCost / context.quantity) : 0;
+    return {
+      id: `coat-${orderId}-${index + 1}`,
+      productId: context.productId,
+      productName: context.productName,
+      finish: resolveFinish(context.specifications),
+      process: resolveProcess(context.specifications),
+      quantity: context.quantity,
+      unitCost,
+      lineTotal: round2(unitCost * context.quantity),
+      salesOrderLineItemId: context.salesOrderLineItemId,
+      sourceType: context.sourceType,
+      productVersionLabel: context.productVersionLabel,
+      productSku: context.productSku,
+    };
+  });
 }
 
 export function contextsToCostingLineItems(
@@ -329,14 +337,20 @@ export function buildEstimationNotes(
 ): string {
   const standardCount = contexts.filter((item) => item.sourceType === "standard").length;
   const customizedCount = contexts.filter((item) => item.sourceType === "customized").length;
+  const origin = order.quotationNumber
+    ? `Generated from quotation ${order.quotationNumber} via sales order ${order.orderNumber}.`
+    : order.quotationId
+      ? `Generated from a quotation via sales order ${order.orderNumber}.`
+      : `Generated from direct sales order ${order.orderNumber} (no quotation).`;
   const parts = [
-    "Product estimation seeded from quotation sales order lines.",
-    standardCount > 0 ? `${standardCount} standard product line(s) from master version BOM.` : "",
+    origin,
+    standardCount > 0
+      ? `${standardCount} standard product line(s) from product master BOM.`
+      : "",
     customizedCount > 0
       ? `${customizedCount} customized line(s) from locked quotation configuration (master product unchanged).`
       : "",
-    order.quotationNumber ? `Quotation ${order.quotationNumber}.` : "",
-    "Review coating unit costs and materials before submitting for approval.",
+    "Ready for costing approval. Open estimation only if materials or coating need adjustment.",
   ];
   return parts.filter(Boolean).join(" ");
 }

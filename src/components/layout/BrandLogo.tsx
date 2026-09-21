@@ -11,10 +11,13 @@ export function BrandLogo({ compact = false, className }: BrandLogoProps) {
   const settings = useSystemSettings();
   const custom = Boolean(settings.logoUrl);
 
+  const companyName = settings.companyName || "Avikans";
+
   return (
     <img
       src={resolveSystemLogoUrl(settings.logoUrl)}
-      alt={settings.companyName || "Avikans"}
+      alt={companyName}
+      title={companyName}
       className={cn(
         "block shrink-0 object-contain",
         compact ? "h-8 w-8 object-left" : "h-8 w-auto max-w-[148px]",

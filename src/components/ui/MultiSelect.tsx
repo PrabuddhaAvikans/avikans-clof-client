@@ -87,6 +87,7 @@ export function MultiSelect({
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={open}
+        title={selectedOptions.length > 0 ? selectedOptions.map((option) => option.label).join(', ') : placeholder}
         onClick={() => !disabled && setOpen((prev) => !prev)}
         className={cn(
           'flex min-h-9 w-full items-center justify-between rounded-lg border border-input bg-card px-3 py-1.5 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
@@ -100,6 +101,7 @@ export function MultiSelect({
           {selectedOptions.map((option) => (
             <span
               key={option.value}
+              title={option.label}
               className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-foreground"
             >
               {option.label}
@@ -108,6 +110,7 @@ export function MultiSelect({
                   role="button"
                   tabIndex={0}
                   aria-label={`Remove ${option.label}`}
+                  title={`Remove ${option.label}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     remove(option.value);
@@ -154,6 +157,7 @@ export function MultiSelect({
                     role="option"
                     aria-selected={isSelected}
                     disabled={option.disabled}
+                    title={option.label}
                     onClick={() => toggle(option.value)}
                     className={cn(
                       'flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50',

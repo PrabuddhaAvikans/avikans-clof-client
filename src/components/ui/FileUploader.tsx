@@ -194,7 +194,7 @@ export function FileUploader({
                   className="shrink-0 text-muted-foreground"
                 />
                 <div className="min-w-0">
-                  <p className="cursor-pointer truncate text-sm font-medium text-foreground underline-offset-2 hover:underline">
+                  <p className="cursor-pointer truncate text-sm font-medium text-foreground underline-offset-2 hover:underline" title={name}>
                     {name}
                   </p>
                   <p className="text-xs text-muted-foreground">{formatBytes(size)}</p>

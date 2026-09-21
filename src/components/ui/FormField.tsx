@@ -25,6 +25,7 @@ export function FormField({
       {label ? (
         <label
           htmlFor={id}
+          title={label}
           className="block text-xs font-medium leading-none text-foreground"
         >
           {label}
