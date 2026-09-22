@@ -47,6 +47,7 @@ import {
   Users,
   UsersRound,
   Warehouse,
+  Workflow,
   Wrench,
 } from "lucide-react";
 
@@ -71,6 +72,7 @@ export const ICON_MAP: Record<string, LucideIcon> = {
   SlidersHorizontal,
   ListOrdered,
   Warehouse,
+  Workflow,
   Boxes,
   Building2,
   BarChart3,

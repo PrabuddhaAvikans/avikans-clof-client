@@ -37,6 +37,7 @@ export const ROUTES = {
     warehouses: "/configuration/warehouses",
     categories: "/configuration/categories",
     brands: "/configuration/brands",
+    workflows: "/configuration/workflows",
     settings: "/configuration/settings",
   },
 

@@ -128,6 +128,12 @@ export function ApprovalWorkflowPanel({
     <div className={cn(workspacePanelShell, className)}>
       <div className="border-b border-border px-4 py-3">
         <h2 className="text-sm font-semibold text-foreground">Approval Workflow</h2>
+        {request.workflowVersionNumber != null && request.workflowVersionNumber > 0 && (
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {request.workflowName ?? "Costing Approval"} · v{request.workflowVersionNumber} frozen for
+            this request
+          </p>
+        )}
       </div>
 
       <div className={workspacePanelBody}>

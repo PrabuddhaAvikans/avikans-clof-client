@@ -5,6 +5,7 @@ import {
   Ruler,
   Settings,
   Tag,
+  Workflow,
 } from "lucide-react";
 import { ROUTES } from "@/app/config/routes";
 import type { Permission } from "@/app/config/permissions";
@@ -48,6 +49,13 @@ const CONFIG_ITEMS: {
     permission: "products:view",
   },
   {
+    title: "Workflows",
+    description: "Activate an old or new costing approval flow for new orders.",
+    path: ROUTES.configuration.workflows,
+    icon: Workflow,
+    permission: "settings:view",
+  },
+  {
     title: "System Settings",
     description: "Company, regional, tax, and costing rate defaults.",
     path: ROUTES.configuration.settings,
@@ -64,7 +72,7 @@ export function ConfigurationHubPage() {
     <PageContainer maxWidth="wide">
       <PageHeader
         title="Configuration"
-        description="Initial setup used by inventory, products, and costing."
+        description="Initial setup used by inventory, products, costing, and workflows."
         breadcrumbs={[{ label: "Configuration" }]}
       />
 

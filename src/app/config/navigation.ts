@@ -118,13 +118,6 @@ export const NAVIGATION: NavItem[] = [
         icon: "Users",
         permission: "customers:view",
       },
-      {
-        id: "customers-create",
-        label: "Create Customer",
-        path: ROUTES.customers.new,
-        icon: "UserPlus",
-        permission: "customers:create",
-      },
     ],
   },
   {
@@ -211,6 +204,13 @@ export const NAVIGATION: NavItem[] = [
         path: ROUTES.configuration.brands,
         icon: "Tag",
         permission: "products:view",
+      },
+      {
+        id: "config-workflows",
+        label: "Workflows",
+        path: ROUTES.configuration.workflows,
+        icon: "Workflow",
+        permission: "settings:view",
       },
       {
         id: "config-settings",

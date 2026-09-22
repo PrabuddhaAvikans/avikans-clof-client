@@ -137,6 +137,11 @@ export interface CostingRequest {
   salesOrderNumber?: string;
   quotationId?: string;
   quotationNumber?: string;
+  workflowDefinitionId?: string;
+  workflowVersionId?: string;
+  workflowInstanceId?: string;
+  workflowVersionNumber?: number;
+  workflowName?: string;
 }
 
 export type CostingRequestFilters = {

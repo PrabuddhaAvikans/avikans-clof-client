@@ -364,9 +364,6 @@ export function CustomerFormPage() {
                 breadcrumbs={[
                   { label: "Customers", href: ROUTES.customers.list },
                   { label: "Customer List", href: ROUTES.customers.list },
-                  {
-                    label: isEdit ? "Edit / Configure Customer" : "Add / Configure Customer",
-                  },
                 ]}
                 actions={
                   <div className="flex flex-wrap items-center gap-1.5">

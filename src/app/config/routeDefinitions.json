@@ -413,6 +413,11 @@
       "permission": "products:view"
     },
     {
+      "path": "configuration/workflows",
+      "page": "WorkflowsPage",
+      "permission": "settings:view"
+    },
+    {
       "path": "configuration/settings",
       "page": "SystemSettingsPage",
       "permission": "settings:view"

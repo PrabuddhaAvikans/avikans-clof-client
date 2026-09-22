@@ -18,12 +18,6 @@ import {
 import type { SalesOrder } from "@/types/sales-order";
 import type { CoatingStatusValue, CostingRequestStatusValue } from "@/types/status";
 
-const DEFAULT_APPROVERS = [
-  { role: "Cost Engineer", assigneeName: "Ruwan Bandara" },
-  { role: "Sales Manager", assigneeName: "Nadeesha Fernando" },
-  { role: "Finance Director", assigneeName: "Asanka Perera" },
-];
-
 export type CoatingItemInput = Omit<CoatingLineItem, "id" | "lineTotal"> & {
   id?: string;
   lineTotal?: number;
@@ -211,18 +205,6 @@ export function buildCostingFromSalesOrder(
     : [];
 
   const allApproved = status === "approved";
-  const approvalLevels = DEFAULT_APPROVERS.map((level, index) => ({
-    id: `al-${order.id}-${index + 1}`,
-    role: level.role,
-    assigneeName: level.assigneeName,
-    status: (allApproved
-      ? "approved"
-      : index === 0
-        ? status === "pending" && coatingStatus === "pending"
-          ? "waiting"
-          : "pending"
-        : "waiting") as CostingRequest["approvalLevels"][number]["status"],
-  }));
 
   let request: CostingRequest = {
     id: `cr-${order.id}`,
@@ -262,7 +244,7 @@ export function buildCostingFromSalesOrder(
         .slice(0, 2)
         .toUpperCase(),
     },
-    approvalLevels,
+    approvalLevels: [],
     history: [
       {
         id: `h-${order.id}-1`,
@@ -324,7 +306,7 @@ export function buildCostingFromSalesOrder(
       {
         id: `h-${order.id}-3`,
         action: "Approved",
-        userName: "Asanka Perera",
+        userName: request.approvalLevels[request.approvalLevels.length - 1]?.assigneeName || "Approver",
         timestamp: order.confirmedAt ?? nowIso(),
         comment: "Margin accepted. Proceed to confirm the sales order.",
       },

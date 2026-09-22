@@ -21,6 +21,15 @@ import { initialSalesOrders } from "@/services/mock/data/sales-orders";
 import { initialSalesOrderCostingRequests } from "@/services/mock/data/sales-order-costing";
 import type { CostingRequest } from "@/types/costing";
 import type { SalesOrder } from "@/types/sales-order";
+import {
+  applyWorkflowInstanceToCosting,
+  ensureCostingWorkflow,
+} from "@/lib/workflow/costing";
+import {
+  approveWorkflowStep,
+  rejectWorkflowStep,
+  requestWorkflowChanges,
+} from "@/lib/workflow/engine";
 
 let costingRequests = cloneData([
   ...initialCostingRequests.map((item) => normalizeCostingRequest(item as CostingRequest)),
@@ -75,15 +84,26 @@ async function buildBomCostingFromOrder(
 
   if (existing) {
     request.id = existing.id;
+    request.workflowDefinitionId = existing.workflowDefinitionId;
+    request.workflowVersionId = existing.workflowVersionId;
+    request.workflowInstanceId = existing.workflowInstanceId;
+    request.workflowVersionNumber = existing.workflowVersionNumber;
+    request.workflowName = existing.workflowName;
+    request.approvalLevels = existing.approvalLevels;
     if (!autoSubmit) {
-      request.approvalLevels = existing.approvalLevels;
       request.history = existing.history;
       request.status = existing.status;
       request.coatingStatus = existing.coatingStatus;
     }
   }
 
-  return request;
+  return ensureCostingWorkflow(request, {
+    order,
+    startFirstStep:
+      request.status === "approved" ||
+      (request.status !== "pending" && request.coatingStatus !== "pending"),
+    allApproved: request.status === "approved",
+  });
 }
 
 let seedHydration: Promise<void> | null = null;
@@ -208,8 +228,26 @@ export const mockCostingService: CostingService = {
     if (updated.status === "pending" || updated.status === "changes_requested") {
       updated.status = "in_review";
     }
-    if (updated.approvalLevels.every((level) => level.status === "waiting")) {
-      updated.approvalLevels[0].status = "pending";
+    if (updated.approvalLevels.every((level) => level.status === "waiting") && !updated.workflowInstanceId) {
+      const order = updated.salesOrderId
+        ? initialSalesOrders.find((item) => item.id === updated.salesOrderId)
+        : undefined;
+      Object.assign(
+        updated,
+        ensureCostingWorkflow(updated, {
+          order,
+          startFirstStep: true,
+        }),
+      );
+    } else if (updated.workflowInstanceId) {
+      const started = ensureCostingWorkflow(updated, { startFirstStep: true });
+      Object.assign(updated, started);
+    }
+    if (
+      updated.approvalLevels.length > 0 &&
+      updated.approvalLevels.every((level) => level.status === "approved")
+    ) {
+      updated.status = "approved";
     }
     if (data.notes) {
       updated.notes = data.notes;
@@ -229,6 +267,25 @@ export const mockCostingService: CostingService = {
         message: "Coating must be submitted before costing can be approved.",
       };
     }
+    if (request.workflowInstanceId) {
+      const instance = approveWorkflowStep(request.workflowInstanceId, {
+        comment,
+        userName: "Current User",
+      });
+      Object.assign(request, applyWorkflowInstanceToCosting(request, instance));
+      request.status = instance.status === "approved" ? "approved" : "in_review";
+      if (instance.status === "approved") {
+        request.slaRemaining = "Completed";
+      }
+      addHistoryEntry(
+        request,
+        instance.status === "approved" ? "Approved" : "Partial approval",
+        "Current User",
+        comment,
+      );
+      return request;
+    }
+
     advanceApprovalLevels(request, "approved");
 
     const allApproved = request.approvalLevels.every((level) => level.status === "approved");
@@ -245,6 +302,18 @@ export const mockCostingService: CostingService = {
     await ensureSeedHydrated();
     await delay();
     const request = findRequest(id);
+    if (request.workflowInstanceId) {
+      const instance = rejectWorkflowStep(request.workflowInstanceId, {
+        comment,
+        userName: "Current User",
+      });
+      Object.assign(request, applyWorkflowInstanceToCosting(request, instance));
+      request.status = "rejected";
+      request.slaRemaining = "Completed";
+      addHistoryEntry(request, "Rejected", "Current User", comment);
+      return request;
+    }
+
     advanceApprovalLevels(request, "rejected");
     request.status = "rejected";
     request.slaRemaining = "Completed";
@@ -256,6 +325,12 @@ export const mockCostingService: CostingService = {
     await ensureSeedHydrated();
     await delay();
     const request = findRequest(id);
+    if (request.workflowInstanceId) {
+      requestWorkflowChanges(request.workflowInstanceId, {
+        comment,
+        userName: "Current User",
+      });
+    }
     request.status = "changes_requested";
     request.coatingStatus = "pending";
     addHistoryEntry(request, "Changes requested", "Current User", comment);

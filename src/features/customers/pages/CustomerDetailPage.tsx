@@ -130,7 +130,7 @@ export function CustomerDetailPage() {
               description={customer.code}
               breadcrumbs={[
                 { label: "Customers", href: ROUTES.customers.list },
-                { label: customer.name },
+                { label: "Customer List", href: ROUTES.customers.list },
               ]}
               actions={
                 <>
