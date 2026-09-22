@@ -235,7 +235,6 @@ function scheduleRevoke(url: string, revoke: boolean) {
 }
 
 function openInNewTab(url: string): boolean {
-  // window.open(..., "noopener") returns null even when the tab opens.
   const opened = window.open(url, "_blank");
   if (opened) {
     opened.opener = null;

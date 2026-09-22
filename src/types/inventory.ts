@@ -102,9 +102,6 @@ export interface InventoryItem {
   reorderQuantity: number;
   buyingPrice?: number;
   costPrice: number;
-  /**
-   * @deprecated Use costPrice. Kept in sync for backward compatibility with BOM and legacy UI.
-   */
   unitCost: number;
   pricingMethod: PricingMethodValue;
   markupPercent: number;

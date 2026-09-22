@@ -203,7 +203,6 @@ export const inventoryPricingSections: DynamicFormSection[] = [
   },
 ];
 
-/** @deprecated Use tab-specific section exports */
 export const inventoryFormSections: DynamicFormSection[] = [
   ...inventoryGeneralSections,
   ...inventoryStockSections,
@@ -259,7 +258,6 @@ export function createStockMovementFormFields(
   ];
 }
 
-/** @deprecated Use createStockMovementFormFields instead */
 export const stockMovementFormFields = createStockMovementFormFields();
 
 export { InventoryItemType, PricingMethod };

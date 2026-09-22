@@ -75,10 +75,10 @@ export function FinanceInvoicesPage() {
             variant="primary"
             size="sm"
             leftIcon={<ArrowRightLeft className="h-4 w-4" />}
-            // onClick={() => {
-            //   toast.message("Opening credit notes…");
-            //   navigate(ROUTES.finance.creditNotes);
-            // }}
+            onClick={() => {
+              toast.message("Opening credit notes…");
+              navigate(ROUTES.finance.creditNotes);
+            }}
           >
             Apply Credit Notes
           </Button>

@@ -6,7 +6,6 @@ import type {
 
 export type ManufacturingTaskStatus = ManufacturingTaskStatusValue;
 
-/** @deprecated Use ManufacturingTaskStatus */
 export type OperationStatus = ManufacturingTaskStatus;
 
 export type ManufacturingTaskHistoryAction =
@@ -146,7 +145,6 @@ export interface ManufacturingTask {
   workstation?: string;
 }
 
-/** @deprecated Use ManufacturingTask */
 export type Operation = ManufacturingTask;
 
 export interface MaterialRequirement {

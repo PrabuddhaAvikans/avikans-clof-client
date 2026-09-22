@@ -132,7 +132,6 @@ export const ROUTES = {
     auditLogs: "/admin/audit-logs",
   },
 
-  // Legacy aliases kept for gradual migration
   sales: {
     root: "/quotations",
     estimates: "/quotations",

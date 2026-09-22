@@ -38,7 +38,7 @@ import {
 import { usePermissions } from "@/hooks/usePermissions";
 import { useBreakpoints } from "@/hooks/useMediaQuery";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
-import { formatDateTime, formatNumber } from "@/lib/format";
+import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { DateRange } from "@/components/ui/DateRangePicker";
 import type { ReportColumn, ReportId, ReportKpi, ReportRow } from "@/types/report";
@@ -103,7 +103,6 @@ export function ReportsWorkspacePage() {
       try {
         localStorage.setItem(LAST_REPORT_KEY, selectedId);
       } catch {
-        /* ignore */
       }
       return;
     }
@@ -444,11 +443,6 @@ export function ReportsWorkspacePage() {
                         {definition.description}
                       </p>
                     </div>
-                    {/* {data?.generatedAt && (
-                      <p className="text-[11px] text-muted-foreground">
-                        Updated {formatDateTime(data.generatedAt)}
-                      </p>
-                    )} */}
                   </div>
                 </div>
                 <div className="shrink-0 border-b border-border px-4 py-3">

@@ -74,7 +74,6 @@ function enrichDemoBomData(): void {
 
 enrichDemoBomData();
 
-// Add a second version to first product for demo
 if (products[0] && products[0].versions.length === 1) {
   const timestamp = nowIso();
   const v2 = createVersionFromExisting(

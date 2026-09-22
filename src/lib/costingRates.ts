@@ -6,7 +6,6 @@ import {
 
 export type CostingRates = {
   labourRatePerHour: number;
-  /** @deprecated Use normalOvertimeMultiplier. Kept in sync for stored configs. */
   overtimeMultiplier: number;
   normalOvertimeMultiplier: number;
   doubleOvertimeMultiplier: number;

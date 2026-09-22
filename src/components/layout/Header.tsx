@@ -147,25 +147,6 @@ export function Header() {
 
         <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
           <div ref={quickCreateRef} className="relative">
-            {/* <Button
-              variant="primary"
-              size="sm"
-              leftIcon={<Plus className="h-3.5 w-3.5" />}
-              rightIcon={
-                <ChevronDown
-                  className={cn(
-                    "h-3.5 w-3.5 transition-transform",
-                    quickCreateOpen && "rotate-180",
-                  )}
-                />
-              }
-              onClick={() => setQuickCreateOpen((open) => !open)}
-              aria-expanded={quickCreateOpen}
-              aria-haspopup="menu"
-              className="hidden sm:inline-flex"
-            >
-              Create
-            </Button> */}
             <IconButton
               variant="outline"
               size="sm"

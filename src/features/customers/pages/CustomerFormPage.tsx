@@ -37,9 +37,6 @@ import type { CustomerFormData } from "@/services";
 
 const TABS = [
   { id: "overview", label: "Overview" },
-  // { id: "contact", label: "Contact Person" },
-  // { id: "addresses", label: "Addresses" },
-  // { id: "tax", label: "Tax & Credit" },
   { id: "notes", label: "Notes" },
 ] as const;
 
@@ -104,7 +101,6 @@ function SectionCard({
 }
 
 function toFormData(values: CustomerFormValues): CustomerFormData {
-  // Preserve the full delivery address list even when the user chooses "same as billing".
   const shippingAddresses = values.shippingAddresses;
 
   const contactPerson = values.contactSameAsName

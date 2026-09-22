@@ -50,11 +50,6 @@ export interface ProductOperation {
   isRequired: boolean;
   isEnabled: boolean;
   notes?: string;
-  /**
-   * Product operation IDs that must complete before this operation can start.
-   * `undefined` means sequential default (previous enabled operation).
-   * `[]` means no prerequisites - the task can run independently.
-   */
   prerequisiteOperationIds?: string[];
   isQualityCheck?: boolean;
 }

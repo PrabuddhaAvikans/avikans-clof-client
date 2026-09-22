@@ -5,5 +5,4 @@ export { DispatchPage } from "@/features/delivery/pages/DispatchPage";
 export { ProofOfDeliveryPage } from "@/features/delivery/pages/ProofOfDeliveryPage";
 export { DeliveryCalendarPage } from "@/features/delivery/pages/DeliveryCalendarPage";
 
-/** @deprecated Use DeliveryCalendarPage */
 export { DeliveryCalendarPage as DeliverySchedulePage } from "@/features/delivery/pages/DeliveryCalendarPage";

@@ -55,18 +55,6 @@ const SECTIONS = [
     description: "Labour and overtime",
     icon: Calculator,
   },
-  // {
-  //   id: "sales",
-  //   label: "Sales defaults",
-  //   description: "Quotations and payment terms",
-  //   icon: FileText,
-  // },
-  // {
-  //   id: "documents",
-  //   label: "Documents",
-  //   description: "Number prefixes",
-  //   icon: Hash,
-  // },
 ] as const;
 
 type SettingsSection = (typeof SECTIONS)[number]["id"];

@@ -147,7 +147,7 @@ function buildTablePdf(options: PdfExportOptions): string {
   const pageObjectNumbers: number[] = [];
   const objects: string[] = [
     "1 0 obj<< /Type /Catalog /Pages 2 0 R >>endobj\n",
-    "", // pages placeholder
+    "",
     fontRegular,
     fontBold,
   ];

@@ -91,7 +91,6 @@ export function QuotationFormEditor({
       setEditingLineIndex(index);
       setCustomizeOpen(true);
     } catch {
-      // Product may have been removed from catalog - ignore
     }
   };
 

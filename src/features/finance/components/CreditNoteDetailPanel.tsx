@@ -87,7 +87,6 @@ export function CreditNoteDetailPanel({
               variant="primary"
               size="sm"
               leftIcon={<Receipt className="h-4 w-4" />}
-             // onClick={onApplyClick}
               disabled={!canApply}
             >
               Apply Credit Note

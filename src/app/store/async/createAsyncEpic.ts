@@ -44,8 +44,6 @@ export function createAsyncEpic<TArg, TData>(
   return (action$) =>
     action$.pipe(
       filter(options.request.match),
-      // Group by cache key so concurrent queries with different keys are not
-      // cancelled by switchMap (e.g. list + status-counts on the same page).
       groupBy((action) => action.payload.key ?? "__default__"),
       mergeMap((group$) =>
         group$.pipe(

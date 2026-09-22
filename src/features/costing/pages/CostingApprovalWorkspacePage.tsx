@@ -189,19 +189,6 @@ export function CostingApprovalWorkspacePage() {
             >
               Product Estimation
             </Button>
-            {/* <Button
-              variant="outline"
-              size="sm"
-              leftIcon={<Send className="h-4 w-4" />}
-              disabled={!canDecide}
-              onClick={() => {
-                if (selectedId) {
-                  toast.info("Submitted for approval workflow");
-                }
-              }}
-            >
-              Submit for Approval
-            </Button> */}
             <Button
               variant="success"
               size="sm"

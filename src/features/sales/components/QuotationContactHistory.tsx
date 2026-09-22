@@ -250,7 +250,6 @@ export function QuotationContactTrigger({
       size="sm"
       className={cn("justify-start", className)}
       leftIcon={<Phone className="h-4 w-4" />}
-      // onClick={onClick}
     >
       Calls & Contacts
       {count > 0 ? ` (${count})` : ""}

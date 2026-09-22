@@ -29,7 +29,6 @@ export function calculateProfit(costPrice: number, sellingPrice: number): number
   return roundCurrency((Number(sellingPrice) || 0) - (Number(costPrice) || 0));
 }
 
-/** Margin % = profit / selling price × 100 */
 export function calculateMarginPercent(costPrice: number, sellingPrice: number): number {
   const selling = Number(sellingPrice) || 0;
   if (selling <= 0) return 0;

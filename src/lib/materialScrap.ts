@@ -63,7 +63,6 @@ export function validateProductionMaterialBreakdown(
   return { ok: true, totalAccounted };
 }
 
-/** recoveredUnitCost = (scrap value + processing) / recovered qty */
 export function computeRecoveredUnitCost(options: {
   inputQuantity: number;
   inputUnitCost: number;

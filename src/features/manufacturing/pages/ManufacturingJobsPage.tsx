@@ -1,13 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  Pause,
-  Play,
-  Plus,
-  RefreshCw,
-  ShieldCheck,
-  Workflow,
-} from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { ROUTES } from "@/app/config/routes";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -276,46 +269,6 @@ export function ManufacturingJobsPage() {
                     Create Job
                   </Button>
                 </Link>
-                {/* <Button
-                  variant="primary"
-                  size="sm"
-                  className="h-8 px-2.5 text-[11px]"
-                  leftIcon={<Play className="h-3 w-3" />}
-                  onClick={() => void handleStart()}
-                  loading={startMutation.isPending}
-                >
-                  Start
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-2.5 text-[11px]"
-                  leftIcon={<Workflow className="h-3 w-3" />}
-                  onClick={() => void handleUpdateStage()}
-                  loading={updateStageMutation.isPending}
-                >
-                  Advance Task
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-2.5 text-[11px]"
-                  leftIcon={<Pause className="h-3 w-3" />}
-                  onClick={() => void handleHold()}
-                  loading={holdMutation.isPending}
-                >
-                  Hold
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-2.5 text-[11px]"
-                  leftIcon={<ShieldCheck className="h-3 w-3" />}
-                  onClick={() => void handleReleaseToQc()}
-                  loading={releaseMutation.isPending}
-                >
-                  QC
-                </Button> */}
                 <IconButton
                   variant="outline"
                   size="sm"

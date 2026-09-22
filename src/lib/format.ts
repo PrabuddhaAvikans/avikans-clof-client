@@ -25,7 +25,6 @@ export function formatCurrency(
   _currency: string = DEFAULT_CURRENCY,
   locale = DEFAULT_LOCALE,
 ): string {
-  // Always format as LKR regardless of stored currency codes.
   return new Intl.NumberFormat(locale, {
     style: "currency",
     currency: APP_CURRENCY,

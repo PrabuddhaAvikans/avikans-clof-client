@@ -32,7 +32,6 @@ async function resolveIssuableLot(mr: MaterialRequirement): Promise<InventoryIte
     return primary;
   }
 
-  // Prefer recovered / scrap lots that share the same base SKU before failing.
   const listing = await mockInventoryService.list({
     page: 1,
     pageSize: 200,
@@ -49,7 +48,6 @@ async function resolveIssuableLot(mr: MaterialRequirement): Promise<InventoryIte
           item.name.toLowerCase().includes(mr.inventoryItemName.toLowerCase().slice(0, 12))),
     )
     .sort((a, b) => {
-      // Prefer recovered then reusable scrap then raw (reuse first).
       const rank = (t: InventoryItem["itemType"]) =>
         t === InventoryItemType.recovered_material
           ? 0
@@ -86,7 +84,6 @@ export async function issueMaterialsForJob(job: ManufacturingJob): Promise<Manuf
       );
     }
 
-    // Release reservation on the BOM-linked item (may differ from the lot we issue from).
     if (mr.reservedQuantity > 0) {
       await mockInventoryService.recordMovement(mr.inventoryItemId, "release", mr.reservedQuantity, {
         referenceType: "manufacturing_job",
@@ -201,7 +198,6 @@ async function upsertScrapLot(options: {
     },
   });
 
-  // keep source unit cost
   if (lot.costPrice !== unitCost) {
     lot = await mockInventoryService.update(lot.id, { costPrice: unitCost });
   }
@@ -234,7 +230,6 @@ export async function postProductionMaterialOutcome(
     invalidState(validation.message);
   }
 
-  // Allocate scrap/waste proportionally across issued lines by issued qty.
   const scrapLotIds: string[] = [];
   const recoverableLotIds: string[] = [];
   let remainingScrap = completion.reusableScrapQuantity;
@@ -280,9 +275,6 @@ export async function postProductionMaterialOutcome(
       recoverableLotIds.push(lot.id);
     }
   }
-
-  // Permanent waste stays out of inventory: quantity already left stock at production issue.
-  // Outcome fields below are the audit trail for process loss (no second stock movement).
 
   const outcome: ProductionMaterialOutcome = {
     finishedMaterialQuantity: completion.finishedMaterialQuantity,

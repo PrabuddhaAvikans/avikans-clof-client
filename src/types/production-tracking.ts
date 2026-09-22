@@ -21,7 +21,6 @@ export interface ProductionJob {
   quantity: number;
   priority: PriorityValue;
   currentTaskName: string;
-  /** Alias of currentTaskName for the existing table column. */
   line: string;
   supervisorId: string;
   supervisorName: string;

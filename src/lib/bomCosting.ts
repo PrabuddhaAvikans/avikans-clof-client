@@ -2,14 +2,12 @@ export function roundCost(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-/** Required qty = base quantity × (1 + waste%/100) */
 export function calculateRequiredQuantity(quantity: number, wastePercent: number): number {
   const base = Number(quantity) || 0;
   const waste = Number(wastePercent) || 0;
   return roundCost(base * (1 + waste / 100));
 }
 
-/** Material cost = required quantity × inventory cost price */
 export function calculateLineCost(requiredQuantity: number, unitCost: number): number {
   return roundCost((Number(requiredQuantity) || 0) * (Number(unitCost) || 0));
 }

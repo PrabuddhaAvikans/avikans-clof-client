@@ -50,7 +50,7 @@ export const CUSTOMIZABLE_SPEC_FIELDS = [
 
 export type CustomizableSpecKey = (typeof CUSTOMIZABLE_SPEC_FIELDS)[number]["key"];
 
-const COST_DELTA_APPROVAL_THRESHOLD = 0.05; // 5% cost increase triggers approval
+const COST_DELTA_APPROVAL_THRESHOLD = 0.05;
 const MARGIN_FLOOR_PERCENT = 15;
 
 export interface SpecFieldDiff {

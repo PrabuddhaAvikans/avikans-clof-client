@@ -23,7 +23,6 @@ export function PriceListsPage() {
   );
 }
 
-// Legacy aliases
 export { ProductFormPage as CreateProductPage } from "@/features/products/pages/ProductFormPage";
 export { CategoryListPage as CategoriesPage } from "@/features/products/pages/CategoryListPage";
 export { BrandListPage as BrandsPage } from "@/features/products/pages/BrandListPage";

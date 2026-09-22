@@ -89,13 +89,6 @@ export const NAVIGATION: NavItem[] = [
         icon: "ShieldCheck",
         permission: "manufacturing:view",
       },
-      // {
-      //   id: "manufacturing-material-requirements",
-      //   label: "Material Requirements",
-      //   path: ROUTES.manufacturing.materialRequirements,
-      //   icon: "PackageSearch",
-      //   permission: "manufacturing:view",
-      // },
       {
         id: "manufacturing-ready-to-ship",
         label: "Ready to Ship",

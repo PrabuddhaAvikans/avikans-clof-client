@@ -268,7 +268,6 @@ export const mockReprocessingService: ReprocessingService = {
     });
 
     const wipId = batch.wipLotId!;
-    // Issue full WIP qty out (recovered + loss leave reprocessing).
     await mockInventoryService.recordMovement(wipId, "issue", batch.inputQuantity, {
       referenceType: "reprocessing_batch",
       referenceId: batch.id,

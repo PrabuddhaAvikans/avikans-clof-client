@@ -53,7 +53,6 @@ function toFormData(values: CustomerFormValues): CustomerFormData {
       }
     : values.contactPerson;
 
-  // Preserve selected country from the form.
   return {
     code: values.code,
     name: values.name,

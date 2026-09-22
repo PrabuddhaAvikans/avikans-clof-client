@@ -329,7 +329,6 @@ export const mockQuotationService: QuotationService = {
       };
     }
 
-    // Freeze customization snapshots so SO does not re-read master product values.
     const frozenLines = quotation.lineItems.map((item) => ({
       ...item,
       customization: item.customization
@@ -417,7 +416,6 @@ export const mockQuotationService: QuotationService = {
     const customization = line.customization;
     const sourceVersionId = customization.base.productVersionId;
 
-    // Explicit reuse action: create a new draft master version from the base, then apply customization.
     let product = await mockProductService.reviseVersion(
       line.productId,
       sourceVersionId,

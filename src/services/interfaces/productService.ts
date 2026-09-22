@@ -15,7 +15,6 @@ export interface ProductListFilters extends PaginatedRequest {
   status?: EntityStatus;
   versionStatus?: ProductVersionStatusValue;
   customerId?: string;
-  /** Includes catalog defaults. Pass "" for defaults only. */
   availableForCustomerId?: string;
   tags?: string[];
 }
