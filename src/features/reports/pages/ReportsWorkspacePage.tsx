@@ -31,6 +31,7 @@ import {
   filterReportRows,
   hasActiveFilters,
   rangeForPreset,
+  resolveDateColumn,
   summarizeFilteredRows,
   type AmountRange,
   type DatePresetId,
@@ -88,7 +89,6 @@ export function ReportsWorkspacePage() {
   );
 
   const [listSearch, setListSearch] = useState("");
-  const [category, setCategory] = useState<string>("all");
   const [rowSearch, setRowSearch] = useState("");
   const [preset, setPreset] = useState<DatePresetId>("all");
   const [range, setRange] = useState<DateRange>({});
@@ -144,21 +144,15 @@ export function ReportsWorkspacePage() {
 
   const visibleReports = useMemo(() => {
     const query = listSearch.trim().toLowerCase();
-    return allowed.filter((report) => {
-      if (category !== "all" && report.category !== category) return false;
-      if (!query) return true;
-      return (
+    if (!query) return allowed;
+    return allowed.filter(
+      (report) =>
         report.title.toLowerCase().includes(query) ||
-        report.description.toLowerCase().includes(query)
-      );
-    });
-  }, [allowed, category, listSearch]);
+        report.description.toLowerCase().includes(query),
+    );
+  }, [allowed, listSearch]);
 
   const groups = useMemo(() => getReportsByCategory(visibleReports), [visibleReports]);
-  const categoryOptions = useMemo(
-    () => getReportsByCategory(allowed).map((group) => group.category),
-    [allowed],
-  );
 
   const sourceRows = data?.rows ?? EMPTY_ROWS;
   const statusColumns = useMemo(
@@ -173,19 +167,24 @@ export function ReportsWorkspacePage() {
     () => amountFilterColumn(definition?.columns ?? []),
     [definition?.columns],
   );
-  const dateColumnLabel = definition?.columns.find((column) => column.key === definition.dateKey)?.label;
+  const dateColumn = useMemo(
+    () => resolveDateColumn(definition?.columns ?? [], definition?.dateKey),
+    [definition?.columns, definition?.dateKey],
+  );
+  const dateKey = definition?.dateKey ?? dateColumn?.key;
+  const dateColumnLabel = dateColumn?.label;
 
   const filteredRows = useMemo(
     () =>
       filterReportRows(sourceRows, {
         search: rowSearch,
-        dateKey: definition?.dateKey,
+        dateKey,
         range,
         discrete,
         amountKey: amountColumn?.key,
         amount,
       }),
-    [amount, amountColumn?.key, definition?.dateKey, discrete, range, rowSearch, sourceRows],
+    [amount, amountColumn?.key, dateKey, discrete, range, rowSearch, sourceRows],
   );
 
   const columns = useMemo(
@@ -328,29 +327,12 @@ export function ReportsWorkspacePage() {
         <aside className="flex shrink-0 flex-col overflow-hidden lg:col-span-3 lg:h-full lg:min-h-0">
           <div className="flex max-h-full min-h-0 flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xs lg:h-full">
             <div className="shrink-0 space-y-2 border-b border-border p-3">
-              <div className="flex items-baseline justify-between gap-2">
-                <p className="text-sm font-semibold text-foreground">Report library</p>
-                <p className="text-[11px] tabular-nums text-muted-foreground">
-                  {visibleReports.length} of {allowed.length}
-                </p>
-              </div>
+              <p className="text-sm font-semibold text-foreground">Reports</p>
               <SearchBar
                 value={listSearch}
                 onChange={(event) => setListSearch(event.target.value)}
                 onClear={() => setListSearch("")}
                 placeholder="Find a report..."
-              />
-              <Select
-                label="Area"
-                value={category}
-                onChange={(event) => setCategory(event.target.value)}
-                options={[
-                  { value: "all", label: "All areas" },
-                  ...categoryOptions.map((id) => ({
-                    value: id,
-                    label: REPORT_CATEGORY_LABELS[id],
-                  })),
-                ]}
               />
               {!isDesktop && (
                 <Select
@@ -449,7 +431,7 @@ export function ReportsWorkspacePage() {
                   <ReportFilterBar
                     search={rowSearch}
                     onSearch={setRowSearch}
-                    dateKey={definition.dateKey}
+                    dateKey={dateKey}
                     dateLabel={dateColumnLabel}
                     preset={preset}
                     onPreset={applyPreset}

@@ -107,7 +107,7 @@ export function ProductionJobsTable({
       },
       {
         accessorKey: "completionPercent",
-        header: "%",
+        header: "Qty progress",
         cell: ({ getValue }) => <ProgressBar value={Number(getValue())} />,
       },
       {

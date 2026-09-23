@@ -11,6 +11,7 @@ import {
   isTestingOperation,
   refreshJobDerivedFields,
 } from "@/lib/manufacturingTasks";
+import { applyUnitsToTask, ensureTaskUnits } from "@/lib/taskUnits";
 
 const ACTOR = { userId: "usr-004", userName: "Nuwan Wickramasinghe" };
 
@@ -50,7 +51,7 @@ function toTask(jobId: string, seed: TaskSeed, index: number): ManufacturingTask
   const completedQuantity =
     seed.completedQuantity ??
     (seed.status === "completed" ? seed.plannedQuantity : 0);
-  return {
+  const base: ManufacturingTask = {
     id: seed.id,
     taskNumber: `TASK-${String(index + 1).padStart(3, "0")}`,
     productionJobId: jobId,
@@ -78,10 +79,13 @@ function toTask(jobId: string, seed: TaskSeed, index: number): ManufacturingTask
     contributors: contributorsFromSeed(seed),
     plannedQuantity: seed.plannedQuantity,
     completedQuantity,
+    partiallyCompletedQuantity: 0,
     rejectedQuantity: seed.rejectedQuantity ?? 0,
     reworkQuantity: seed.reworkQuantity ?? 0,
     wasteQuantity: 0,
     startedQuantity: seed.status === "in_progress" || seed.status === "completed" ? seed.plannedQuantity : 0,
+    overallProgress: 0,
+    units: [],
     status: seed.status,
     startedAt: seed.startedAt,
     completedAt: seed.completedAt,
@@ -91,6 +95,7 @@ function toTask(jobId: string, seed: TaskSeed, index: number): ManufacturingTask
     materialsUsed: [],
     workstation: seed.workstation,
   };
+  return applyUnitsToTask(base, ensureTaskUnits(base));
 }
 
 function contributorsFromSeed(seed: TaskSeed): TaskContributor[] {
@@ -107,8 +112,8 @@ function contributorsFromSeed(seed: TaskSeed): TaskContributor[] {
   if (seed.contributors?.length) {
     return seed.contributors.map((person) => ({
       ...work,
-      contributionPercent: person.contributionPercent,
       ...person,
+      contributionPercent: person.contributionPercent ?? (work.quantity > 0 ? 100 : 0),
     }));
   }
   if (!seed.assignedTo) return [];

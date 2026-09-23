@@ -10,6 +10,7 @@ import {
   calculateJobLaborBreakdown,
   currentTask,
   remainingQuantity,
+  taskQuantityProgressPercent,
 } from "@/lib/manufacturingTasks";
 
 function toStageStatus(task: ManufacturingTask): string {
@@ -68,6 +69,7 @@ export function toProductionJobView(job: ManufacturingJob): ProductionJob {
         status: toStageStatus(task),
         plannedQuantity: task.plannedQuantity,
         completedQuantity: task.completedQuantity,
+        progressPercent: task.overallProgress ?? taskQuantityProgressPercent(task),
         completedAt: task.completedAt,
       })),
     materialIssued,

@@ -22,18 +22,27 @@ import {
   type LaborCostBreakdown,
 } from "@/lib/laborCost";
 import {
-  aggregateContributorWork,
   defaultCompleteContributors,
-  formatContributors,
-  primaryContributor,
   quantityTotal,
   resetContributorProgress,
   resolveTaskContributors,
   setContributorStatus,
-  toTaskContributors,
   uniqueContributorInputs,
-  validateCompleteContributors,
 } from "@/lib/taskContributors";
+import {
+  allocateUnitsToWorkers,
+  applyUnitsToTask,
+  availableQuantity as availableUnitQuantity,
+  completedUnitCount,
+  createTaskUnits,
+  defaultUnitProgressForComplete,
+  ensureTaskUnits,
+  overallUnitProgress,
+  taskStatusFromUnits,
+  updateAssignedUnitProgress,
+  validateUnitContributorInputs,
+  workerProgressFromUnits,
+} from "@/lib/taskUnits";
 
 const TERMINAL_STATUSES: ManufacturingTaskStatus[] = [
   "completed",
@@ -47,12 +56,23 @@ const SATISFIED_PREREQ_STATUSES: ManufacturingTaskStatus[] = [
 ];
 
 export function remainingQuantity(task: ManufacturingTask): number {
+  const units = ensureTaskUnits(task);
+  if (units.length > 0) {
+    return Math.max(0, units.length - completedUnitCount(units));
+  }
   return Math.max(0, task.plannedQuantity - task.completedQuantity);
 }
 
-export function remainingEstimatedHours(task: Pick<ManufacturingTask, "estimatedHours" | "plannedQuantity" | "completedQuantity">): number {
-  const planned = Math.max(0, task.plannedQuantity || 0);
-  const remaining = Math.max(0, planned - (task.completedQuantity || 0));
+/** Quantities not yet allocated to any worker — used when starting work. */
+export function availableQuantity(task: ManufacturingTask): number {
+  return availableUnitQuantity(ensureTaskUnits(task));
+}
+
+export function remainingEstimatedHours(task: Pick<ManufacturingTask, "estimatedHours" | "plannedQuantity" | "completedQuantity" | "units" | "id">): number {
+  const units = task.units?.length ? task.units : undefined;
+  const planned = Math.max(0, (units?.length ?? task.plannedQuantity) || 0);
+  const completed = units ? completedUnitCount(units) : Math.max(0, task.completedQuantity || 0);
+  const remaining = Math.max(0, planned - completed);
   if (planned <= 0) return round2(Math.max(0, task.estimatedHours || 0));
   return round2(((task.estimatedHours || 0) * remaining) / planned);
 }
@@ -207,31 +227,55 @@ export function applyTaskReadiness(
   });
 }
 
+export function taskQuantityProgressPercent(
+  task: Pick<
+    ManufacturingTask,
+    "status" | "plannedQuantity" | "completedQuantity" | "overallProgress" | "units"
+  >,
+): number {
+  if (task.status === "completed" || task.status === "skipped") return 100;
+  if (task.status === "cancelled") return 0;
+  if (task.units?.length) {
+    return overallUnitProgress(task.units);
+  }
+  if (typeof task.overallProgress === "number") {
+    return roundProgress(task.overallProgress);
+  }
+  if (task.plannedQuantity <= 0) return 0;
+  return roundProgress(
+    Math.min(100, (Math.max(0, task.completedQuantity) / task.plannedQuantity) * 100),
+  );
+}
+
+function earnedTaskQuantity(task: ManufacturingTask): number {
+  const units = ensureTaskUnits(task);
+  if (units.length > 0) {
+    return units.reduce((sum, unit) => sum + unit.progressPercentage / 100, 0);
+  }
+  const planned = Math.max(task.plannedQuantity, 0);
+  if (task.status === "completed" || task.status === "skipped") return planned;
+  if (task.status === "cancelled") return 0;
+  return Math.min(Math.max(task.completedQuantity, 0), planned);
+}
+
 export function calculateTaskProgressPercent(tasks: ManufacturingTask[]): number {
   const required = requiredTasks(tasks).filter((task) => !task.isRework || task.status !== "cancelled");
   const tracked = required.length > 0 ? required : tasks.filter((task) => task.isEnabled);
   if (tracked.length === 0) return 0;
 
-  const hasWeights = tracked.some((task) => task.estimatedHours > 0);
-  if (hasWeights) {
-    const totalWeight = tracked.reduce(
-      (sum, task) => sum + Math.max(task.estimatedHours, 0.01),
-      0,
-    );
-    const earned = tracked.reduce((sum, task) => {
-      const weight = Math.max(task.estimatedHours, 0.01);
-      if (task.status === "completed" || task.status === "skipped") return sum + weight;
-      const ratio =
-        task.plannedQuantity > 0
-          ? Math.min(1, task.completedQuantity / task.plannedQuantity)
-          : 0;
-      return sum + weight * ratio;
-    }, 0);
-    return roundProgress((earned / totalWeight) * 100);
+  const totalQuantity = tracked.reduce((sum, task) => {
+    const units = ensureTaskUnits(task);
+    return sum + (units.length || Math.max(task.plannedQuantity, 0));
+  }, 0);
+  if (totalQuantity <= 0) {
+    const completed = tracked.filter(
+      (task) => task.status === "completed" || task.status === "skipped",
+    ).length;
+    return roundProgress((completed / tracked.length) * 100);
   }
 
-  const completed = tracked.filter((task) => task.status === "completed").length;
-  return roundProgress((completed / tracked.length) * 100);
+  const earned = tracked.reduce((sum, task) => sum + earnedTaskQuantity(task), 0);
+  return roundProgress((earned / totalQuantity) * 100);
 }
 
 export function calculateJobEstimatedCost(job: Pick<ManufacturingJob, "tasks" | "quantity">): number {
@@ -388,7 +432,14 @@ export function refreshJobDerivedFields(
   job: ManufacturingJob,
   actor?: TaskActionActor,
 ): ManufacturingJob {
-  const tasks = applyTaskReadiness(job.tasks, actor);
+  const tasks = applyTaskReadiness(
+    job.tasks.map((task) => {
+      const units = ensureTaskUnits(task);
+      if (task.units?.length) return task;
+      return applyUnitsToTask({ ...task, status: task.status }, units);
+    }),
+    actor,
+  );
   const next: ManufacturingJob = {
     ...job,
     tasks,
@@ -459,10 +510,13 @@ export function generateTasksFromOperations(options: {
       machineCost,
       plannedQuantity: quantity,
       completedQuantity: 0,
+      partiallyCompletedQuantity: 0,
       rejectedQuantity: 0,
       reworkQuantity: 0,
       wasteQuantity: 0,
       startedQuantity: 0,
+      overallProgress: 0,
+      units: createTaskUnits(id, quantity),
       status: "pending",
       notes: op.notes,
       prerequisiteTaskIds: [],
@@ -530,44 +584,69 @@ export function applyStartTask(
   }
 
   const now = nowIso();
-  const quantityStarted = action.quantityStarted ?? remainingQuantity(task);
+  const units = ensureTaskUnits(task);
+  const available = availableUnitQuantity(units);
+  const quantityStarted = Math.min(
+    action.quantityStarted ?? available,
+    available,
+  );
+  if (quantityStarted <= 0) {
+    invalidState(
+      `No available quantity left to start on "${task.name}". Allocated ${task.plannedQuantity - available} of ${task.plannedQuantity}.`,
+    );
+  }
   const operatorId = action.operatorId ?? action.assignedTo ?? actor.userId;
   const operatorName = action.operatorName ?? action.assignedToName ?? actor.userName;
   const existingContributors = resolveTaskContributors(task);
-  const contributorInputs =
+  const selectedPeople =
     action.contributors && action.contributors.length > 0
       ? action.contributors
       : existingContributors.length > 0
         ? existingContributors
         : [{ userId: operatorId, userName: operatorName, contributionPercent: 0 }];
-  const contributors = toTaskContributors(
-    contributorInputs,
-    "in_progress",
-    now,
-    existingContributors,
-  );
-  const primary = primaryContributor(contributors);
 
-  const updatedTask = withHistory(
+  // Allocate physical units without double-counting. Split started qty across selected people.
+  const perPerson =
+    selectedPeople.length <= 1
+      ? [quantityStarted]
+      : (() => {
+          const base = Math.floor(quantityStarted / selectedPeople.length);
+          const parts = selectedPeople.map(() => base);
+          parts[0] += quantityStarted - base * selectedPeople.length;
+          return parts;
+        })();
+
+  const allocated = allocateUnitsToWorkers(
+    units,
+    selectedPeople.map((person, index) => ({
+      userId: person.userId,
+      userName: person.userName,
+      quantity: perPerson[index] ?? 0,
+    })),
+    now,
+  );
+  const withUnits = applyUnitsToTask(
     {
       ...task,
-      assignedTo: primary.assignedTo ?? action.assignedTo ?? task.assignedTo,
-      assignedToName: primary.assignedToName ?? action.assignedToName ?? task.assignedToName,
-      operatorId: primary.operatorId ?? operatorId,
-      operatorName: primary.operatorName ?? operatorName,
-      contributors,
       machineName: action.machineName ?? task.machineName,
-      startedQuantity: quantityStarted,
       startedAt: task.startedAt ?? now,
       pausedAt: undefined,
       notes: action.notes ?? task.notes,
+      status: "in_progress",
     },
+    allocated,
+  );
+  const workers = workerProgressFromUnits(allocated);
+  const updatedTask = withHistory(
+    withUnits,
     actor,
     "started",
     "in_progress",
     action.notes ??
-      `Started qty ${quantityStarted}${action.machineName ? ` on ${action.machineName}` : ""}${
-        contributors.length ? ` · ${formatContributors(contributors, false)}` : ""
+      `Started qty ${quantityStarted} (${available - quantityStarted} available)${
+        workers.length
+          ? ` · ${workers.map((w) => `${w.userName}×${w.assignedQuantity}`).join(", ")}`
+          : ""
       }`,
   );
 
@@ -729,12 +808,6 @@ export function applyAddTaskNotes(
   };
 }
 
-function hoursFromStart(startedAt: string | undefined, fallback: number): number {
-  if (!startedAt) return fallback;
-  const elapsed = (Date.now() - new Date(startedAt).getTime()) / 3_600_000;
-  return round2(Math.max(elapsed, 0.01));
-}
-
 export function applyCompleteTask(
   job: ManufacturingJob,
   action: Extract<ManufacturingTaskAction, { type: "complete" }>,
@@ -746,7 +819,14 @@ export function applyCompleteTask(
   }
 
   const addedRework = Math.max(0, action.reworkQuantity ?? 0);
+  const unitsBefore = ensureTaskUnits(task);
   const remainingBefore = remainingQuantity(task);
+  const availableOrOwned =
+    availableUnitQuantity(unitsBefore) +
+    unitsBefore.filter(
+      (unit) =>
+        (unit.assignments?.length ?? 0) > 0 && unit.progressPercentage < 100,
+    ).length;
   const now = nowIso();
 
   const existingContributors = resolveTaskContributors(task);
@@ -760,79 +840,108 @@ export function applyCompleteTask(
         }),
   );
   const peopleQuantity = quantityTotal(contributorInputs);
-  const addedCompleted = Math.max(
-    0,
-    peopleQuantity > 0 ? peopleQuantity : (action.completedQuantity ?? remainingBefore),
+  const allMarkedComplete = contributorInputs.every(
+    (person) => (person.progressPercentage ?? 100) >= 100,
   );
-  const completedQuantity = Math.min(
-    task.plannedQuantity,
-    task.completedQuantity + addedCompleted,
-  );
-  const remaining = Math.max(0, task.plannedQuantity - completedQuantity);
-  const fullyDone = remaining === 0;
+  const finishingTask =
+    peopleQuantity >= remainingBefore && remainingBefore > 0
+      ? allMarkedComplete
+      : peopleQuantity <= 0 && remainingBefore === 0;
 
-  if (fullyDone) {
-    validateCompleteContributors(contributorInputs, { remainingQuantity: remainingBefore });
-  }
-  const contributors = toTaskContributors(
-    contributorInputs,
-    fullyDone ? "completed" : "in_progress",
-    now,
-    existingContributors,
-    task,
-  );
-  const primary = primaryContributor(contributors);
-  const work = aggregateContributorWork(contributors);
-  const addedRejected = Math.max(0, work.rejectedQuantity || action.rejectedQuantity || 0);
-  const addedWaste = Math.max(0, work.wasteQuantity || action.wasteQuantity || 0);
+  validateUnitContributorInputs(contributorInputs, {
+    availableOrOwned: Math.max(availableOrOwned, remainingBefore),
+    finishing: finishingTask,
+  });
 
-  const actualHours =
-    work.actualHours > 0
-      ? work.actualHours
-      : (action.actualHours ??
-        hoursFromStart(task.startedAt, task.actualHours ?? task.estimatedHours));
-  const overtimeHours = work.overtimeHours;
-  const normalOvertimeHours = work.normalOvertimeHours;
-  const doubleOvertimeHours = work.doubleOvertimeHours;
-  const materialsUsed: TaskMaterialUsage[] = [
-    ...task.materialsUsed,
-    ...(action.materialsUsed ?? []),
-  ];
-  const materialCost = (action.materialsUsed ?? []).reduce(
-    (sum, item) => sum + (item.cost ?? 0),
-    0,
-  );
+  const progressUpdates = contributorInputs.map((person) => ({
+    userId: person.userId,
+    userName: person.userName,
+    quantity: Math.max(0, Math.floor(person.quantity ?? 0)),
+    progressPercentage: defaultUnitProgressForComplete(person, finishingTask),
+    contributionPercent: person.contributionPercent ?? 100,
+    actualHours: person.actualHours,
+    normalOvertimeHours: person.normalOvertimeHours,
+    doubleOvertimeHours: person.doubleOvertimeHours,
+    rejectedQuantity: person.rejectedQuantity,
+    wasteQuantity: person.wasteQuantity,
+    unitNos: person.unitNos,
+  }));
 
-  const nextStatus: ManufacturingTaskStatus = fullyDone ? "completed" : "in_progress";
-  const contributionNote = contributors.length
-    ? ` · ${formatContributors(contributors, fullyDone)}`
-    : "";
-  const updated = withHistory(
+  // If no per-person qty was entered, finish all remaining incomplete units under the actor.
+  const effectiveUpdates =
+    progressUpdates.some((item) => item.quantity > 0 || (item.unitNos?.length ?? 0) > 0)
+      ? progressUpdates
+      : [
+          {
+            userId: actor.userId,
+            userName: actor.userName,
+            quantity: remainingBefore,
+            progressPercentage: 100,
+            contributionPercent: 100,
+            actualHours: action.actualHours,
+            normalOvertimeHours: action.normalOvertimeHours,
+            doubleOvertimeHours: action.doubleOvertimeHours,
+            rejectedQuantity: action.rejectedQuantity,
+            wasteQuantity: action.wasteQuantity,
+          },
+        ];
+
+  const nextUnits = updateAssignedUnitProgress(unitsBefore, effectiveUpdates, now, task);
+  const withUnits = applyUnitsToTask(
     {
       ...task,
-      completedQuantity,
-      rejectedQuantity: task.rejectedQuantity + addedRejected,
-      wasteQuantity: task.wasteQuantity + addedWaste,
-      reworkQuantity: task.reworkQuantity + addedRework,
-      actualHours,
-      overtimeHours,
-      normalOvertimeHours,
-      doubleOvertimeHours,
-      actualCost: round2((task.actualCost ?? 0) + materialCost),
-      materialsUsed,
-      contributors,
-      assignedTo: primary.assignedTo ?? task.assignedTo,
-      assignedToName: primary.assignedToName ?? task.assignedToName,
       notes: action.notes ?? task.notes,
+      reworkQuantity: task.reworkQuantity + addedRework,
+      materialsUsed: [...task.materialsUsed, ...(action.materialsUsed ?? [])],
+      actualCost: round2(
+        (task.actualCost ?? 0) +
+          (action.materialsUsed ?? []).reduce((sum, item) => sum + (item.cost ?? 0), 0),
+      ),
+    },
+    nextUnits,
+  );
+
+  const fullyDone = withUnits.status === "completed";
+  const nextStatus = taskStatusFromUnits(withUnits, nextUnits);
+  const workers = workerProgressFromUnits(nextUnits);
+  const addedCompleted = Math.max(0, withUnits.completedQuantity - task.completedQuantity);
+  const remaining = Math.max(0, withUnits.plannedQuantity - withUnits.completedQuantity);
+  const contributionNote = workers.length
+    ? ` · ${workers
+        .map(
+          (w) =>
+            `${w.userName} ${w.completedQuantity}/${w.assignedQuantity} (${w.progressPercentage}%)`,
+        )
+        .join(", ")}`
+    : "";
+
+  const updated = withHistory(
+    {
+      ...withUnits,
+      status: nextStatus,
       completedAt: fullyDone ? now : undefined,
-      operatorId: primary.operatorId ?? task.operatorId ?? actor.userId,
-      operatorName: primary.operatorName ?? task.operatorName ?? actor.userName,
+      rejectedQuantity:
+        task.rejectedQuantity +
+        Math.max(
+          0,
+          workers.reduce((sum, w) => sum + w.rejectedQuantity, 0) - task.rejectedQuantity,
+        ),
+      wasteQuantity:
+        task.wasteQuantity +
+        Math.max(
+          0,
+          workers.reduce((sum, w) => sum + w.wasteQuantity, 0) - task.wasteQuantity,
+        ),
     },
     actor,
     fullyDone ? "completed" : "quantity_updated",
     nextStatus,
     action.notes ??
-      `Completed ${addedCompleted} of ${task.plannedQuantity} (remaining ${remaining})${contributionNote}`,
+      `Qty progress ${withUnits.overallProgress}% · completed ${addedCompleted} (remaining ${remaining}${
+        withUnits.partiallyCompletedQuantity
+          ? `, partial ${withUnits.partiallyCompletedQuantity}`
+          : ""
+      })${contributionNote}`,
   );
 
   let nextJob: ManufacturingJob = {
@@ -845,7 +954,12 @@ export function applyCompleteTask(
       ...nextJob,
       reworks: nextJob.reworks.map((rework) =>
         rework.reworkTaskId === task.id
-          ? { ...rework, result: "passed", completedAt: nowIso(), additionalTimeHours: actualHours }
+          ? {
+              ...rework,
+              result: "passed",
+              completedAt: nowIso(),
+              additionalTimeHours: updated.actualHours,
+            }
           : rework,
       ),
     };
@@ -932,10 +1046,13 @@ export function applyRecordRework(
     contributors: resetContributorProgress(original.contributors),
     plannedQuantity: quantity,
     completedQuantity: 0,
+    partiallyCompletedQuantity: 0,
     rejectedQuantity: 0,
     reworkQuantity: 0,
     wasteQuantity: 0,
     startedQuantity: 0,
+    overallProgress: 0,
+    units: createTaskUnits(reworkId, quantity),
     status: "ready",
     notes: action.notes,
     prerequisiteTaskIds: [],

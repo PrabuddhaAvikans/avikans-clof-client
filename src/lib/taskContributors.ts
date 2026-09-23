@@ -72,8 +72,30 @@ export function uniqueContributorInputs(inputs: TaskContributorInput[]): TaskCon
   const next: TaskContributorInput[] = [];
   for (const input of inputs) {
     const userId = input.userId?.trim();
-    if (!userId || seen.has(userId)) continue;
-    seen.add(userId);
+    if (!userId) continue;
+    const unitKey = input.unitNos?.length
+      ? [...input.unitNos].sort((a, b) => a - b).join(",")
+      : `row-${next.length}`;
+    const key = `${userId}::${unitKey}`;
+    if (seen.has(key) && !input.unitNos?.length) {
+      // Merge plain rows for the same person (no explicit unit targeting).
+      const existing = next.find(
+        (item) => item.userId === userId && !item.unitNos?.length,
+      );
+      if (existing) {
+        existing.quantity = parseAmount((existing.quantity ?? 0) + (input.quantity ?? 0));
+        existing.actualHours = parseAmount((existing.actualHours ?? 0) + (input.actualHours ?? 0));
+        existing.rejectedQuantity = parseAmount(
+          (existing.rejectedQuantity ?? 0) + (input.rejectedQuantity ?? 0),
+        );
+        existing.wasteQuantity = parseAmount(
+          (existing.wasteQuantity ?? 0) + (input.wasteQuantity ?? 0),
+        );
+        continue;
+      }
+    }
+    if (seen.has(key)) continue;
+    seen.add(key);
     next.push({
       userId,
       userName: input.userName?.trim() || userId,
@@ -95,6 +117,11 @@ export function uniqueContributorInputs(inputs: TaskContributorInput[]): TaskCon
         input.doubleOvertimeHours == null || Number.isNaN(Number(input.doubleOvertimeHours))
           ? undefined
           : parseAmount(input.doubleOvertimeHours),
+      progressPercentage:
+        input.progressPercentage == null || Number.isNaN(Number(input.progressPercentage))
+          ? undefined
+          : parseAmount(input.progressPercentage),
+      unitNos: input.unitNos?.length ? [...input.unitNos] : undefined,
     });
   }
   return next;
@@ -320,18 +347,13 @@ export function validateCompleteContributors(
       message: "Assign at least one person before completing this task.",
     };
   }
-  if (unique.some((person) => person.contributionPercent < 0 || person.contributionPercent > 100)) {
+  if (unique.some((person) => (person.contributionPercent ?? 0) < 0 || (person.contributionPercent ?? 0) > 100)) {
     throw {
       code: "INVALID_STATE",
       message: "Each contribution must be between 0% and 100%.",
     };
   }
-  if (!hasCompleteContribution(unique)) {
-    throw {
-      code: "INVALID_STATE",
-      message: `Contributor percentages must add up to 100% (currently ${contributionTotal(unique)}%).`,
-    };
-  }
+  // Share % does not need to total 100% — in-progress and complete updates are allowed either way.
   if (options?.remainingQuantity != null && !hasCompleteQuantity(unique, options.remainingQuantity)) {
     throw {
       code: "INVALID_STATE",
@@ -356,20 +378,26 @@ export function defaultCompleteContributors(
           status: "assigned" as const,
         },
       ];
-  const percents = hasCompleteContribution(people)
-    ? people.map((person) => person.contributionPercent)
-    : splitContributionEqually(people.length);
-  const quantities = allocateByShares(allocation?.quantity ?? 0, percents);
+  // Separate physical quantities: each person owns 100% of their units.
+  // Share % across people only applies when they explicitly share the same unitNos.
+  const quantities = allocateByShares(
+    allocation?.quantity ?? 0,
+    people.map(() => 1),
+  );
   const hoursSource = allocation?.estimatedHours ?? 0;
   const keepRecordedHours = people.some((person) => (person.actualHours ?? 0) > 0);
   const hours = keepRecordedHours
     ? people.map((person) => person.actualHours ?? 0)
-    : allocateByShares(hoursSource, percents);
+    : allocateByShares(
+        hoursSource,
+        people.map(() => 1),
+      );
   return people.map((person, index) => ({
     userId: person.userId,
     userName: person.userName,
-    contributionPercent: percents[index] ?? 0,
+    contributionPercent: CONTRIBUTION_TOTAL,
     quantity: quantities[index] ?? person.quantity ?? 0,
+    progressPercentage: person.progressPercentage ?? CONTRIBUTION_TOTAL,
     rejectedQuantity: person.rejectedQuantity || undefined,
     wasteQuantity: person.wasteQuantity || undefined,
     actualHours: hours[index] ?? person.actualHours,

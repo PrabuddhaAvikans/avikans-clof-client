@@ -53,6 +53,70 @@ export type TaskContributorStatus =
   | "on_hold"
   | "completed";
 
+export type TaskUnitStatus =
+  | "pending"
+  | "assigned"
+  | "in_progress"
+  | "completed"
+  | "cancelled";
+
+export type TaskUnitAssignmentStatus =
+  | "assigned"
+  | "in_progress"
+  | "paused"
+  | "on_hold"
+  | "completed";
+
+export interface TaskUnitAssignment {
+  id: string;
+  taskUnitId: string;
+  userId: string;
+  userName: string;
+  contributionPercentage: number;
+  status: TaskUnitAssignmentStatus;
+  actualHours: number;
+  overtimeHours: number;
+  normalOvertimeHours: number;
+  doubleOvertimeHours: number;
+  laborCost: number;
+  rejectedQuantity: number;
+  wasteQuantity: number;
+  startedAt?: string;
+  pausedAt?: string;
+  completedAt?: string;
+}
+
+export interface TaskUnit {
+  id: string;
+  taskId: string;
+  unitNo: number;
+  progressPercentage: number;
+  status: TaskUnitStatus;
+  assignments: TaskUnitAssignment[];
+}
+
+export interface TaskWorkerProgress {
+  userId: string;
+  userName: string;
+  assignedQuantity: number;
+  completedQuantity: number;
+  inProgressQuantity: number;
+  progressPercentage: number;
+  status: TaskUnitAssignmentStatus;
+  contributionPercentage: number;
+  actualHours: number;
+  overtimeHours: number;
+  normalOvertimeHours: number;
+  doubleOvertimeHours: number;
+  laborCost: number;
+  rejectedQuantity: number;
+  wasteQuantity: number;
+  startedAt?: string;
+  pausedAt?: string;
+  completedAt?: string;
+}
+
+/** Aggregated people row derived from task units (kept for labour/reporting UI). */
 export interface TaskContributor {
   userId: string;
   userName: string;
@@ -69,6 +133,10 @@ export interface TaskContributor {
   startedAt?: string;
   pausedAt?: string;
   completedAt?: string;
+  /** Average progress across this worker's assigned units. */
+  progressPercentage?: number;
+  completedQuantity?: number;
+  inProgressQuantity?: number;
 }
 
 export type TaskContributorInput = {
@@ -82,6 +150,10 @@ export type TaskContributorInput = {
   overtimeHours?: number;
   normalOvertimeHours?: number;
   doubleOvertimeHours?: number;
+  /** Optional unit progress when updating allocated units (0–100). Defaults to 100 when finishing. */
+  progressPercentage?: number;
+  /** When set, apply this person to these unit numbers (same physical qty shared by multiple people). */
+  unitNos?: number[];
 };
 
 export interface ManufacturingRework {
@@ -128,12 +200,18 @@ export interface ManufacturingTask {
   operatorId?: string;
   operatorName?: string;
   contributors: TaskContributor[];
+  /** Physical quantity units — source of truth for qty-wise progress. */
+  units: TaskUnit[];
   plannedQuantity: number;
   completedQuantity: number;
+  /** Units with 0 < progress < 100. */
+  partiallyCompletedQuantity: number;
   rejectedQuantity: number;
   reworkQuantity: number;
   wasteQuantity: number;
   startedQuantity: number;
+  /** Average of unit progress percentages (0–100). */
+  overallProgress: number;
   status: ManufacturingTaskStatus;
   startedAt?: string;
   completedAt?: string;

@@ -1,19 +1,20 @@
-import { Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Trash2, Users } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { IconButton } from "@/components/ui/IconButton";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { formatCurrency } from "@/lib/format";
-import { calculateContributorLabor } from "@/lib/taskContributors";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { Switch } from "@/components/ui/Switch";
 import {
   CONTRIBUTION_TOTAL,
   allocateByShares,
   contributionTotal,
-  hasCompleteContribution,
-  hasCompleteQuantity,
   quantityTotal,
+  roundPercent,
   splitContributionEqually,
 } from "@/lib/taskContributors";
+import { cn } from "@/lib/utils";
 import type { ManufacturingTask } from "@/types/manufacturing";
 
 export type UserOption = { id: string; name: string };
@@ -23,11 +24,13 @@ export type ContributorDraft = {
   userName: string;
   contributionPercent: string;
   quantity: string;
+  progressPercentage: string;
   rejectedQuantity: string;
   wasteQuantity: string;
   actualHours: string;
   normalOvertimeHours: string;
   doubleOvertimeHours: string;
+  sharedUnitNos: string;
 };
 
 type Props = {
@@ -37,20 +40,24 @@ type Props = {
   task: Pick<ManufacturingTask, "estimatedHours" | "labourCostRate" | "plannedQuantity">;
   remainingQuantity: number;
   remainingHours: number;
+  openUnitNos?: number[];
   requireTotal?: boolean;
+  separateQuantities?: boolean;
 };
 
 function emptyDraft(userId = "", userName = ""): ContributorDraft {
   return {
     userId,
     userName,
-    contributionPercent: "",
+    contributionPercent: String(CONTRIBUTION_TOTAL),
     quantity: "",
+    progressPercentage: String(CONTRIBUTION_TOTAL),
     rejectedQuantity: "",
     wasteQuantity: "",
     actualHours: "",
     normalOvertimeHours: "",
     doubleOvertimeHours: "",
+    sharedUnitNos: "",
   };
 }
 
@@ -82,23 +89,27 @@ export function draftsFromInputs(
     userName: string;
     contributionPercent?: number;
     quantity?: number;
+    progressPercentage?: number;
     rejectedQuantity?: number;
     wasteQuantity?: number;
     actualHours?: number;
     normalOvertimeHours?: number;
     doubleOvertimeHours?: number;
+    unitNos?: number[];
   }>,
 ): ContributorDraft[] {
   return inputs.map((person) => ({
     userId: person.userId,
     userName: person.userName,
-    contributionPercent: numericDraft(person.contributionPercent),
+    contributionPercent: numericDraft(person.contributionPercent ?? CONTRIBUTION_TOTAL),
     quantity: numericDraft(person.quantity),
+    progressPercentage: numericDraft(person.progressPercentage ?? CONTRIBUTION_TOTAL),
     rejectedQuantity: numericDraft(person.rejectedQuantity),
     wasteQuantity: numericDraft(person.wasteQuantity),
     actualHours: numericDraft(person.actualHours),
     normalOvertimeHours: numericDraft(person.normalOvertimeHours),
     doubleOvertimeHours: numericDraft(person.doubleOvertimeHours),
+    sharedUnitNos: person.unitNos?.length ? person.unitNos.join(",") : "",
   }));
 }
 
@@ -106,20 +117,62 @@ function draftNumber(value: string) {
   return value === "" ? 0 : Number(value);
 }
 
-function withBalancedShares(
+function parseSharedUnitNos(value: string): number[] | undefined {
+  const nos = value
+    .split(/[,\s]+/)
+    .map((part) => Number(part.trim()))
+    .filter((n) => Number.isFinite(n) && n > 0)
+    .map((n) => Math.floor(n));
+  return nos.length ? [...new Set(nos)] : undefined;
+}
+
+function balanceSeparate(
   people: ContributorDraft[],
   remainingQuantity: number,
   remainingHours: number,
 ): ContributorDraft[] {
   if (!people.length) return people;
+  const quantities = allocateByShares(
+    remainingQuantity,
+    people.map(() => 1),
+  );
+  const hours = allocateByShares(
+    remainingHours,
+    people.map(() => 1),
+  );
+  return people.map((person, index) => ({
+    ...person,
+    contributionPercent: String(CONTRIBUTION_TOTAL),
+    quantity: String(quantities[index] ?? 0),
+    progressPercentage: person.progressPercentage || String(CONTRIBUTION_TOTAL),
+    actualHours: String(hours[index] ?? 0),
+    sharedUnitNos: "",
+  }));
+}
+
+function balanceTogether(
+  people: ContributorDraft[],
+  remainingQuantity: number,
+  remainingHours: number,
+  openUnitNos: number[],
+): ContributorDraft[] {
+  if (!people.length) return people;
   const percents = splitContributionEqually(people.length);
-  const quantities = allocateByShares(remainingQuantity, percents);
   const hours = allocateByShares(remainingHours, percents);
+  const sharedQty = Math.min(remainingQuantity, openUnitNos.length || remainingQuantity);
+  const sharedNos = (openUnitNos.length
+    ? openUnitNos
+    : Array.from({ length: sharedQty }, (_, i) => i + 1)
+  )
+    .slice(0, sharedQty)
+    .join(",");
   return people.map((person, index) => ({
     ...person,
     contributionPercent: String(percents[index] ?? 0),
-    quantity: String(quantities[index] ?? 0),
+    quantity: index === 0 ? String(sharedQty) : "0",
+    progressPercentage: person.progressPercentage || String(CONTRIBUTION_TOTAL),
     actualHours: String(hours[index] ?? 0),
+    sharedUnitNos: sharedNos,
   }));
 }
 
@@ -131,6 +184,7 @@ export function parsedContributorInputs(drafts: ContributorDraft[]) {
       userName: person.userName,
       contributionPercent: draftNumber(person.contributionPercent),
       quantity: draftNumber(person.quantity),
+      progressPercentage: draftNumber(person.progressPercentage),
       rejectedQuantity: draftNumber(person.rejectedQuantity),
       wasteQuantity: draftNumber(person.wasteQuantity),
       actualHours: person.actualHours === "" ? undefined : Number(person.actualHours),
@@ -138,6 +192,7 @@ export function parsedContributorInputs(drafts: ContributorDraft[]) {
         person.normalOvertimeHours === "" ? undefined : Number(person.normalOvertimeHours),
       doubleOvertimeHours:
         person.doubleOvertimeHours === "" ? undefined : Number(person.doubleOvertimeHours),
+      unitNos: parseSharedUnitNos(person.sharedUnitNos),
     }));
 }
 
@@ -145,238 +200,442 @@ export function TaskContributorsEditor({
   users,
   value,
   onChange,
-  task,
   remainingQuantity,
   remainingHours,
+  openUnitNos = [],
   requireTotal = true,
 }: Props) {
-  const usedIds = new Set(value.map((person) => person.userId));
+  const sharedMode = value.some((person) => person.sharedUnitNos.trim().length > 0);
+  const [labourOpen, setLabourOpen] = useState(false);
+
   const parsed = parsedContributorInputs(value);
+  const qtyTotal = sharedMode
+    ? draftNumber(value[0]?.quantity ?? "")
+    : quantityTotal(parsed);
   const percentTotal = contributionTotal(parsed);
-  const qtyTotal = quantityTotal(parsed);
-  const rejectedTotal = parsed.reduce((sum, person) => sum + (person.rejectedQuantity ?? 0), 0);
-  const wasteTotal = parsed.reduce((sum, person) => sum + (person.wasteQuantity ?? 0), 0);
-  const percentOk = hasCompleteContribution(parsed);
-  const quantityOk = !requireTotal || hasCompleteQuantity(parsed, remainingQuantity);
-  const available = users.filter((user) => !usedIds.has(user.id));
+  const quantityOk = !requireTotal || qtyTotal - remainingQuantity <= 0.05;
+  const finishedCount = sharedMode
+    ? draftNumber(value[0]?.progressPercentage ?? "0") >= 100
+      ? qtyTotal
+      : 0
+    : parsed.reduce(
+        (sum, person) =>
+          sum + (person.progressPercentage >= 100 ? Math.floor(person.quantity || 0) : 0),
+        0,
+      );
 
   const updatePerson = (index: number, patch: Partial<ContributorDraft>) => {
     onChange(value.map((person, i) => (i === index ? { ...person, ...patch } : person)));
   };
 
   const addPerson = () => {
-    const next = available[0];
+    const used = new Set(value.map((person) => person.userId));
+    const next = users.find((user) => !used.has(user.id)) ?? users[0];
     if (!next) return;
+    const nextPeople = [...value, emptyDraft(next.id, next.name)];
     onChange(
-      withBalancedShares(
-        [...value, emptyDraft(next.id, next.name)],
-        remainingQuantity,
-        remainingHours,
-      ),
+      sharedMode
+        ? balanceTogether(nextPeople, remainingQuantity, remainingHours, openUnitNos)
+        : balanceSeparate(nextPeople, remainingQuantity, remainingHours),
     );
   };
 
   const removePerson = (index: number) => {
+    const nextPeople = value.filter((_, i) => i !== index);
     onChange(
-      withBalancedShares(
-        value.filter((_, i) => i !== index),
-        remainingQuantity,
-        remainingHours,
-      ),
+      sharedMode
+        ? balanceTogether(nextPeople, remainingQuantity, remainingHours, openUnitNos)
+        : nextPeople,
     );
   };
 
-  const splitEqually = () => {
-    onChange(withBalancedShares(value, remainingQuantity, remainingHours));
+  const setSharedQuantity = (qty: string) => {
+    const count = Math.max(0, Math.min(remainingQuantity, Math.floor(Number(qty) || 0)));
+    const pool = openUnitNos.length
+      ? openUnitNos
+      : Array.from({ length: remainingQuantity }, (_, i) => i + 1);
+    const nos = pool.slice(0, count).join(",");
+    const percents = splitContributionEqually(Math.max(1, value.length));
+    onChange(
+      value.map((person, index) => ({
+        ...person,
+        quantity: index === 0 ? String(count) : "0",
+        sharedUnitNos: nos,
+        contributionPercent: String(percents[index] ?? CONTRIBUTION_TOTAL),
+      })),
+    );
   };
 
-  const laborTotal = parsed.reduce(
-    (sum, person) => sum + calculateContributorLabor(person, task).laborCost,
-    0,
-  );
+  const setSharedFinished = (finished: boolean) => {
+    onChange(
+      value.map((person) => ({
+        ...person,
+        progressPercentage: finished ? "100" : "50",
+      })),
+    );
+  };
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-medium text-foreground">People</p>
-        <div className="flex gap-1.5">
-          {value.length > 1 && (
-            <Button type="button" variant="ghost" size="sm" onClick={splitEqually}>
-              Split equally
-            </Button>
-          )}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            leftIcon={<Plus className="h-3.5 w-3.5" />}
-            disabled={available.length === 0}
-            onClick={addPerson}
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Users className="h-4 w-4 text-muted-foreground" aria-hidden />
+          <p className="text-sm font-medium text-foreground">Workforce allocation</p>
+        </div>
+        <div className="inline-flex rounded-md border border-border bg-muted/40 p-0.5">
+          <ModeChip
+            active={!sharedMode}
+            onClick={() =>
+              onChange(balanceSeparate(value, remainingQuantity, remainingHours))
+            }
           >
-            Add person
-          </Button>
+            Separate qty
+          </ModeChip>
+          <ModeChip
+            active={sharedMode}
+            onClick={() =>
+              onChange(
+                balanceTogether(value, remainingQuantity, remainingHours, openUnitNos),
+              )
+            }
+          >
+            Shared qty
+          </ModeChip>
         </div>
       </div>
 
-      {value.length === 0 ? (
-        <p className="text-xs text-muted-foreground">Add the people who worked this task.</p>
-      ) : (
-        <div className="overflow-x-auto rounded-md border border-border">
-          <table className="w-full min-w-[52rem] border-collapse text-xs">
-            <thead>
-              <tr className="border-b border-border bg-muted/40 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                <th className="px-2 py-1.5 font-medium">Person</th>
-                <th className="w-20 px-1.5 py-1.5 font-medium">Qty</th>
-                <th className="w-20 px-1.5 py-1.5 font-medium">Share %</th>
-                <th className="w-20 px-1.5 py-1.5 font-medium">Hours</th>
-                <th className="w-20 px-1.5 py-1.5 font-medium">OT</th>
-                <th className="w-20 px-1.5 py-1.5 font-medium">DOT</th>
-                <th className="w-20 px-1.5 py-1.5 font-medium">Rejected</th>
-                <th className="w-20 px-1.5 py-1.5 font-medium">Waste</th>
-                <th className="w-24 px-2 py-1.5 text-right font-medium">Labour</th>
-                <th className="w-9 px-1 py-1.5" />
-              </tr>
-            </thead>
-            <tbody>
-              {value.map((person, index) => {
-                const labor = person.userId
-                  ? calculateContributorLabor(parsedContributorInputs([person])[0], task)
-                  : null;
-                return (
-                  <tr key={`${person.userId}-${index}`} className="border-b border-border last:border-0">
-                    <td className="px-2 py-1.5">
-                      <Select
-                        selectClassName="h-8 px-2 pr-8 text-xs"
-                        value={person.userId}
-                        onChange={(event) => {
-                          const user = users.find((item) => item.id === event.target.value);
-                          updatePerson(index, {
-                            userId: event.target.value,
-                            userName: user?.name ?? event.target.value,
-                          });
-                        }}
-                        options={[
-                          ...users
-                            .filter((user) => user.id === person.userId || !usedIds.has(user.id))
-                            .map((user) => ({ value: user.id, label: user.name })),
-                          ...(!person.userId || users.some((user) => user.id === person.userId)
-                            ? []
-                            : [{ value: person.userId, label: person.userName || person.userId }]),
-                        ]}
-                      />
-                    </td>
-                    <NumberCell
-                      value={person.quantity}
-                      onChange={(value) => updatePerson(index, { quantity: value })}
-                    />
-                    <NumberCell
-                      max={100}
-                      step={0.1}
-                      value={person.contributionPercent}
-                      onChange={(value) => updatePerson(index, { contributionPercent: value })}
-                    />
-                    <NumberCell
-                      step={0.05}
-                      value={person.actualHours}
-                      onChange={(value) => updatePerson(index, { actualHours: value })}
-                    />
-                    <NumberCell
-                      step={0.05}
-                      value={person.normalOvertimeHours}
-                      onChange={(value) => updatePerson(index, { normalOvertimeHours: value })}
-                    />
-                    <NumberCell
-                      step={0.05}
-                      value={person.doubleOvertimeHours}
-                      onChange={(value) => updatePerson(index, { doubleOvertimeHours: value })}
-                    />
-                    <NumberCell
-                      value={person.rejectedQuantity}
-                      onChange={(value) => updatePerson(index, { rejectedQuantity: value })}
-                    />
-                    <NumberCell
-                      value={person.wasteQuantity}
-                      onChange={(value) => updatePerson(index, { wasteQuantity: value })}
-                    />
-                    <td className="px-2 py-1.5 text-right tabular-nums text-muted-foreground">
-                      {labor ? formatCurrency(labor.laborCost) : "—"}
-                    </td>
-                    <td className="px-1 py-1.5 text-center">
-                      <IconButton
-                        aria-label={`Remove ${person.userName || "person"}`}
-                        icon={<Trash2 className="h-3.5 w-3.5" />}
-                        size="sm"
-                        variant="ghost"
-                        disabled={value.length <= 1}
-                        onClick={() => removePerson(index)}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            <tfoot>
-              <tr className="bg-muted/30 text-[11px]">
-                <td className="px-2 py-1.5 font-medium text-foreground">Total</td>
-                <td className="px-1.5 py-1.5 tabular-nums">
-                  {qtyTotal}
-                  {requireTotal ? ` / ${remainingQuantity}` : ""}
-                </td>
-                <td className="px-1.5 py-1.5 tabular-nums">
-                  {percentTotal} / {CONTRIBUTION_TOTAL}
-                </td>
-                <td className="px-1.5 py-1.5" />
-                <td className="px-1.5 py-1.5" />
-                <td className="px-1.5 py-1.5" />
-                <td className="px-1.5 py-1.5 tabular-nums">{rejectedTotal}</td>
-                <td className="px-1.5 py-1.5 tabular-nums">{wasteTotal}</td>
-                <td className="px-2 py-1.5 text-right tabular-nums font-medium">
-                  {formatCurrency(laborTotal)}
-                </td>
-                <td />
-              </tr>
-            </tfoot>
-          </table>
+      <p className="text-xs text-muted-foreground">
+        {sharedMode
+          ? "Multiple workers contribute to the same physical pieces. Save progress anytime; shares must total 100% to complete."
+          : "Each worker owns their own pieces. Quantity cannot exceed open pieces."}
+      </p>
+
+      {sharedMode && (
+        <div className="grid gap-3 rounded-md border border-border bg-muted/20 p-3 sm:grid-cols-3">
+          <Input
+            label="Shared quantity"
+            type="number"
+            min={0}
+            max={remainingQuantity}
+            value={value[0]?.quantity ?? ""}
+            onChange={(event) => setSharedQuantity(event.target.value)}
+            hint={`Open ${remainingQuantity}`}
+          />
+          <div className="flex items-end pb-1 sm:col-span-2">
+            <Switch
+              label="Mark shared quantity finished"
+              description="Sets all shared pieces to 100%"
+              checked={draftNumber(value[0]?.progressPercentage ?? "0") >= 100}
+              onChange={(event) => setSharedFinished(event.target.checked)}
+            />
+          </div>
         </div>
       )}
 
-      {requireTotal && (!percentOk || !quantityOk) && (
-        <div className="rounded-md border border-destructive/40 bg-destructive/5 px-2 py-1.5 text-[11px] text-destructive">
-          {!percentOk && <p>Share % must add up to 100% across all people.</p>}
-          {!quantityOk && (
-            <p>Qty must add up to remaining {remainingQuantity}, not {qtyTotal}.</p>
-          )}
+      <div className="overflow-hidden rounded-md border border-border">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[36rem] border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/40 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                <th className="px-3 py-2.5">Worker</th>
+                {!sharedMode && <th className="w-24 px-2 py-2.5">Qty</th>}
+                {sharedMode && <th className="w-24 px-2 py-2.5">Share %</th>}
+                {!sharedMode && <th className="w-36 px-2 py-2.5">Outcome</th>}
+                <th className="w-20 px-2 py-2.5 text-right">Hours</th>
+                {labourOpen && (
+                  <>
+                    <th className="w-16 px-2 py-2.5 text-right">OT</th>
+                    <th className="w-16 px-2 py-2.5 text-right">DOT</th>
+                    <th className="w-16 px-2 py-2.5 text-right">Reject</th>
+                    <th className="w-16 px-2 py-2.5 text-right">Waste</th>
+                  </>
+                )}
+                <th className="w-10 px-2 py-2.5" />
+              </tr>
+            </thead>
+            <tbody>
+              {value.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={labourOpen ? 9 : 5}
+                    className="px-3 py-8 text-center text-sm text-muted-foreground"
+                  >
+                    No workers assigned. Add a worker to record progress.
+                  </td>
+                </tr>
+              ) : (
+                value.map((person, index) => {
+                  const finished = draftNumber(person.progressPercentage) >= 100;
+                  return (
+                    <tr
+                      key={`${person.userId}-${index}`}
+                      className="border-b border-border last:border-0"
+                    >
+                      <td className="px-3 py-2">
+                        <Select
+                          selectClassName="h-8 px-2 pr-8 text-xs"
+                          value={person.userId}
+                          onChange={(event) => {
+                            const user = users.find((item) => item.id === event.target.value);
+                            updatePerson(index, {
+                              userId: event.target.value,
+                              userName: user?.name ?? event.target.value,
+                            });
+                          }}
+                          options={[
+                            ...users.map((user) => ({ value: user.id, label: user.name })),
+                            ...(!person.userId ||
+                            users.some((user) => user.id === person.userId)
+                              ? []
+                              : [
+                                  {
+                                    value: person.userId,
+                                    label: person.userName || person.userId,
+                                  },
+                                ]),
+                          ]}
+                        />
+                      </td>
+                      {!sharedMode && (
+                        <td className="px-2 py-2">
+                          <Input
+                            size="sm"
+                            type="number"
+                            min={0}
+                            max={remainingQuantity}
+                            value={person.quantity}
+                            onChange={(event) =>
+                              updatePerson(index, { quantity: event.target.value })
+                            }
+                            inputClassName="h-8 px-1.5 text-xs tabular-nums"
+                          />
+                        </td>
+                      )}
+                      {sharedMode && (
+                        <td className="px-2 py-2">
+                          <Input
+                            size="sm"
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={person.contributionPercent}
+                            onChange={(event) =>
+                              updatePerson(index, {
+                                contributionPercent: event.target.value,
+                              })
+                            }
+                            inputClassName="h-8 px-1.5 text-xs tabular-nums"
+                          />
+                        </td>
+                      )}
+                      {!sharedMode && (
+                        <td className="px-2 py-2">
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-2"
+                            onClick={() =>
+                              updatePerson(index, {
+                                progressPercentage: finished ? "50" : "100",
+                              })
+                            }
+                          >
+                            <StatusBadge
+                              variant={finished ? "success" : "warning"}
+                              size="sm"
+                            >
+                              {finished ? "Finished" : "In progress"}
+                            </StatusBadge>
+                          </button>
+                        </td>
+                      )}
+                      <td className="px-2 py-2">
+                        <Input
+                          size="sm"
+                          type="number"
+                          min={0}
+                          step={0.05}
+                          value={person.actualHours}
+                          onChange={(event) =>
+                            updatePerson(index, { actualHours: event.target.value })
+                          }
+                          inputClassName="h-8 px-1.5 text-right text-xs tabular-nums"
+                        />
+                      </td>
+                      {labourOpen && (
+                        <>
+                          <td className="px-2 py-2">
+                            <Input
+                              size="sm"
+                              type="number"
+                              min={0}
+                              step={0.05}
+                              value={person.normalOvertimeHours}
+                              onChange={(event) =>
+                                updatePerson(index, {
+                                  normalOvertimeHours: event.target.value,
+                                })
+                              }
+                              inputClassName="h-8 px-1.5 text-right text-xs tabular-nums"
+                              aria-label="Normal overtime hours"
+                            />
+                          </td>
+                          <td className="px-2 py-2">
+                            <Input
+                              size="sm"
+                              type="number"
+                              min={0}
+                              step={0.05}
+                              value={person.doubleOvertimeHours}
+                              onChange={(event) =>
+                                updatePerson(index, {
+                                  doubleOvertimeHours: event.target.value,
+                                })
+                              }
+                              inputClassName="h-8 px-1.5 text-right text-xs tabular-nums"
+                              aria-label="Double overtime hours"
+                            />
+                          </td>
+                          <td className="px-2 py-2">
+                            <Input
+                              size="sm"
+                              type="number"
+                              min={0}
+                              value={person.rejectedQuantity}
+                              onChange={(event) =>
+                                updatePerson(index, {
+                                  rejectedQuantity: event.target.value,
+                                })
+                              }
+                              inputClassName="h-8 px-1.5 text-right text-xs tabular-nums"
+                            />
+                          </td>
+                          <td className="px-2 py-2">
+                            <Input
+                              size="sm"
+                              type="number"
+                              min={0}
+                              value={person.wasteQuantity}
+                              onChange={(event) =>
+                                updatePerson(index, { wasteQuantity: event.target.value })
+                              }
+                              inputClassName="h-8 px-1.5 text-right text-xs tabular-nums"
+                            />
+                          </td>
+                        </>
+                      )}
+                      <td className="px-2 py-2 text-center">
+                        <IconButton
+                          aria-label="Remove worker"
+                          icon={<Trash2 className="h-3.5 w-3.5" />}
+                          size="sm"
+                          variant="ghost"
+                          disabled={value.length <= 1}
+                          onClick={() => removePerson(index)}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-muted/20 px-3 py-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              leftIcon={<Plus className="h-3.5 w-3.5" />}
+              disabled={users.length === 0}
+              onClick={addPerson}
+            >
+              Add worker
+            </Button>
+            {!sharedMode && value.length > 1 && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  onChange(balanceSeparate(value, remainingQuantity, remainingHours))
+                }
+              >
+                Split qty evenly
+              </Button>
+            )}
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+              onClick={() => setLabourOpen((open) => !open)}
+            >
+              {labourOpen ? (
+                <ChevronDown className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronRight className="h-3.5 w-3.5" />
+              )}
+              Labour & quality
+            </button>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <StatusBadge variant="info" size="sm">
+              {qtyTotal} / {remainingQuantity} qty
+            </StatusBadge>
+            <StatusBadge variant={finishedCount > 0 ? "success" : "neutral"} size="sm">
+              {finishedCount} finished
+            </StatusBadge>
+            {sharedMode && (
+              <StatusBadge
+                variant={Math.abs(percentTotal - CONTRIBUTION_TOTAL) <= 0.05 ? "success" : "warning"}
+                size="sm"
+              >
+                Share {percentTotal}%
+                {Math.abs(percentTotal - CONTRIBUTION_TOTAL) > 0.05 ? " · need 100% to complete" : ""}
+              </StatusBadge>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {requireTotal && !quantityOk && (
+        <div className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+          <p>Quantity exceeds open pieces ({remainingQuantity}).</p>
         </div>
       )}
     </div>
   );
 }
 
-function NumberCell({
-  value,
-  onChange,
-  min = 0,
-  max,
-  step = 0.01,
+function ModeChip({
+  active,
+  onClick,
+  children,
 }: {
-  value: string;
-  onChange: (value: string) => void;
-  min?: number;
-  max?: number;
-  step?: number;
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
 }) {
   return (
-    <td className="px-1.5 py-1.5">
-      <Input
-        size="sm"
-        type="number"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        inputClassName="h-8 min-w-[4.25rem] px-1.5 text-xs tabular-nums"
-      />
-    </td>
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded px-2.5 py-1 text-xs font-medium transition-colors",
+        active
+          ? "bg-card text-foreground shadow-xs"
+          : "text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {children}
+    </button>
   );
+}
+
+export function contributorDraftProgressLabel(drafts: ContributorDraft[]): string {
+  const parsed = parsedContributorInputs(drafts);
+  if (!parsed.length) return "—";
+  return `${roundPercent(
+    parsed.reduce((sum, person) => sum + (person.progressPercentage || 0), 0) / parsed.length,
+  )}%`;
 }

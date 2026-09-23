@@ -40,7 +40,7 @@ import {
   areMaterialsReady,
   calculateJobProgress,
   isJobDelayed,
-  taskQuantityLabel,
+  taskQuantityProgress,
 } from "@/features/manufacturing/utils/jobUtils";
 import { statusLabel, statusVariant } from "@/features/shared/utils/statusBadge";
 import { formatCurrency, formatDateTime } from "@/lib/format";
@@ -53,6 +53,7 @@ import {
   isProductionJobCompletable,
 } from "@/lib/manufacturingTasks";
 import { calculateContributorLabor, resolveTaskContributors } from "@/lib/taskContributors";
+import { ensureTaskUnits, workerProgressFromUnits } from "@/lib/taskUnits";
 import type { ManufacturingTask, ManufacturingTaskAction } from "@/types/manufacturing";
 import { ManufacturingJobStatus, ManufacturingTaskStatus, Priority } from "@/types/status";
 
@@ -159,7 +160,11 @@ export function ManufacturingJobDetailPage() {
             <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-8">
               <SummaryCard title="Quantity" value={String(job.quantity)} />
               <SummaryCard title="Overall Status" value={statusLabel(ManufacturingJobStatus, job.status)} />
-              <SummaryCard title="Progress" value={`${progress}%`} />
+              <SummaryCard
+                title="Progress"
+                value={`${progress}%`}
+                description="Quantity completed across tasks"
+              />
               <SummaryCard title="Estimated Cost" value={formatCurrency(job.estimatedCost)} />
               <SummaryCard title="Actual Cost" value={formatCurrency(job.actualCost)} />
               <SummaryCard title="Labour Cost" value={formatCurrency(labor?.laborCost ?? 0)} />
@@ -242,7 +247,7 @@ export function ManufacturingJobDetailPage() {
                       <tr className="border-b border-border bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
                         <th className="px-4 py-3">Sequence</th>
                         <th className="px-4 py-3">Task</th>
-                        <th className="px-4 py-3">Qty</th>
+                        <th className="px-4 py-3">Progress</th>
                         <th className="px-4 py-3">Status</th>
                         <th className="px-4 py-3 text-right">Est. Time</th>
                         <th className="px-4 py-3 text-right">Actual Time</th>
@@ -256,7 +261,33 @@ export function ManufacturingJobDetailPage() {
                       {job.tasks.map((task) => {
                         const actions = allowedTaskActions(task);
                         const taskLabor = task.actualHours ? calculateTaskLaborCost(task) : null;
-                        const people = resolveTaskContributors(task);
+                        const people = (() => {
+                          const units = ensureTaskUnits(task);
+                          const fromUnits = workerProgressFromUnits(units);
+                          if (fromUnits.length) {
+                            return fromUnits.map((worker) => ({
+                              userId: worker.userId,
+                              userName: worker.userName,
+                              contributionPercent: worker.contributionPercentage,
+                              quantity: worker.assignedQuantity,
+                              completedQuantity: worker.completedQuantity,
+                              inProgressQuantity: worker.inProgressQuantity,
+                              progressPercentage: worker.progressPercentage,
+                              rejectedQuantity: worker.rejectedQuantity,
+                              wasteQuantity: worker.wasteQuantity,
+                              actualHours: worker.actualHours,
+                              overtimeHours: worker.overtimeHours,
+                              normalOvertimeHours: worker.normalOvertimeHours,
+                              doubleOvertimeHours: worker.doubleOvertimeHours,
+                              laborCost: worker.laborCost,
+                              status: worker.status,
+                              startedAt: worker.startedAt,
+                              pausedAt: worker.pausedAt,
+                              completedAt: worker.completedAt,
+                            }));
+                          }
+                          return resolveTaskContributors(task);
+                        })();
                         const prereqNames = task.prerequisiteTaskIds
                           .map((prereqId) => job.tasks.find((item) => item.id === prereqId)?.name)
                           .filter(Boolean);
@@ -282,18 +313,8 @@ export function ManufacturingJobDetailPage() {
                                 </div>
                               )}
                             </td>
-                            <td className="px-4 py-3 tabular-nums">
-                              {taskQuantityLabel(task)}
-                              {task.rejectedQuantity > 0 && (
-                                <div className="text-[11px] text-muted-foreground">
-                                  Rej {task.rejectedQuantity}
-                                </div>
-                              )}
-                              {task.wasteQuantity > 0 && (
-                                <div className="text-[11px] text-muted-foreground">
-                                  Waste {task.wasteQuantity}
-                                </div>
-                              )}
+                            <td className="px-4 py-3">
+                              <TaskQuantityProgress task={task} />
                             </td>
                             <td className="px-4 py-3">
                               <StatusBadge
@@ -319,11 +340,13 @@ export function ManufacturingJobDetailPage() {
                                   <thead>
                                     <tr className="text-left text-[10px] uppercase tracking-wide text-muted-foreground">
                                       <th className="pr-2 font-medium">Person</th>
-                                      <th className="px-1 text-right font-medium">%</th>
-                                      <th className="px-1 text-right font-medium">Qty</th>
-                                      <th className="px-1 text-right font-medium">Rej</th>
+                                      <th className="px-1 text-right font-medium">Pieces</th>
+                                      <th className="px-1 text-right font-medium">Done</th>
+                                      <th className="px-1 text-right font-medium">Working</th>
+                                      <th className="px-1 text-right font-medium">Progress</th>
+                                      <th className="px-1 text-right font-medium">Reject</th>
                                       <th className="px-1 text-right font-medium">Waste</th>
-                                      <th className="px-1 text-right font-medium">Hrs</th>
+                                      <th className="px-1 text-right font-medium">Hours</th>
                                       <th className="px-1 text-right font-medium">OT</th>
                                       <th className="px-1 text-right font-medium">DOT</th>
                                       <th className="pl-1 text-right font-medium">Labour</th>
@@ -335,13 +358,24 @@ export function ManufacturingJobDetailPage() {
                                       return (
                                         <tr key={person.userId}>
                                           <td className="pr-2 font-medium text-foreground">
-                                            {person.userName}
-                                          </td>
-                                          <td className="px-1 text-right tabular-nums text-muted-foreground">
-                                            {person.contributionPercent || "—"}
+                                            <div>{person.userName}</div>
+                                            <div className="text-[10px] capitalize text-muted-foreground">
+                                              {(person.status || "").replace(/_/g, " ") || "—"}
+                                            </div>
                                           </td>
                                           <td className="px-1 text-right tabular-nums text-muted-foreground">
                                             {person.quantity || "—"}
+                                          </td>
+                                          <td className="px-1 text-right tabular-nums text-muted-foreground">
+                                            {person.completedQuantity ?? "—"}
+                                          </td>
+                                          <td className="px-1 text-right tabular-nums text-muted-foreground">
+                                            {person.inProgressQuantity ?? "—"}
+                                          </td>
+                                          <td className="px-1 text-right tabular-nums text-muted-foreground">
+                                            {person.progressPercentage != null
+                                              ? `${person.progressPercentage}%`
+                                              : "—"}
                                           </td>
                                           <td className="px-1 text-right tabular-nums text-muted-foreground">
                                             {person.rejectedQuantity || "—"}
@@ -397,7 +431,7 @@ export function ManufacturingJobDetailPage() {
                                 )}
                                 {actions.complete && (
                                   <Button size="sm" variant="success" leftIcon={<CheckCircle className="h-3 w-3" />} onClick={() => openDialog(task, "complete")}>
-                                    Complete
+                                    Update progress
                                   </Button>
                                 )}
                                 {actions.hold && (
@@ -731,5 +765,32 @@ export function ManufacturingJobDetailPage() {
         }}
       />
     </PageContainer>
+  );
+}
+
+function TaskQuantityProgress({ task }: { task: ManufacturingTask }) {
+  const percent = taskQuantityProgress(task);
+  return (
+    <div className="min-w-[8rem]">
+      <div className="mb-1 flex items-center justify-between gap-2 text-xs tabular-nums">
+        <span className="text-foreground">
+          {task.completedQuantity}/{task.plannedQuantity}
+        </span>
+        <span className="text-muted-foreground">{percent}%</span>
+      </div>
+      <div
+        className="h-1.5 overflow-hidden rounded-full bg-muted"
+        role="progressbar"
+        aria-valuenow={percent}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`${task.name} quantity progress`}
+      >
+        <div
+          className={percent >= 100 ? "h-full rounded-full bg-success" : "h-full rounded-full bg-foreground"}
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+    </div>
   );
 }

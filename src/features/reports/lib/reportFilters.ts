@@ -71,7 +71,7 @@ export function inDateRange(value: unknown, range: DateRange): boolean {
 }
 
 export function discreteFilterColumns(columns: ReportColumn[]): ReportColumn[] {
-  return columns.filter((column) => column.type === "status").slice(0, 4);
+  return columns.filter((column) => column.type === "status").slice(0, 6);
 }
 
 export function uniqueColumnValues(rows: ReportRow[], key: string): string[] {
@@ -96,11 +96,18 @@ export function dimensionFilterColumns(
       const count = uniqueColumnValues(rows, column.key).length;
       return count >= 2 && count <= 40;
     })
-    .slice(0, 2);
+    .slice(0, 4);
 }
 
 export function amountFilterColumn(columns: ReportColumn[]): ReportColumn | undefined {
   return columns.find((column) => column.type === "currency");
+}
+
+export function resolveDateColumn(columns: ReportColumn[], dateKey?: string): ReportColumn | undefined {
+  if (dateKey) {
+    return columns.find((column) => column.key === dateKey);
+  }
+  return columns.find((column) => column.type === "date" || column.type === "datetime");
 }
 
 export type AmountRange = {

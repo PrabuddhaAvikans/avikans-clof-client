@@ -191,7 +191,7 @@ export function ReportFilterBar({
 
       {showAdvanced && (
         <div className="space-y-1.5">
-          <FieldLabel>Narrow further</FieldLabel>
+          <FieldLabel>Advanced</FieldLabel>
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
             {statusSelects.map((column) => {
               const values = uniqueColumnValues(rows, column.key);

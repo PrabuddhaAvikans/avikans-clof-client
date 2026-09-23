@@ -3,6 +3,7 @@ import {
   calculateTaskProgressPercent,
   currentTask,
   remainingQuantity,
+  taskQuantityProgressPercent,
 } from "@/lib/manufacturingTasks";
 
 export function calculateJobProgress(job: ManufacturingJob): number {
@@ -52,6 +53,10 @@ export function getCurrentTaskName(job: ManufacturingJob): string {
 
 export function taskQuantityLabel(task: ManufacturingTask): string {
   return `${task.completedQuantity}/${task.plannedQuantity}`;
+}
+
+export function taskQuantityProgress(task: ManufacturingTask): number {
+  return taskQuantityProgressPercent(task);
 }
 
 export function taskRemainingLabel(task: ManufacturingTask): string {

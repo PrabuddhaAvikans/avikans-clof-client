@@ -119,8 +119,16 @@ export function ProductionJobDetailsPanel({
                 >
                   {stage.name}
                 </span>
-                <span className="shrink-0 text-[9px] tabular-nums text-muted-foreground">
-                  {stage.completedQuantity}/{stage.plannedQuantity}
+                <span className="w-16 shrink-0">
+                  <span className="mb-0.5 block text-right text-[9px] tabular-nums text-muted-foreground">
+                    {stage.completedQuantity}/{stage.plannedQuantity} · {stage.progressPercent}%
+                  </span>
+                  <span className="block h-1 overflow-hidden rounded-full bg-muted">
+                    <span
+                      className="block h-full bg-foreground"
+                      style={{ width: `${stage.progressPercent}%` }}
+                    />
+                  </span>
                 </span>
               </li>
             ))}

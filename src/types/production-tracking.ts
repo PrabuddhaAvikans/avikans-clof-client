@@ -7,6 +7,7 @@ export interface ProductionStageTask {
   status: string;
   plannedQuantity: number;
   completedQuantity: number;
+  progressPercent: number;
   completedAt?: string;
 }
 
