@@ -25,6 +25,13 @@ export type SystemSettings = {
   salesOrderPrefix: string;
   jobPrefix: string;
   deliveryPrefix: string;
+  /**
+   * When false, each employee may have one active work session.
+   * Assignment to other tasks is still allowed.
+   */
+  allowConcurrentWork: boolean;
+  /** Applied only when allowConcurrentWork is true. */
+  maxConcurrentTasks: number;
 };
 
 export const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
@@ -48,6 +55,8 @@ export const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
   salesOrderPrefix: "SO",
   jobPrefix: "PJ",
   deliveryPrefix: "DL",
+  allowConcurrentWork: false,
+  maxConcurrentTasks: 1,
 };
 
 const STORAGE_KEY = "ats.systemSettings";
@@ -104,6 +113,16 @@ export function loadSystemSettings(): SystemSettings {
       salesOrderPrefix: asString(parsed.salesOrderPrefix, DEFAULT_SYSTEM_SETTINGS.salesOrderPrefix),
       jobPrefix: asString(parsed.jobPrefix, DEFAULT_SYSTEM_SETTINGS.jobPrefix),
       deliveryPrefix: asString(parsed.deliveryPrefix, DEFAULT_SYSTEM_SETTINGS.deliveryPrefix),
+      allowConcurrentWork: asBoolean(
+        parsed.allowConcurrentWork,
+        DEFAULT_SYSTEM_SETTINGS.allowConcurrentWork,
+      ),
+      maxConcurrentTasks: Math.max(
+        1,
+        Math.floor(
+          asNumber(parsed.maxConcurrentTasks, DEFAULT_SYSTEM_SETTINGS.maxConcurrentTasks),
+        ),
+      ),
     };
   } catch {
     return { ...DEFAULT_SYSTEM_SETTINGS };

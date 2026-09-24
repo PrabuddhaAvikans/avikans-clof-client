@@ -3,7 +3,10 @@ import { createAsyncEpic } from "@/app/store/async/createAsyncEpic";
 import { inventoryActions } from "@/features/inventory/store/inventorySlice";
 import { manufacturingActions } from "@/features/manufacturing/store/manufacturingSlice";
 import { productionTrackingActions } from "@/features/manufacturing/store/productionTrackingSlice";
+import { periodCloseActions } from "@/features/period-close/store/periodCloseSlice";
 import { manufacturingService } from "@/services";
+
+const refreshPeriodClose = () => [periodCloseActions.invalidateAll()];
 
 const fetchListEpic = createAsyncEpic({
   request: manufacturingActions.fetchListRequest,
@@ -25,6 +28,7 @@ const createEpic = createAsyncEpic({
   failure: manufacturingActions.createFailure,
   handler: (data) => manufacturingService.create(data),
   mode: "merge",
+  onSuccess: () => [...refreshPeriodClose()],
 });
 
 const updateEpic = createAsyncEpic({
@@ -33,7 +37,7 @@ const updateEpic = createAsyncEpic({
   failure: manufacturingActions.updateFailure,
   handler: ({ id, data }) => manufacturingService.update(id, data),
   mode: "merge",
-  onSuccess: () => [productionTrackingActions.invalidateAll()],
+  onSuccess: () => [productionTrackingActions.invalidateAll(), ...refreshPeriodClose()],
 });
 
 const reserveMaterialsEpic = createAsyncEpic({
@@ -42,7 +46,11 @@ const reserveMaterialsEpic = createAsyncEpic({
   failure: manufacturingActions.reserveMaterialsFailure,
   handler: (id) => manufacturingService.reserveMaterials(id),
   mode: "merge",
-  onSuccess: () => [inventoryActions.invalidateAll(), productionTrackingActions.invalidateAll()],
+  onSuccess: () => [
+    inventoryActions.invalidateAll(),
+    productionTrackingActions.invalidateAll(),
+    ...refreshPeriodClose(),
+  ],
 });
 
 const startEpic = createAsyncEpic({
@@ -54,6 +62,7 @@ const startEpic = createAsyncEpic({
   onSuccess: () => [
     inventoryActions.invalidateAll(),
     productionTrackingActions.invalidateAll(),
+    ...refreshPeriodClose(),
   ],
 });
 
@@ -66,6 +75,7 @@ const completeEpic = createAsyncEpic({
   onSuccess: () => [
     inventoryActions.invalidateAll(),
     productionTrackingActions.invalidateAll(),
+    ...refreshPeriodClose(),
   ],
 });
 
@@ -75,7 +85,7 @@ const holdEpic = createAsyncEpic({
   failure: manufacturingActions.holdFailure,
   handler: ({ id, reason }) => manufacturingService.holdJob(id, reason),
   mode: "merge",
-  onSuccess: () => [productionTrackingActions.invalidateAll()],
+  onSuccess: () => [productionTrackingActions.invalidateAll(), ...refreshPeriodClose()],
 });
 
 const taskActionEpic = createAsyncEpic({
@@ -84,7 +94,7 @@ const taskActionEpic = createAsyncEpic({
   failure: manufacturingActions.taskActionFailure,
   handler: ({ id, action }) => manufacturingService.applyTaskAction(id, action),
   mode: "merge",
-  onSuccess: () => [productionTrackingActions.invalidateAll()],
+  onSuccess: () => [productionTrackingActions.invalidateAll(), ...refreshPeriodClose()],
 });
 
 export const manufacturingEpic = combineEpics(

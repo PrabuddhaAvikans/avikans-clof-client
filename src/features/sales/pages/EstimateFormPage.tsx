@@ -23,7 +23,7 @@ import { buildQuotationFormPayload } from "@/features/sales/lib/duplicateQuotati
 import { quotationAttachmentsToForm } from "@/features/sales/lib/quotationAttachments";
 import type { Quotation } from "@/types/quotation";
 import { loadSystemSettings, quotationValidUntilDate } from "@/lib/systemSettings";
-import { toast } from "sonner";
+import { toast } from "@/components/feedback/toast";
 
 function createDefaultValues(): QuotationFormValues {
   const settings = loadSystemSettings();

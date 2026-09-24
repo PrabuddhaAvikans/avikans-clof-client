@@ -530,15 +530,60 @@ export function updateAssignedUnitProgress(
   return next;
 }
 
+function aggregateAssignmentStatus(
+  statuses: TaskUnitAssignmentStatus[],
+  completedQuantity: number,
+  assignedQuantity: number,
+): TaskUnitAssignmentStatus {
+  if (assignedQuantity > 0 && completedQuantity === assignedQuantity) return "completed";
+  if (statuses.includes("in_progress")) return "in_progress";
+  if (statuses.includes("on_hold")) return "on_hold";
+  if (statuses.includes("paused")) return "paused";
+  return "assigned";
+}
+
+/**
+ * Update who is currently working. Unit progress percentages are left unchanged.
+ */
+export function setWorkerAssignmentStatus(
+  units: TaskUnit[],
+  employeeId: string | null,
+  status: "paused" | "assigned" | "in_progress" | "on_hold",
+  at: string,
+): TaskUnit[] {
+  return units.map((unit) => {
+    if (unit.progressPercentage >= COMPLETE) return syncUnitDerived(unit);
+    const assignments = (unit.assignments ?? []).map((assignment) => {
+      if (employeeId && assignment.userId !== employeeId) return assignment;
+      if (assignment.status === "completed") return assignment;
+      if (status === "in_progress") {
+        return {
+          ...assignment,
+          status,
+          pausedAt: undefined,
+          startedAt: assignment.startedAt ?? at,
+        };
+      }
+      if (status === "paused" || status === "on_hold") {
+        return { ...assignment, status, pausedAt: at };
+      }
+      return { ...assignment, status: "assigned" as const, pausedAt: at };
+    });
+    return syncUnitDerived({ ...unit, assignments });
+  });
+}
+
 export function workerProgressFromUnits(units: TaskUnit[]): TaskWorkerProgress[] {
   const byUser = new Map<string, TaskWorkerProgress>();
+  const rawStatuses = new Map<string, TaskUnitAssignmentStatus[]>();
 
   for (const unit of units) {
     for (const assignment of unit.assignments ?? []) {
+      const statuses = rawStatuses.get(assignment.userId) ?? [];
+      statuses.push(assignment.status);
+      rawStatuses.set(assignment.userId, statuses);
       const existing = byUser.get(assignment.userId);
       const unitComplete = unit.progressPercentage >= COMPLETE;
-      const unitInProgress = unit.progressPercentage > 0 && unit.progressPercentage < COMPLETE
-        || (assignment.status === "in_progress" && !unitComplete);
       if (!existing) {
         byUser.set(assignment.userId, {
           userId: assignment.userId,
@@ -589,12 +634,11 @@ export function workerProgressFromUnits(units: TaskUnit[]): TaskWorkerProgress[]
 
   return [...byUser.values()].map((worker) => {
     const progressPercentage = roundPercent(worker.progressPercentage / worker.assignedQuantity);
-    const status: TaskUnitAssignmentStatus =
-      worker.completedQuantity === worker.assignedQuantity && worker.assignedQuantity > 0
-        ? "completed"
-        : worker.inProgressQuantity > 0 || progressPercentage > 0
-          ? "in_progress"
-          : "assigned";
+    const status = aggregateAssignmentStatus(
+      rawStatuses.get(worker.userId) ?? [],
+      worker.completedQuantity,
+      worker.assignedQuantity,
+    );
     return {
       ...worker,
       progressPercentage,

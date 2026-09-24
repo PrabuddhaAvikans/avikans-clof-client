@@ -16,6 +16,7 @@ import {
 function toStageStatus(task: ManufacturingTask): string {
   if (task.status === "completed" || task.status === "skipped") return "completed";
   if (task.status === "in_progress") return "in_progress";
+  if (task.status === "paused") return "paused";
   if (task.status === "ready") return "ready";
   return "pending";
 }

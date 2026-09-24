@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useFormikContext } from "formik";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Mail, Save } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/feedback/toast";
 import { ROUTES } from "@/app/config/routes";
 import { PageHeader } from "@/components/feedback/PageHeader";
 import { PageContent } from "@/components/feedback/PageStates";

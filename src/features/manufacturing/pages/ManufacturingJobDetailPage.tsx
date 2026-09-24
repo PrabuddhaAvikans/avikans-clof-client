@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   Ban,
   CheckCircle,
+  Clock3,
   Pause,
   Play,
   RotateCcw,
@@ -12,7 +13,7 @@ import {
   SkipForward,
   StickyNote,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/feedback/toast";
 import { ROUTES } from "@/app/config/routes";
 import { PageHeader } from "@/components/feedback/PageHeader";
 import { PageContent } from "@/components/feedback/PageStates";
@@ -24,11 +25,13 @@ import { NotesPanel } from "@/components/ui/NotesPanel";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SummaryCard } from "@/components/ui/SummaryCard";
 import { Tab, TabList, TabPanel, Tabs } from "@/components/ui/Tabs";
+import { ActiveWorkSwitchDialog } from "@/features/manufacturing/components/ActiveWorkSwitchDialog";
 import {
   TaskActionDialogs,
   type TaskDialogMode,
 } from "@/features/manufacturing/components/TaskActionDialogs";
 import { CompleteJobDialog } from "@/features/manufacturing/components/CompleteJobDialog";
+import { JobDayCloseLinkPanel } from "@/features/manufacturing/components/JobDayCloseLinkPanel";
 import {
   useCompleteManufacturingJob,
   useManufacturingJob,
@@ -43,6 +46,7 @@ import {
   taskQuantityProgress,
 } from "@/features/manufacturing/utils/jobUtils";
 import { statusLabel, statusVariant } from "@/features/shared/utils/statusBadge";
+import { isActiveWorkConfirmationError } from "@/lib/employee-work";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import {
   allowedTaskActions,
@@ -54,8 +58,18 @@ import {
 } from "@/lib/manufacturingTasks";
 import { calculateContributorLabor, resolveTaskContributors } from "@/lib/taskContributors";
 import { ensureTaskUnits, workerProgressFromUnits } from "@/lib/taskUnits";
+import type { ActiveWorkConflict } from "@/types/employee-work";
 import type { ManufacturingTask, ManufacturingTaskAction } from "@/types/manufacturing";
 import { ManufacturingJobStatus, ManufacturingTaskStatus, Priority } from "@/types/status";
+
+const NO_WORK_CONFLICTS: ActiveWorkConflict[] = [];
+
+function withoutSessionSwitch(action: ManufacturingTaskAction): ManufacturingTaskAction {
+  if (action.type === "start" || action.type === "resume" || action.type === "complete") {
+    return { ...action, activeSessionSwitch: undefined };
+  }
+  return action;
+}
 
 export function ManufacturingJobDetailPage() {
   const { id = "" } = useParams<{ id: string }>();
@@ -73,6 +87,12 @@ export function ManufacturingJobDetailPage() {
   const [dialogTask, setDialogTask] = useState<ManufacturingTask | null>(null);
   const [dialogMode, setDialogMode] = useState<TaskDialogMode>(null);
   const [completeOpen, setCompleteOpen] = useState(false);
+  const [pendingSwitch, setPendingSwitch] = useState<{
+    action: ManufacturingTaskAction;
+    conflicts: ActiveWorkConflict[];
+    nextOrderNumber: string;
+    nextOperation: string;
+  } | null>(null);
 
   const progress = job ? calculateJobProgress(job) : 0;
   const materialsReady = job ? areMaterialsReady(job) : false;
@@ -107,8 +127,28 @@ export function ManufacturingJobDetailPage() {
       toast.success(successMessage);
       setDialogMode(null);
       setDialogTask(null);
+      setPendingSwitch(null);
       void refetch();
     } catch (err) {
+      if (isActiveWorkConfirmationError(err)) {
+        const task =
+          "taskId" in action ? job.tasks.find((item) => item.id === action.taskId) : undefined;
+        setDialogMode(null);
+        setDialogTask(null);
+        setPendingSwitch({
+          action: withoutSessionSwitch(action),
+          conflicts: err.conflicts,
+          nextOrderNumber: job.jobNumber,
+          nextOperation: task?.name ?? "New task",
+        });
+        if (
+          (action.type === "start" || action.type === "resume" || action.type === "complete") &&
+          action.activeSessionSwitch
+        ) {
+          toast.error(err.message);
+        }
+        return;
+      }
       const message =
         typeof err === "object" && err && "message" in err
           ? String((err as { message: string }).message)
@@ -142,11 +182,18 @@ export function ManufacturingJobDetailPage() {
           { label: job?.jobNumber ?? "Details" },
         ]}
         actions={
-          <Link to={ROUTES.manufacturing.jobs}>
-            <Button variant="outline" leftIcon={<ArrowLeft className="h-4 w-4" />}>
-              Back
-            </Button>
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link to={ROUTES.periodClose.day}>
+              <Button variant="outline" size="sm" leftIcon={<Clock3 className="h-4 w-4" />}>
+                Day Close
+              </Button>
+            </Link>
+            <Link to={ROUTES.manufacturing.jobs}>
+              <Button variant="outline" size="sm" leftIcon={<ArrowLeft className="h-4 w-4" />}>
+                Back
+              </Button>
+            </Link>
+          </div>
         }
       />
 
@@ -196,6 +243,8 @@ export function ManufacturingJobDetailPage() {
                 )}
               </div>
             )}
+
+            <JobDayCloseLinkPanel job={job} className="mb-6" />
 
             <Tabs value={activeTab} onChange={setActiveTab}>
               <TabList>
@@ -730,6 +779,37 @@ export function ManufacturingJobDetailPage() {
           </>
         )}
       </PageContent>
+
+      <ActiveWorkSwitchDialog
+        conflicts={pendingSwitch?.conflicts ?? NO_WORK_CONFLICTS}
+        nextOrderNumber={pendingSwitch?.nextOrderNumber ?? ""}
+        nextOperation={pendingSwitch?.nextOperation ?? ""}
+        loading={taskAction.isPending}
+        onCancel={() => setPendingSwitch(null)}
+        onConfirm={(mode, reason) => {
+          if (!pendingSwitch) return;
+          const base = pendingSwitch.action;
+          if (base.type !== "start" && base.type !== "resume" && base.type !== "complete") return;
+          const success =
+            mode === "pause"
+              ? `Paused current work and started ${pendingSwitch.nextOperation}`
+              : `Stopped current work and started ${pendingSwitch.nextOperation}`;
+          void runAction(
+            {
+              ...base,
+              activeSessionSwitch: {
+                action: mode,
+                reason: reason?.trim() || undefined,
+                confirmedSessions: pendingSwitch.conflicts.map((conflict) => ({
+                  sessionId: conflict.sessionId,
+                  rowVersion: conflict.rowVersion,
+                })),
+              },
+            },
+            success,
+          );
+        }}
+      />
 
       <TaskActionDialogs
         task={dialogTask}

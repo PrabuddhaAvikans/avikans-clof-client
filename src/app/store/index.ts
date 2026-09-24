@@ -24,6 +24,7 @@ import notificationsReducer from "@/features/admin/store/notificationsSlice";
 import dashboardReducer from "@/features/dashboard/store/dashboardSlice";
 import reportsReducer from "@/features/reports/store/reportsSlice";
 import reprocessingReducer from "@/features/reprocessing/store/reprocessingSlice";
+import periodCloseReducer from "@/features/period-close/store/periodCloseSlice";
 
 const epicMiddleware = createEpicMiddleware<
   UnknownAction
@@ -50,6 +51,7 @@ export const store = configureStore({
     dashboard: dashboardReducer,
     reports: reportsReducer,
     reprocessing: reprocessingReducer,
+    periodClose: periodCloseReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(epicMiddleware as Middleware),

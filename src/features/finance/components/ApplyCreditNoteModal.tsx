@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/components/feedback/toast";
 import type { CreditNote } from "@/types/credit-note";
 import type { Invoice } from "@/types/invoice";
 import { Modal } from "@/components/ui/Modal";

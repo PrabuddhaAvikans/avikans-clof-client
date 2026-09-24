@@ -43,6 +43,8 @@ type Props = {
   openUnitNos?: number[];
   requireTotal?: boolean;
   separateQuantities?: boolean;
+  /** Shown after the worker name when that person is already on another task. */
+  busyLabels?: Record<string, string>;
 };
 
 function emptyDraft(userId = "", userName = ""): ContributorDraft {
@@ -204,6 +206,7 @@ export function TaskContributorsEditor({
   remainingHours,
   openUnitNos = [],
   requireTotal = true,
+  busyLabels,
 }: Props) {
   const sharedMode = value.some((person) => person.sharedUnitNos.trim().length > 0);
   const [labourOpen, setLabourOpen] = useState(false);
@@ -383,7 +386,12 @@ export function TaskContributorsEditor({
                             });
                           }}
                           options={[
-                            ...users.map((user) => ({ value: user.id, label: user.name })),
+                            ...users.map((user) => ({
+                              value: user.id,
+                              label: busyLabels?.[user.id]
+                                ? `${user.name} — ${busyLabels[user.id]}`
+                                : user.name,
+                            })),
                             ...(!person.userId ||
                             users.some((user) => user.id === person.userId)
                               ? []

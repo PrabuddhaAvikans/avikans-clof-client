@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/feedback/toast";
 import { Button, Input, Modal } from "@/components/ui";
 import { CostSheetHandleSelect } from "@/features/products/components/CostSheetHandleField";
 import {

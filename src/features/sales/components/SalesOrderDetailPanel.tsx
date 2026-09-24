@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Copy, ExternalLink, FileText, Package } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/feedback/toast";
 import { ROUTES } from "@/app/config/routes";
 import { Button } from "@/components/ui/Button";
 import { MappedStatusBadge } from "@/features/shared/components/MappedStatusBadge";

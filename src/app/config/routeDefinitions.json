@@ -139,6 +139,30 @@
       "page": "FinanceCreditNotesPage",
       "permission": "finance:view"
     },
+    {
+      "path": "period-close",
+      "redirect": "/period-close/day"
+    },
+    {
+      "path": "period-close/day",
+      "page": "DayCloseWorkspacePage",
+      "permission": "period_close:view"
+    },
+    {
+      "path": "period-close/day/:periodId",
+      "page": "DayCloseWorkspacePage",
+      "permission": "period_close:view"
+    },
+    {
+      "path": "period-close/month",
+      "page": "MonthlyCloseWorkspacePage",
+      "permission": "period_close:view"
+    },
+    {
+      "path": "period-close/month/:periodId",
+      "page": "MonthlyCloseWorkspacePage",
+      "permission": "period_close:view"
+    },
 
     {
       "path": "customers",

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useFormikContext } from "formik";
 import { Pencil, Plus } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/feedback/toast";
 import { Button, FormField, Input, Modal, SearchableSelect } from "@/components/ui";
 import { AddCostConfigurationModal } from "@/features/products/components/AddCostConfigurationModal";
 import type { ProductFormSchemaValues } from "@/features/products/schemas/productSchema";

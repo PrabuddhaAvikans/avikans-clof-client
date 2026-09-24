@@ -27,8 +27,12 @@ import {
   quantityTotal,
   resolveTaskContributors,
 } from "@/lib/taskContributors";
+import { formatWorkedDuration } from "@/lib/employee-work";
+import { formatDateTime } from "@/lib/format";
 import { ensureTaskUnits, overallUnitProgress } from "@/lib/taskUnits";
 import { cn } from "@/lib/utils";
+import { previewActiveWork } from "@/services/mock/guardedTaskAction";
+import type { ActiveWorkConflict } from "@/types/employee-work";
 import type { ManufacturingTask, ManufacturingTaskAction } from "@/types/manufacturing";
 
 export type TaskDialogMode = "start" | "complete" | "hold" | "notes" | "rework" | null;
@@ -137,6 +141,32 @@ export function TaskActionDialogs({
 
   if (!task || !mode) return null;
 
+  const startingFresh =
+    mode === "start" && task.status !== "on_hold" && task.status !== "blocked";
+  const updatingProgress = mode === "complete";
+  const busyByEmployee = new Map<string, ActiveWorkConflict>();
+  if (startingFresh || updatingProgress) {
+    for (const conflict of previewActiveWork({
+      employees: users.map((user) => ({ employeeId: user.id, employeeName: user.name })),
+      nextTaskId: task.id,
+      operationName: task.name,
+    })) {
+      busyByEmployee.set(conflict.employeeId, conflict);
+    }
+  }
+  const selectedWorkerIds = updatingProgress
+    ? contributors.map((person) => person.userId).filter(Boolean)
+    : assignedIds;
+  const activeConflicts = selectedWorkerIds
+    .map((id) => busyByEmployee.get(id))
+    .filter((conflict): conflict is ActiveWorkConflict => Boolean(conflict));
+  const busyLabels = Object.fromEntries(
+    [...busyByEmployee.entries()].map(([id, conflict]) => [
+      id,
+      `working on ${conflict.productionOrderNumber ?? "another order"} / ${conflict.operation}`,
+    ]),
+  );
+
   const openUnitNos = ensureTaskUnits(task)
     .filter((unit) => unit.progressPercentage < 100)
     .map((unit) => unit.unitNo);
@@ -160,59 +190,91 @@ export function TaskActionDialogs({
     rework: `Rework · ${task.name}`,
   }[mode];
 
+  const submitStart = (switchAction?: "pause" | "stop") => {
+    if (task.status === "on_hold" || task.status === "blocked") {
+      onSubmit({ type: "resume", taskId: task.id, notes: notes || undefined });
+      return;
+    }
+    const selected = assignedIds
+      .map((id) => users.find((user) => user.id === id))
+      .filter((user): user is UserOption => Boolean(user));
+    if (selected.length === 0) return;
+    const primary = selected[0];
+    onSubmit({
+      type: "start",
+      taskId: task.id,
+      assignedTo: primary.id,
+      assignedToName: primary.name,
+      operatorId: primary.id,
+      operatorName: primary.name,
+      machineName: machineName || undefined,
+      quantityStarted,
+      contributors: selected.map((user) => ({
+        userId: user.id,
+        userName: user.name,
+        contributionPercent: CONTRIBUTION_TOTAL,
+      })),
+      notes: notes || undefined,
+      activeSessionSwitch:
+        switchAction && activeConflicts.length > 0
+          ? {
+              action: switchAction,
+              reason: notes.trim() || undefined,
+              confirmedSessions: activeConflicts.map((conflict) => ({
+                sessionId: conflict.sessionId,
+                rowVersion: conflict.rowVersion,
+              })),
+            }
+          : undefined,
+    });
+  };
+
+  const submitProgress = (switchAction?: "pause" | "stop") => {
+    if (!contributionOk) return;
+    if (activeConflicts.length > 0 && !switchAction) return;
+    const submitInputs =
+      isShared && !sharesOk
+        ? contributionInputs.map((person) => ({
+            ...person,
+            progressPercentage: Math.min(person.progressPercentage ?? 0, 99),
+          }))
+        : contributionInputs;
+    onSubmit({
+      type: "complete",
+      taskId: task.id,
+      completedQuantity: qtyTotal,
+      rejectedQuantity: submitInputs.reduce(
+        (sum, person) => sum + (person.rejectedQuantity ?? 0),
+        0,
+      ),
+      wasteQuantity: submitInputs.reduce(
+        (sum, person) => sum + (person.wasteQuantity ?? 0),
+        0,
+      ),
+      contributors: submitInputs,
+      notes: notes || undefined,
+      activeSessionSwitch:
+        switchAction && activeConflicts.length > 0
+          ? {
+              action: switchAction,
+              reason: notes.trim() || undefined,
+              confirmedSessions: activeConflicts.map((conflict) => ({
+                sessionId: conflict.sessionId,
+                rowVersion: conflict.rowVersion,
+              })),
+            }
+          : undefined,
+    });
+  };
+
   const handleSubmit = () => {
     if (mode === "start") {
-      if (task.status === "on_hold" || task.status === "blocked") {
-        onSubmit({ type: "resume", taskId: task.id, notes: notes || undefined });
-        return;
-      }
-      const selected = assignedIds
-        .map((id) => users.find((user) => user.id === id))
-        .filter((user): user is UserOption => Boolean(user));
-      const primary = selected[0];
-      onSubmit({
-        type: "start",
-        taskId: task.id,
-        assignedTo: primary?.id,
-        assignedToName: primary?.name,
-        operatorId: primary?.id,
-        operatorName: primary?.name,
-        machineName: machineName || undefined,
-        quantityStarted,
-        contributors: selected.map((user) => ({
-          userId: user.id,
-          userName: user.name,
-          contributionPercent: CONTRIBUTION_TOTAL,
-        })),
-        notes: notes || undefined,
-      });
+      if (activeConflicts.length > 0) return;
+      submitStart();
       return;
     }
     if (mode === "complete") {
-      if (!contributionOk) return;
-      // Without share totals at 100%, keep as in-progress save (never complete).
-      const submitInputs =
-        isShared && !sharesOk
-          ? contributionInputs.map((person) => ({
-              ...person,
-              progressPercentage: Math.min(person.progressPercentage ?? 0, 99),
-            }))
-          : contributionInputs;
-      onSubmit({
-        type: "complete",
-        taskId: task.id,
-        completedQuantity: qtyTotal,
-        rejectedQuantity: submitInputs.reduce(
-          (sum, person) => sum + (person.rejectedQuantity ?? 0),
-          0,
-        ),
-        wasteQuantity: submitInputs.reduce(
-          (sum, person) => sum + (person.wasteQuantity ?? 0),
-          0,
-        ),
-        contributors: submitInputs,
-        notes: notes || undefined,
-      });
+      submitProgress();
       return;
     }
     if (mode === "hold") {
@@ -242,27 +304,54 @@ export function TaskActionDialogs({
       size={mode === "complete" ? "xl" : "md"}
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} disabled={loading}>
             Cancel
           </Button>
-          <Button
-            variant={willFinishTask && mode === "complete" ? "success" : "primary"}
-            loading={loading}
-            disabled={
-              (mode === "complete" && remaining > 0 && (!contributionOk || qtyTotal <= 0)) ||
-              (mode === "start" &&
-                task.status !== "on_hold" &&
-                task.status !== "blocked" &&
-                (quantityStarted <= 0 || quantityStarted > available))
-            }
-            onClick={handleSubmit}
-          >
-            {mode === "complete"
-              ? willFinishTask
-                ? "Complete task"
-                : "Save progress"
-              : "Save"}
-          </Button>
+          {(startingFresh || updatingProgress) && activeConflicts.length > 0 ? (
+            <>
+              <Button
+                variant="danger"
+                loading={loading}
+                disabled={
+                  updatingProgress
+                    ? !contributionOk
+                    : quantityStarted <= 0 || quantityStarted > available
+                }
+                onClick={() => (updatingProgress ? submitProgress("stop") : submitStart("stop"))}
+              >
+                Stop & Start New
+              </Button>
+              <Button
+                variant="primary"
+                loading={loading}
+                disabled={
+                  updatingProgress
+                    ? !contributionOk
+                    : quantityStarted <= 0 || quantityStarted > available
+                }
+                onClick={() => (updatingProgress ? submitProgress("pause") : submitStart("pause"))}
+              >
+                Pause & Start New
+              </Button>
+            </>
+          ) : (
+            <Button
+              variant={willFinishTask && mode === "complete" ? "success" : "primary"}
+              loading={loading}
+              disabled={
+                (mode === "complete" && remaining > 0 && (!contributionOk || qtyTotal <= 0)) ||
+                (startingFresh &&
+                  (assignedIds.length === 0 || quantityStarted <= 0 || quantityStarted > available))
+              }
+              onClick={handleSubmit}
+            >
+              {mode === "complete"
+                ? willFinishTask
+                  ? "Complete task"
+                  : "Save progress"
+                : "Save"}
+            </Button>
+          )}
         </>
       }
     >
@@ -327,30 +416,105 @@ export function TaskActionDialogs({
               openUnitNos={openUnitNos}
               requireTotal={qtyTotal > 0}
               separateQuantities
+              busyLabels={busyLabels}
             />
+            {activeConflicts.map((conflict) => (
+              <div
+                key={conflict.sessionId}
+                className="space-y-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-3 text-sm"
+              >
+                <p className="font-medium text-foreground">
+                  {conflict.employeeName} is currently working on another task.
+                </p>
+                <dl className="grid grid-cols-[7.5rem_1fr] gap-x-3 gap-y-1">
+                  <dt className="text-muted-foreground">Order</dt>
+                  <dd>{conflict.productionOrderNumber ?? "—"}</dd>
+                  <dt className="text-muted-foreground">Operation</dt>
+                  <dd>{conflict.operation}</dd>
+                  <dt className="text-muted-foreground">Started</dt>
+                  <dd>{formatDateTime(conflict.startedAt, "h:mm a")}</dd>
+                  <dt className="text-muted-foreground">Worked time</dt>
+                  <dd>{formatWorkedDuration(conflict.workedMinutes)}</dd>
+                  <dt className="text-muted-foreground">Progress</dt>
+                  <dd>
+                    {Number.isInteger(conflict.progressPercentage)
+                      ? `${conflict.progressPercentage}%`
+                      : `${conflict.progressPercentage.toFixed(1)}%`}
+                  </dd>
+                </dl>
+                <p>
+                  Pause or stop that work before saving {conflict.employeeName} on{" "}
+                  <span className="font-medium">{task.name}</span>. Progress on the current task
+                  stays as it is.
+                </p>
+              </div>
+            ))}
           </>
         )}
 
         {mode === "start" && (
           <>
             <p className="text-sm text-muted-foreground">
-              Assign workers and start quantity. Free capacity:{" "}
-              <span className="font-medium text-foreground">{available}</span> of{" "}
-              <span className="font-medium text-foreground">{task.plannedQuantity}</span>.
+              Choose who will do this work. If that person is already working on another task, you
+              must pause or stop it before this one starts.
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <MultiSelect
                   label="Workers"
                   placeholder="Select workers"
+                  hint={
+                    assignedIds.length === 0
+                      ? "Select a worker. People already working are marked in the list."
+                      : undefined
+                  }
                   value={assignedIds}
                   onChange={(ids) => {
                     setAssignedIds(ids);
                     setContributors(draftsFromUsers(ids, users, contributors));
                   }}
-                  options={users.map((user) => ({ value: user.id, label: user.name }))}
+                  options={users.map((user) => {
+                    const busy = busyByEmployee.get(user.id);
+                    return {
+                      value: user.id,
+                      label: busy
+                        ? `${user.name} — working on ${busy.productionOrderNumber ?? "another order"} / ${busy.operation}`
+                        : user.name,
+                    };
+                  })}
                 />
               </div>
+              {activeConflicts.map((conflict) => (
+                <div
+                  key={conflict.sessionId}
+                  className="sm:col-span-2 space-y-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-3 text-sm"
+                >
+                  <p className="font-medium text-foreground">
+                    {conflict.employeeName} is currently working on another task.
+                  </p>
+                  <dl className="grid grid-cols-[7.5rem_1fr] gap-x-3 gap-y-1">
+                    <dt className="text-muted-foreground">Order</dt>
+                    <dd>{conflict.productionOrderNumber ?? "—"}</dd>
+                    <dt className="text-muted-foreground">Operation</dt>
+                    <dd>{conflict.operation}</dd>
+                    <dt className="text-muted-foreground">Started</dt>
+                    <dd>{formatDateTime(conflict.startedAt, "h:mm a")}</dd>
+                    <dt className="text-muted-foreground">Worked time</dt>
+                    <dd>{formatWorkedDuration(conflict.workedMinutes)}</dd>
+                    <dt className="text-muted-foreground">Progress</dt>
+                    <dd>
+                      {Number.isInteger(conflict.progressPercentage)
+                        ? `${conflict.progressPercentage}%`
+                        : `${conflict.progressPercentage.toFixed(1)}%`}
+                    </dd>
+                  </dl>
+                  <p>
+                    Pause or stop that work before starting{" "}
+                    <span className="font-medium">{task.name}</span>. Progress on the current task
+                    stays as it is.
+                  </p>
+                </div>
+              ))}
               <Input
                 label="Start quantity"
                 type="number"

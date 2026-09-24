@@ -17,7 +17,7 @@ import {
 } from "@/features/sales/schemas/quotationSchema";
 import { formatCurrency, formatDate } from "@/lib/format";
 import type { Quotation } from "@/types/quotation";
-import { toast } from "sonner";
+import { toast } from "@/components/feedback/toast";
 
 export type DuplicateQuotationModalProps = {
   open: boolean;

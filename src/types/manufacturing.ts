@@ -1,3 +1,4 @@
+import type { ActiveSessionSwitch } from "@/types/employee-work";
 import type {
   ManufacturingJobStatusValue,
   ManufacturingTaskStatusValue,
@@ -13,6 +14,7 @@ export type ManufacturingTaskHistoryAction =
   | "ready"
   | "started"
   | "paused"
+  | "stopped"
   | "resumed"
   | "completed"
   | "on_hold"
@@ -327,9 +329,11 @@ export type ManufacturingTaskAction =
       quantityStarted?: number;
       contributors?: TaskContributorInput[];
       notes?: string;
+      /** Set only after the supervisor confirms a switch away from other active work. */
+      activeSessionSwitch?: ActiveSessionSwitch;
     }
   | { type: "pause"; taskId: string; notes?: string }
-  | { type: "resume"; taskId: string; notes?: string }
+  | { type: "resume"; taskId: string; notes?: string; activeSessionSwitch?: ActiveSessionSwitch }
   | { type: "hold"; taskId: string; notes?: string }
   | {
       type: "complete";
@@ -345,6 +349,8 @@ export type ManufacturingTaskAction =
       contributors?: TaskContributorInput[];
       notes?: string;
       materialsUsed?: TaskMaterialUsage[];
+      /** Set only after the supervisor confirms a switch away from other active work. */
+      activeSessionSwitch?: ActiveSessionSwitch;
     }
   | { type: "skip"; taskId: string; notes?: string }
   | { type: "block"; taskId: string; notes?: string }

@@ -38,6 +38,7 @@ import {
   defaultUnitProgressForComplete,
   ensureTaskUnits,
   overallUnitProgress,
+  setWorkerAssignmentStatus,
   taskStatusFromUnits,
   updateAssignedUnitProgress,
   validateUnitContributorInputs,
@@ -573,7 +574,7 @@ export function applyStartTask(
   actor: TaskActionActor,
 ): ManufacturingJob {
   const task = findTask(job, action.taskId);
-  if (task.status === "on_hold") {
+  if (task.status === "on_hold" || task.status === "paused") {
     return applyResumeTask(job, { type: "resume", taskId: task.id, notes: action.notes }, actor);
   }
   if (task.status !== "ready" && task.status !== "rework_required") {
@@ -675,21 +676,74 @@ export function applyPauseTask(
   if (task.status !== "in_progress") {
     invalidState(`Task "${task.name}" is not in progress.`);
   }
-  const updated = withHistory(
-    {
-      ...task,
-      pausedAt: nowIso(),
-      contributors: setContributorStatus(resolveTaskContributors(task), "paused", nowIso()),
-    },
-    actor,
-    "paused",
-    "ready",
-    action.notes,
-  );
+  const now = nowIso();
+  const units = setWorkerAssignmentStatus(ensureTaskUnits(task), null, "paused", now);
+  const withUnits = applyUnitsToTask({ ...task, pausedAt: now }, units);
+  const updated = withHistory(withUnits, actor, "paused", "paused", action.notes);
   return refreshJobDerivedFields({
     ...job,
     tasks: job.tasks.map((item) => (item.id === task.id ? updated : item)),
   }, actor);
+}
+
+/**
+ * Close one employee's active work on a task.
+ * Progress percentages are preserved. The task is not completed or cancelled.
+ * Pause keeps the assignment paused. Stop leaves the person assigned, not working.
+ * The task becomes Paused only when nobody else is still in progress.
+ */
+export function applyReleaseWorker(
+  job: ManufacturingJob,
+  input: {
+    taskId: string;
+    employeeId: string;
+    mode: "pause" | "stop";
+    notes?: string;
+  },
+  actor: TaskActionActor,
+): ManufacturingJob {
+  const task = job.tasks.find((item) => item.id === input.taskId);
+  if (!task) return job;
+  if (task.status === "completed" || task.status === "cancelled" || task.status === "skipped") {
+    return job;
+  }
+
+  const now = nowIso();
+  const source = ensureTaskUnits(task);
+  const before = source.map((unit) => unit.progressPercentage);
+  const units = setWorkerAssignmentStatus(
+    source,
+    input.employeeId,
+    input.mode === "pause" ? "paused" : "assigned",
+    now,
+  );
+  const after = units.map((unit) => unit.progressPercentage);
+  if (before.some((value, index) => Math.abs(value - (after[index] ?? value)) > 0.001)) {
+    invalidState("Task progress cannot be changed when pausing or stopping a work session.");
+  }
+
+  const anyoneWorking = units.some((unit) =>
+    unit.assignments.some((assignment) => assignment.status === "in_progress"),
+  );
+  const nextStatus = anyoneWorking ? task.status : "paused";
+  const withUnits = applyUnitsToTask(
+    { ...task, pausedAt: input.mode === "pause" ? now : task.pausedAt },
+    units,
+  );
+  const updated = withHistory(
+    withUnits,
+    actor,
+    input.mode === "pause" ? "paused" : "stopped",
+    nextStatus,
+    input.notes,
+  );
+  return refreshJobDerivedFields(
+    {
+      ...job,
+      tasks: job.tasks.map((item) => (item.id === task.id ? updated : item)),
+    },
+    actor,
+  );
 }
 
 export function applyResumeTask(
@@ -698,21 +752,18 @@ export function applyResumeTask(
   actor: TaskActionActor,
 ): ManufacturingJob {
   const task = findTask(job, action.taskId);
-  if (task.status !== "on_hold" && task.status !== "ready" && task.status !== "blocked") {
+  if (
+    task.status !== "on_hold" &&
+    task.status !== "ready" &&
+    task.status !== "blocked" &&
+    task.status !== "paused"
+  ) {
     invalidState(`Task "${task.name}" cannot be resumed.`);
   }
   const now = nowIso();
-  const updated = withHistory(
-    {
-      ...task,
-      pausedAt: undefined,
-      contributors: setContributorStatus(resolveTaskContributors(task), "in_progress", now),
-    },
-    actor,
-    "resumed",
-    "in_progress",
-    action.notes,
-  );
+  const units = setWorkerAssignmentStatus(ensureTaskUnits(task), null, "in_progress", now);
+  const withUnits = applyUnitsToTask({ ...task, pausedAt: undefined }, units);
+  const updated = withHistory(withUnits, actor, "resumed", "in_progress", action.notes);
   return refreshJobDerivedFields({
     ...job,
     status: job.status === "on_hold" ? "in_progress" : job.status,
@@ -814,7 +865,12 @@ export function applyCompleteTask(
   actor: TaskActionActor,
 ): ManufacturingJob {
   const task = findTask(job, action.taskId);
-  if (task.status !== "in_progress" && task.status !== "ready" && task.status !== "rework_required") {
+  if (
+    task.status !== "in_progress" &&
+    task.status !== "ready" &&
+    task.status !== "paused" &&
+    task.status !== "rework_required"
+  ) {
     invalidState(`Task "${task.name}" must be in progress before it can be completed.`);
   }
 
@@ -1287,6 +1343,7 @@ export function applyTaskAction(
 export function currentTask(job: ManufacturingJob): ManufacturingTask | undefined {
   return (
     job.tasks.find((task) => task.status === "in_progress") ??
+    job.tasks.find((task) => task.status === "paused") ??
     job.tasks.find((task) => task.status === "ready") ??
     job.tasks.find((task) => task.status === "rework_required")
   );
@@ -1305,11 +1362,12 @@ export function allowedTaskActions(task: ManufacturingTask): {
   return {
     start: task.status === "ready" || task.status === "rework_required",
     pause: task.status === "in_progress",
-    complete: task.status === "in_progress" || task.status === "ready",
-    hold: task.status === "ready" || task.status === "in_progress",
+    complete:
+      task.status === "in_progress" || task.status === "ready" || task.status === "paused",
+    hold: task.status === "ready" || task.status === "in_progress" || task.status === "paused",
     skip: !task.isRequired && (task.status === "pending" || task.status === "ready"),
     notes: task.status !== "cancelled",
     rework: task.status === "completed" || task.status === "rework_required",
-    resume: task.status === "on_hold" || task.status === "blocked",
+    resume: task.status === "on_hold" || task.status === "blocked" || task.status === "paused",
   };
 }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Plus, RefreshCw } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/feedback/toast";
 import { ROUTES } from "@/app/config/routes";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageContent } from "@/components/feedback/PageStates";
@@ -174,8 +174,12 @@ export function ManufacturingJobsPage() {
     try {
       const result = await updateStageMutation.mutateAsync({ id: selectedId });
       toast.success(`Advanced to ${result.currentTaskName || result.statusLabel}`);
-    } catch {
-      toast.error("Failed to update stage");
+    } catch (err) {
+      const message =
+        typeof err === "object" && err && "message" in err
+          ? String((err as { message: string }).message)
+          : "Failed to update stage";
+      toast.error(message);
     }
   };
 
@@ -197,8 +201,12 @@ export function ManufacturingJobsPage() {
     try {
       await releaseMutation.mutateAsync(selectedId);
       toast.success("Released to QC");
-    } catch {
-      toast.error("Failed to release to QC");
+    } catch (err) {
+      const message =
+        typeof err === "object" && err && "message" in err
+          ? String((err as { message: string }).message)
+          : "Failed to release to QC";
+      toast.error(message);
     }
   };
 

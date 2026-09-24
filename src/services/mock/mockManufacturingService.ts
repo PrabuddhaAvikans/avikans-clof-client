@@ -32,11 +32,11 @@ import { getApprovedManufacturingVersion } from "@/lib/productVersion";
 import {
   applyHoldProductionJob,
   applyStartProductionJob,
-  applyTaskAction,
   generateTasksFromOperations,
   isProductionJobCompletable,
   refreshJobDerivedFields,
 } from "@/lib/manufacturingTasks";
+import { commitGuardedTaskActionAsync } from "@/services/mock/guardedTaskAction";
 
 export const MANUFACTURING_ACTOR: TaskActionActor = {
   userId: "usr-004",
@@ -279,7 +279,6 @@ export const mockManufacturingService: ManufacturingService = {
 
   async applyTaskAction(id, action) {
     await delay();
-    const updated = applyTaskAction(requireJob(id), action, MANUFACTURING_ACTOR);
-    return replaceManufacturingJob(updated);
+    return commitGuardedTaskActionAsync(id, action, MANUFACTURING_ACTOR);
   },
 };

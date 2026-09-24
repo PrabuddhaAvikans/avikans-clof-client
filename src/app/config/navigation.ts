@@ -165,6 +165,28 @@ export const NAVIGATION: NavItem[] = [
     ],
   },
   {
+    id: "period-close",
+    label: "Period Close",
+    path: ROUTES.periodClose.day,
+    icon: "CalendarCheck",
+    children: [
+      {
+        id: "period-close-day",
+        label: "Day Close",
+        path: ROUTES.periodClose.day,
+        icon: "Calendar",
+        permission: "period_close:view",
+      },
+      {
+        id: "period-close-month",
+        label: "Monthly Close",
+        path: ROUTES.periodClose.month,
+        icon: "CalendarRange",
+        permission: "period_close:view",
+      },
+    ],
+  },
+  {
     id: "configuration",
     label: "Configuration",
     path: ROUTES.configuration.hub,

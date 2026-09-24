@@ -1,6 +1,6 @@
 import { useId, useRef, useState } from "react";
 import { ImagePlus, Trash2, Upload } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/feedback/toast";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import {

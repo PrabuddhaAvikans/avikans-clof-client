@@ -17,7 +17,7 @@ import {
 import { formatCurrency } from "@/lib/format";
 import type { Product } from "@/types/product";
 import { ProductTypeLabels } from "@/types/product";
-import { toast } from "sonner";
+import { toast } from "@/components/feedback/toast";
 
 export type DuplicateProductModalProps = {
   open: boolean;

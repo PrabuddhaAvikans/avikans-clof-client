@@ -16,6 +16,7 @@ export { mockReportService as reportService } from "@/services/mock/mockReportSe
 export { mockCostingService as costingService } from "@/services/mock/mockCostingService";
 export { mockProductionTrackingService as productionTrackingService } from "@/services/mock/mockProductionTrackingService";
 export { mockReprocessingService as reprocessingService } from "@/services/mock/mockReprocessingService";
+export { mockPeriodCloseService as periodCloseService } from "@/services/mock/mockPeriodCloseService";
 
 export type { AuthService, LoginCredentials } from "@/services/interfaces/authService";
 export type { ProductService, ProductListFilters } from "@/services/interfaces/productService";
@@ -41,3 +42,9 @@ export type {
   ReprocessingService,
   ReprocessingListFilters,
 } from "@/services/interfaces/reprocessingService";
+export type {
+  PeriodCloseService,
+  BusinessPeriodListFilters,
+  MonthlyPeriodListFilters,
+  CloseDayOptions,
+} from "@/services/interfaces/periodCloseService";

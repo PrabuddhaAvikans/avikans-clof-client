@@ -14,7 +14,14 @@ export function AppProviders({ children }: AppProvidersProps) {
     <Provider store={store}>
       <BrowserRouter>
         <ErrorBoundary>{children}</ErrorBoundary>
-        <Toaster richColors closeButton position="top-right" />
+        <Toaster
+          theme="light"
+          position="top-right"
+          offset={{ top: 72, right: 20 }}
+          mobileOffset={{ top: 16, right: 16, left: 16 }}
+          gap={12}
+          visibleToasts={4}
+        />
       </BrowserRouter>
     </Provider>
   );

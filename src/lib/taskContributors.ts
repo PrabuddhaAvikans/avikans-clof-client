@@ -132,6 +132,7 @@ export function contributorStatusFromTask(
 ): TaskContributorStatus {
   if (status === "completed") return "completed";
   if (status === "in_progress") return "in_progress";
+  if (status === "paused") return "paused";
   if (status === "on_hold") return "on_hold";
   if (status === "ready") return "paused";
   return "assigned";

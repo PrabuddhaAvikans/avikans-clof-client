@@ -6,6 +6,10 @@ import type { AuditLogEntry } from "@/types/audit";
 
 let logs = cloneData(initialAuditLogs);
 
+export function appendAuditLog(entry: AuditLogEntry): void {
+  logs = [entry, ...logs];
+}
+
 function dayStart(value: string): number {
   return new Date(`${value}T00:00:00`).getTime();
 }

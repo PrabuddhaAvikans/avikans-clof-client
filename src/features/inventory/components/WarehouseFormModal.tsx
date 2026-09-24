@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { toast } from "sonner";
+import { toast } from "@/components/feedback/toast";
 import { FormikForm, FormikInput, FormikSelect, FormikTextarea } from "@/components/forms";
 import { Button, Modal } from "@/components/ui";
 import {

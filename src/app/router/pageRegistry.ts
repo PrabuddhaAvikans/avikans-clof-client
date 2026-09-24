@@ -71,6 +71,10 @@ import {
   PaymentsPage,
 } from "@/features/sales/pages/SalesPages";
 import { FinanceInvoicesPage, FinanceCreditNotesPage } from "@/features/finance/pages/FinancePages";
+import {
+  DayCloseWorkspacePage,
+  MonthlyCloseWorkspacePage,
+} from "@/features/period-close/pages/PeriodClosePages";
 import { CostingApprovalWorkspacePage } from "@/features/costing/pages/CostingApprovalWorkspacePage";
 import { EstimationWorkspacePage } from "@/features/costing/pages/EstimationWorkspacePage";
 import { NotFoundPage } from "@/features/shared/pages/NotFoundPage";
@@ -94,6 +98,8 @@ export const PAGE_REGISTRY = {
   InvoicesPage,
   FinanceInvoicesPage,
   FinanceCreditNotesPage,
+  DayCloseWorkspacePage,
+  MonthlyCloseWorkspacePage,
   CustomerListPage,
   CustomerFormPage,
   CustomerGroupsPage,

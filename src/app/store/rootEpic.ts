@@ -17,6 +17,7 @@ import { notificationsEpic } from "@/features/admin/store/notificationsEpics";
 import { dashboardEpic } from "@/features/dashboard/store/dashboardEpics";
 import { reportsEpic } from "@/features/reports/store/reportsEpics";
 import { reprocessingEpic } from "@/features/reprocessing/store/reprocessingEpics";
+import { periodCloseEpic } from "@/features/period-close/store/periodCloseEpics";
 
 export const rootEpic: AppEpic = combineEpics(
   salesOrdersEpic,
@@ -36,4 +37,5 @@ export const rootEpic: AppEpic = combineEpics(
   dashboardEpic,
   reportsEpic,
   reprocessingEpic,
+  periodCloseEpic,
 );

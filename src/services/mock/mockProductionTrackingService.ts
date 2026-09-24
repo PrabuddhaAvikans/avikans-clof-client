@@ -10,11 +10,11 @@ import { MANUFACTURING_ACTOR } from "@/services/mock/mockManufacturingService";
 import {
   applyHoldProductionJob,
   applyStartProductionJob,
-  applyStartTask,
   applyCompleteTask,
   currentTask,
   remainingQuantity,
 } from "@/lib/manufacturingTasks";
+import { commitGuardedTaskActionAsync } from "@/services/mock/guardedTaskAction";
 import {
   buildProductionTrackingSnapshot,
   toProductionJobView,
@@ -89,21 +89,22 @@ export const mockProductionTrackingService: ProductionTrackingService = {
     }
     const updated =
       active.status === "in_progress"
-        ? applyCompleteTask(
-            job,
-            {
-              type: "complete",
-              taskId: active.id,
-              completedQuantity: remainingQuantity(active),
-            },
-            MANUFACTURING_ACTOR,
+        ? replaceManufacturingJob(
+            applyCompleteTask(
+              job,
+              {
+                type: "complete",
+                taskId: active.id,
+                completedQuantity: remainingQuantity(active),
+              },
+              MANUFACTURING_ACTOR,
+            ),
           )
-        : applyStartTask(
-            job,
+        : await commitGuardedTaskActionAsync(
+            job.id,
             { type: "start", taskId: active.id },
             MANUFACTURING_ACTOR,
           );
-    replaceManufacturingJob(updated);
     return toProductionJobView(updated);
   },
 
@@ -132,9 +133,13 @@ export const mockProductionTrackingService: ProductionTrackingService = {
     }
     const updated =
       qcTask.status === "ready" || qcTask.status === "rework_required"
-        ? applyStartTask(job, { type: "start", taskId: qcTask.id }, MANUFACTURING_ACTOR)
+        ? await commitGuardedTaskActionAsync(
+            job.id,
+            { type: "start", taskId: qcTask.id },
+            MANUFACTURING_ACTOR,
+          )
         : job;
-    replaceManufacturingJob(updated);
+    if (updated !== job) replaceManufacturingJob(updated);
     return toProductionJobView(updated);
   },
 };

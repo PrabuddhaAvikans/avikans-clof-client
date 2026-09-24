@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { Building2, Calculator, Globe, RotateCcw, Save } from "lucide-react";
-import { toast } from "sonner";
+import { Building2, Calculator, Factory, Globe, RotateCcw, Save } from "lucide-react";
+import { toast } from "@/components/feedback/toast";
 import { ROUTES } from "@/app/config/routes";
 import { PageHeader } from "@/components/feedback/PageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -54,6 +54,12 @@ const SECTIONS = [
     label: "Costing rates",
     description: "Labour and overtime",
     icon: Calculator,
+  },
+  {
+    id: "production",
+    label: "Production work",
+    description: "Active tasks per employee",
+    icon: Factory,
   },
 ] as const;
 
@@ -386,6 +392,49 @@ export function SystemSettingsPage() {
                         onChange={(event) => update("autoExpireQuotations", event.target.checked)}
                       />
                     </div>
+                  </SectionCard>
+                )}
+
+                {section === "production" && (
+                  <SectionCard
+                    title="Concurrent work"
+                    description="Employees can be assigned to many tasks. By default only one of those tasks can be actively worked at a time."
+                  >
+                    <Switch
+                      label="Allow concurrent work"
+                      description="When off, starting another task asks the supervisor to pause or stop the current work session first."
+                      checked={draft.allowConcurrentWork}
+                      disabled={!canEdit}
+                      onChange={(event) => {
+                        const allowConcurrentWork = event.target.checked;
+                        setDraft((current) => ({
+                          ...current,
+                          allowConcurrentWork,
+                          maxConcurrentTasks:
+                            allowConcurrentWork && current.maxConcurrentTasks < 2
+                              ? 2
+                              : current.maxConcurrentTasks,
+                        }));
+                      }}
+                    />
+                    <Input
+                      label="Max concurrent tasks"
+                      type="number"
+                      min={1}
+                      value={draft.allowConcurrentWork ? draft.maxConcurrentTasks : 1}
+                      disabled={!canEdit || !draft.allowConcurrentWork}
+                      hint={
+                        draft.allowConcurrentWork
+                          ? "Role or operation rules can set a different limit for specific work."
+                          : "One active task per employee. Other assignments stay queued."
+                      }
+                      onChange={(event) =>
+                        update(
+                          "maxConcurrentTasks",
+                          event.target.value === "" ? 1 : Math.max(1, Number(event.target.value)),
+                        )
+                      }
+                    />
                   </SectionCard>
                 )}
 

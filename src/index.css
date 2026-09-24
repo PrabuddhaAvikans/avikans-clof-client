@@ -174,3 +174,26 @@ textarea:disabled {
   color: var(--foreground);
   letter-spacing: 0.01em;
 }
+
+/* Custom toasts render inside Sonner. The shell stays invisible so the card owns the look. */
+html [data-sonner-toaster] {
+  font-family: var(--font-sans);
+  --width: 360px;
+  --normal-bg: var(--card);
+  --normal-border: var(--border);
+  --normal-text: var(--foreground);
+}
+
+html [data-sonner-toast]:has(.app-toast) {
+  width: min(360px, calc(100vw - 2rem));
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+html [data-sonner-toast]:has(.app-toast) [data-content],
+html [data-sonner-toast]:has(.app-toast) [data-title] {
+  display: block;
+  width: 100%;
+}

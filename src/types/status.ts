@@ -60,6 +60,7 @@ export const ManufacturingTaskStatus = {
   pending: { label: "Pending", variant: "secondary" },
   ready: { label: "Ready", variant: "info" },
   in_progress: { label: "In Progress", variant: "default" },
+  paused: { label: "Paused", variant: "warning" },
   completed: { label: "Completed", variant: "success" },
   on_hold: { label: "On Hold", variant: "warning" },
   blocked: { label: "Blocked", variant: "destructive" },

@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Copy, Package, Phone } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/feedback/toast";
 import { ROUTES } from "@/app/config/routes";
 import { AttachmentPanel } from "@/components/ui/AttachmentPanel";
 import { Button } from "@/components/ui/Button";

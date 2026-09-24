@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useFormikContext } from "formik";
-import { toast } from "sonner";
+import { toast } from "@/components/feedback/toast";
 import { ArrowLeft, Copy, Save } from "lucide-react";
 import { ROUTES } from "@/app/config/routes";
 import { PageContainer } from "@/components/layout/PageContainer";

@@ -10,7 +10,7 @@ import {
   Package,
   Truck,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/feedback/toast";
 import { ROUTES } from "@/app/config/routes";
 import { BrandLogo } from "@/components/layout/BrandLogo";
 import {
