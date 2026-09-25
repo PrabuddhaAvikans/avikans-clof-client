@@ -45,6 +45,7 @@ function SalesOrderItemsSync() {
       void setFieldValue("items", []);
       return;
     }
+    void setFieldValue("priority", selectedOrder.priority);
     void setFieldValue(
       "items",
       selectedOrder.lineItems.map((item) => ({

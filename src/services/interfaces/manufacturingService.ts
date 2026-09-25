@@ -5,7 +5,9 @@ import type {
   ManufacturingTaskAction,
   ProductionCompletionInput,
   QualityInspection,
+  TaskContributorInput,
 } from "@/types/manufacturing";
+import type { ActiveSessionSwitch } from "@/types/employee-work";
 import type {
   ManufacturingJobStatusValue,
   PriorityValue,
@@ -33,6 +35,25 @@ export interface ManufacturingJobFormData {
   qualityInspection?: QualityInspection;
 }
 
+export interface BulkCompleteTaskEntry {
+  taskId: string;
+  completedQuantity?: number;
+  rejectedQuantity?: number;
+  wasteQuantity?: number;
+  contributors?: TaskContributorInput[];
+  actualHours?: number;
+  normalOvertimeHours?: number;
+  doubleOvertimeHours?: number;
+  notes?: string;
+}
+
+export interface BulkCompleteTasksInput {
+  tasks?: BulkCompleteTaskEntry[];
+  taskIds?: string[];
+  notes?: string;
+  activeSessionSwitch?: ActiveSessionSwitch;
+}
+
 export interface ManufacturingService {
   list(filters: ManufacturingListFilters): Promise<PaginatedResponse<ManufacturingJob>>;
   getById(id: string): Promise<ManufacturingJob>;
@@ -44,4 +65,5 @@ export interface ManufacturingService {
   completeJob(id: string, completion?: ProductionCompletionInput): Promise<ManufacturingJob>;
   holdJob(id: string, reason?: string): Promise<ManufacturingJob>;
   applyTaskAction(id: string, action: ManufacturingTaskAction): Promise<ManufacturingJob>;
+  completeTasks(id: string, input: BulkCompleteTasksInput): Promise<ManufacturingJob>;
 }

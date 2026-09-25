@@ -32,6 +32,23 @@ type UpdateArg = { id: string; data: Partial<ManufacturingJobFormData> };
 type TaskActionArg = { id: string; action: ManufacturingTaskAction };
 type HoldArg = { id: string; reason?: string };
 type CompleteArg = { id: string; completion?: ProductionCompletionInput };
+type BulkCompleteArg = {
+  id: string;
+  tasks?: {
+    taskId: string;
+    completedQuantity?: number;
+    rejectedQuantity?: number;
+    wasteQuantity?: number;
+    contributors?: import("@/types/manufacturing").TaskContributorInput[];
+    actualHours?: number;
+    normalOvertimeHours?: number;
+    doubleOvertimeHours?: number;
+    notes?: string;
+  }[];
+  taskIds?: string[];
+  notes?: string;
+  activeSessionSwitch?: import("@/types/employee-work").ActiveSessionSwitch;
+};
 
 export type ManufacturingState = {
   lists: Record<string, AsyncEntry<ListData>>;
@@ -43,6 +60,7 @@ export type ManufacturingState = {
   complete: MutationEntry;
   hold: MutationEntry;
   taskAction: MutationEntry;
+  bulkComplete: MutationEntry;
 };
 
 const initialState: ManufacturingState = {
@@ -55,6 +73,7 @@ const initialState: ManufacturingState = {
   complete: createMutationEntry(),
   hold: createMutationEntry(),
   taskAction: createMutationEntry(),
+  bulkComplete: createMutationEntry(),
 };
 
 function upsertDetail(state: ManufacturingState, job: ManufacturingJob): void {
@@ -183,6 +202,18 @@ const manufacturingSlice = createSlice({
     },
     taskActionFailure(state, action: PayloadAction<FailurePayload>) {
       setMutationFailure(state.taskAction, action);
+    },
+
+    bulkCompleteRequest(state, _action: PayloadAction<RequestPayload<BulkCompleteArg>>) {
+      setMutationLoading(state.bulkComplete);
+    },
+    bulkCompleteSuccess(state, action: PayloadAction<SuccessPayload<ManufacturingJob>>) {
+      setMutationSuccess(state.bulkComplete);
+      upsertDetail(state, action.payload.data);
+      invalidateEntries(state.lists);
+    },
+    bulkCompleteFailure(state, action: PayloadAction<FailurePayload>) {
+      setMutationFailure(state.bulkComplete, action);
     },
 
     invalidateAll(state) {

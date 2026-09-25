@@ -5,6 +5,7 @@ import { deliveriesActions } from "@/features/delivery/store/deliveriesSlice";
 import type { DeliveryFormData, DeliveryListFilters } from "@/services";
 import type { Delivery, ProofOfDelivery } from "@/types/delivery";
 import type { PaginatedResponse } from "@/types/common";
+import type { DeliveryStatusValue } from "@/types/status";
 
 export function useDeliveries(filters: DeliveryListFilters) {
   return useEpicQuery<DeliveryListFilters, PaginatedResponse<Delivery>>({
@@ -38,6 +39,16 @@ export function useUpdateDelivery() {
   >({
     request: deliveriesActions.updateRequest,
     selectMutation: (state: RootState) => state.deliveries.update,
+  });
+}
+
+export function useUpdateDeliveryStatus() {
+  return useEpicMutation<
+    { id: string; status: DeliveryStatusValue },
+    Delivery
+  >({
+    request: deliveriesActions.updateStatusRequest,
+    selectMutation: (state: RootState) => state.deliveries.updateStatus,
   });
 }
 

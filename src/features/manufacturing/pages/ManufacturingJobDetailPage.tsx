@@ -26,6 +26,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SummaryCard } from "@/components/ui/SummaryCard";
 import { Tab, TabList, TabPanel, Tabs } from "@/components/ui/Tabs";
 import { ActiveWorkSwitchDialog } from "@/features/manufacturing/components/ActiveWorkSwitchDialog";
+import { BulkCompleteTasksDialog } from "@/features/manufacturing/components/BulkCompleteTasksDialog";
 import {
   TaskActionDialogs,
   type TaskDialogMode,
@@ -33,6 +34,7 @@ import {
 import { CompleteJobDialog } from "@/features/manufacturing/components/CompleteJobDialog";
 import { JobDayCloseLinkPanel } from "@/features/manufacturing/components/JobDayCloseLinkPanel";
 import {
+  useBulkCompleteManufacturingTasks,
   useCompleteManufacturingJob,
   useManufacturingJob,
   useManufacturingTaskAction,
@@ -52,6 +54,7 @@ import {
   allowedTaskActions,
   calculateJobLaborBreakdown,
   calculateTaskLaborCost,
+  eligibleBulkCompleteTasks,
   formatDurationHours,
   formatOvertimeBreakdown,
   isProductionJobCompletable,
@@ -76,6 +79,7 @@ export function ManufacturingJobDetailPage() {
   const { data: job, isLoading, error, refetch } = useManufacturingJob(id);
   const startJob = useStartManufacturingJob();
   const completeJob = useCompleteManufacturingJob();
+  const bulkComplete = useBulkCompleteManufacturingTasks();
   const taskAction = useManufacturingTaskAction();
   const { data: usersData } = useUsers({ page: 1, pageSize: 50 });
   const dialogUsers = useMemo(
@@ -87,8 +91,24 @@ export function ManufacturingJobDetailPage() {
   const [dialogTask, setDialogTask] = useState<ManufacturingTask | null>(null);
   const [dialogMode, setDialogMode] = useState<TaskDialogMode>(null);
   const [completeOpen, setCompleteOpen] = useState(false);
+  const [bulkCompleteOpen, setBulkCompleteOpen] = useState(false);
   const [pendingSwitch, setPendingSwitch] = useState<{
-    action: ManufacturingTaskAction;
+    action?: ManufacturingTaskAction;
+    bulk?: {
+      tasks?: {
+        taskId: string;
+        completedQuantity?: number;
+        rejectedQuantity?: number;
+        wasteQuantity?: number;
+        contributors?: import("@/types/manufacturing").TaskContributorInput[];
+        actualHours?: number;
+        normalOvertimeHours?: number;
+        doubleOvertimeHours?: number;
+        notes?: string;
+      }[];
+      taskIds?: string[];
+      notes?: string;
+    };
     conflicts: ActiveWorkConflict[];
     nextOrderNumber: string;
     nextOperation: string;
@@ -153,6 +173,60 @@ export function ManufacturingJobDetailPage() {
         typeof err === "object" && err && "message" in err
           ? String((err as { message: string }).message)
           : "Failed to update task";
+      toast.error(message);
+    }
+  };
+
+  const canBulkComplete = job ? eligibleBulkCompleteTasks(job).length > 0 : false;
+
+  const runBulkComplete = async (input: {
+    tasks?: {
+      taskId: string;
+      completedQuantity?: number;
+      rejectedQuantity?: number;
+      wasteQuantity?: number;
+      contributors?: import("@/types/manufacturing").TaskContributorInput[];
+      actualHours?: number;
+      normalOvertimeHours?: number;
+      doubleOvertimeHours?: number;
+      notes?: string;
+    }[];
+    taskIds?: string[];
+    notes?: string;
+    activeSessionSwitch?: import("@/types/employee-work").ActiveSessionSwitch;
+  }) => {
+    if (!job) return;
+    const count = input.tasks?.length ?? input.taskIds?.length ?? 0;
+    try {
+      await bulkComplete.mutateAsync({ id: job.id, ...input });
+      toast.success(count === 1 ? "Task completed" : `${count} tasks completed`);
+      setBulkCompleteOpen(false);
+      setPendingSwitch(null);
+      void refetch();
+    } catch (err) {
+      if (isActiveWorkConfirmationError(err)) {
+        setBulkCompleteOpen(false);
+        const firstId = input.tasks?.[0]?.taskId ?? input.taskIds?.[0];
+        setPendingSwitch({
+          bulk: {
+            tasks: input.tasks,
+            taskIds: input.taskIds,
+            notes: input.notes,
+          },
+          conflicts: err.conflicts,
+          nextOrderNumber: job.jobNumber,
+          nextOperation:
+            count === 1
+              ? job.tasks.find((task) => task.id === firstId)?.name ?? "Selected task"
+              : `${count} selected tasks`,
+        });
+        if (input.activeSessionSwitch) toast.error(err.message);
+        return;
+      }
+      const message =
+        typeof err === "object" && err && "message" in err
+          ? String((err as { message: string }).message)
+          : "Failed to complete tasks";
       toast.error(message);
     }
   };
@@ -258,37 +332,49 @@ export function ManufacturingJobDetailPage() {
               </TabList>
 
               <TabPanel value="tasks">
-                <div className="mb-3 flex flex-wrap gap-2">
-                  {(job.status === "ready_to_start" || job.status === "planned" || job.status === "draft") && (
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {(job.status === "ready_to_start" || job.status === "planned" || job.status === "draft") && (
+                      <Button
+                        size="sm"
+                        leftIcon={<Play className="h-4 w-4" />}
+                        loading={startJob.isPending}
+                        onClick={() => {
+                          void startJob.mutateAsync(job.id).then(() => {
+                            toast.success("Production job started");
+                            void refetch();
+                          });
+                        }}
+                      >
+                        Start Job
+                      </Button>
+                    )}
                     <Button
                       size="sm"
-                      leftIcon={<Play className="h-4 w-4" />}
-                      loading={startJob.isPending}
-                      onClick={() => {
-                        void startJob.mutateAsync(job.id).then(() => {
-                          toast.success("Production job started");
-                          void refetch();
-                        });
-                      }}
+                      variant="success"
+                      leftIcon={<CheckCircle className="h-4 w-4" />}
+                      loading={completeJob.isPending}
+                      disabled={!canComplete || job.status === "completed"}
+                      onClick={() => setCompleteOpen(true)}
                     >
-                      Start Job
+                      Complete Job
                     </Button>
-                  )}
+                    {!canComplete && (
+                      <p className="self-center text-xs text-muted-foreground">
+                        Complete all required tasks and pass QC before closing the job.
+                      </p>
+                    )}
+                  </div>
                   <Button
                     size="sm"
-                    variant="success"
+                    variant="outline"
+                    className="ml-auto"
                     leftIcon={<CheckCircle className="h-4 w-4" />}
-                    loading={completeJob.isPending}
-                    disabled={!canComplete || job.status === "completed"}
-                    onClick={() => setCompleteOpen(true)}
+                    disabled={!canBulkComplete || job.status === "completed"}
+                    onClick={() => setBulkCompleteOpen(true)}
                   >
-                    Complete Job
+                    Complete multiple tasks
                   </Button>
-                  {!canComplete && (
-                    <p className="self-center text-xs text-muted-foreground">
-                      Complete all required tasks and pass QC before closing the job.
-                    </p>
-                  )}
                 </div>
                 <div className="overflow-x-auto rounded-lg border border-border bg-card">
                   <table className="w-full text-sm">
@@ -784,30 +870,54 @@ export function ManufacturingJobDetailPage() {
         conflicts={pendingSwitch?.conflicts ?? NO_WORK_CONFLICTS}
         nextOrderNumber={pendingSwitch?.nextOrderNumber ?? ""}
         nextOperation={pendingSwitch?.nextOperation ?? ""}
-        loading={taskAction.isPending}
+        intent={pendingSwitch?.bulk ? "complete" : "start"}
+        loading={taskAction.isPending || bulkComplete.isPending}
         onCancel={() => setPendingSwitch(null)}
         onConfirm={(mode, reason) => {
           if (!pendingSwitch) return;
+          const switchPayload = {
+            action: mode,
+            reason: reason?.trim() || undefined,
+            confirmedSessions: pendingSwitch.conflicts.map((conflict) => ({
+              sessionId: conflict.sessionId,
+              rowVersion: conflict.rowVersion,
+            })),
+          };
+
+          if (pendingSwitch.bulk) {
+            void runBulkComplete({
+              ...pendingSwitch.bulk,
+              activeSessionSwitch: switchPayload,
+            });
+            return;
+          }
+
           const base = pendingSwitch.action;
-          if (base.type !== "start" && base.type !== "resume" && base.type !== "complete") return;
+          if (!base || (base.type !== "start" && base.type !== "resume" && base.type !== "complete")) {
+            return;
+          }
           const success =
             mode === "pause"
-              ? `Paused current work and started ${pendingSwitch.nextOperation}`
-              : `Stopped current work and started ${pendingSwitch.nextOperation}`;
+              ? `Paused current work and continued ${pendingSwitch.nextOperation}`
+              : `Stopped current work and continued ${pendingSwitch.nextOperation}`;
           void runAction(
             {
               ...base,
-              activeSessionSwitch: {
-                action: mode,
-                reason: reason?.trim() || undefined,
-                confirmedSessions: pendingSwitch.conflicts.map((conflict) => ({
-                  sessionId: conflict.sessionId,
-                  rowVersion: conflict.rowVersion,
-                })),
-              },
+              activeSessionSwitch: switchPayload,
             },
             success,
           );
+        }}
+      />
+
+      <BulkCompleteTasksDialog
+        job={job ?? null}
+        open={bulkCompleteOpen}
+        users={dialogUsers}
+        loading={bulkComplete.isPending}
+        onClose={() => setBulkCompleteOpen(false)}
+        onSubmit={(input) => {
+          void runBulkComplete(input);
         }}
       />
 

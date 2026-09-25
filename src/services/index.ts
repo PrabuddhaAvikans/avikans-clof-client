@@ -26,7 +26,7 @@ export type { InventoryService, InventoryListFilters, InventoryFormData, StockMo
 export type { CustomerService, CustomerListFilters, CustomerFormData } from "@/services/interfaces/customerService";
 export type { QuotationService, QuotationListFilters, QuotationFormData, QuotationContactInput } from "@/services/interfaces/quotationService";
 export type { SalesOrderService, SalesOrderListFilters, SalesOrderFormData } from "@/services/interfaces/salesOrderService";
-export type { ManufacturingService, ManufacturingListFilters, ManufacturingJobFormData } from "@/services/interfaces/manufacturingService";
+export type { ManufacturingService, ManufacturingListFilters, ManufacturingJobFormData, BulkCompleteTasksInput } from "@/services/interfaces/manufacturingService";
 export type { DeliveryService, DeliveryListFilters, DeliveryFormData } from "@/services/interfaces/deliveryService";
 export type { UserService, UserListFilters, UserFormData, RoleService, RoleListFilters, RoleFormData, RoleGroupFormData } from "@/services/interfaces/userService";
 export type { AuditService, AuditLogListFilters } from "@/services/interfaces/auditService";

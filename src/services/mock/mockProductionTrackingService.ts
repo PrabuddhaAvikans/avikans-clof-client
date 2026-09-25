@@ -15,6 +15,7 @@ import {
   remainingQuantity,
 } from "@/lib/manufacturingTasks";
 import { commitGuardedTaskActionAsync } from "@/services/mock/guardedTaskAction";
+import { getDeliveries } from "@/services/mock/mockDeliveryService";
 import {
   buildProductionTrackingSnapshot,
   toProductionJobView,
@@ -29,7 +30,7 @@ function requireJob(id: string) {
 export const mockProductionTrackingService: ProductionTrackingService = {
   async getSnapshot() {
     await delay();
-    return buildProductionTrackingSnapshot(getManufacturingJobs());
+    return buildProductionTrackingSnapshot(getManufacturingJobs(), getDeliveries());
   },
 
   async listJobs(filters) {

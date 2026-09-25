@@ -33,6 +33,14 @@ const updateEpic = createAsyncEpic({
   mode: "merge",
 });
 
+const updateStatusEpic = createAsyncEpic({
+  request: deliveriesActions.updateStatusRequest,
+  success: deliveriesActions.updateStatusSuccess,
+  failure: deliveriesActions.updateStatusFailure,
+  handler: ({ id, status }) => deliveryService.updateStatus(id, status),
+  mode: "merge",
+});
+
 const dispatchEpic = createAsyncEpic({
   request: deliveriesActions.dispatchRequest,
   success: deliveriesActions.dispatchSuccess,
@@ -54,6 +62,7 @@ export const deliveriesEpic = combineEpics(
   fetchDetailEpic,
   createEpic,
   updateEpic,
+  updateStatusEpic,
   dispatchEpic,
   recordProofEpic,
 );

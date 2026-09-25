@@ -1,5 +1,6 @@
 import { generateId, nowIso } from "@/services/http";
 import type { ProductOperation } from "@/types/product";
+import type { ActiveSessionSwitch } from "@/types/employee-work";
 import type {
   ManufacturingJob,
   ManufacturingRework,
@@ -22,6 +23,7 @@ import {
   type LaborCostBreakdown,
 } from "@/lib/laborCost";
 import {
+  allocateByShares,
   defaultCompleteContributors,
   quantityTotal,
   resetContributorProgress,
@@ -1369,5 +1371,149 @@ export function allowedTaskActions(task: ManufacturingTask): {
     notes: task.status !== "cancelled",
     rework: task.status === "completed" || task.status === "rework_required",
     resume: task.status === "on_hold" || task.status === "blocked" || task.status === "paused",
+  };
+}
+
+/** Open tasks shown in the bulk-complete panel (including pending that unlock in-batch). */
+export function eligibleBulkCompleteTasks(job: ManufacturingJob): ManufacturingTask[] {
+  return job.tasks
+    .filter(
+      (task) =>
+        task.status !== "completed" &&
+        task.status !== "skipped" &&
+        task.status !== "cancelled" &&
+        (remainingQuantity(task) > 0 ||
+          task.status === "pending" ||
+          task.status === "ready" ||
+          task.status === "rework_required"),
+    )
+    .sort((left, right) => left.sequence - right.sequence);
+}
+
+/**
+ * A pending task can be selected when every incomplete prerequisite is also selected
+ * (those finish earlier in the same batch, then this task becomes ready).
+ */
+export function isBulkCompleteSelectable(
+  task: ManufacturingTask,
+  job: ManufacturingJob,
+  selectedIds: string[],
+): boolean {
+  if (
+    task.status === "completed" ||
+    task.status === "skipped" ||
+    task.status === "cancelled" ||
+    task.status === "on_hold" ||
+    task.status === "blocked"
+  ) {
+    return false;
+  }
+  if (allowedTaskActions(task).complete) return true;
+
+  return task.prerequisiteTaskIds.every((prereqId) => {
+    const prereq = job.tasks.find((item) => item.id === prereqId);
+    if (!prereq) return true;
+    if (prereq.status === "completed" || prereq.status === "skipped") return true;
+    return selectedIds.includes(prereqId);
+  });
+}
+
+/** Incomplete prerequisites that must be included when selecting a later task. */
+export function incompleteBulkPrerequisites(
+  task: ManufacturingTask,
+  job: ManufacturingJob,
+): string[] {
+  const needed: string[] = [];
+  const visit = (taskId: string) => {
+    const current = job.tasks.find((item) => item.id === taskId);
+    if (!current) return;
+    for (const prereqId of current.prerequisiteTaskIds) {
+      const prereq = job.tasks.find((item) => item.id === prereqId);
+      if (!prereq) continue;
+      if (prereq.status === "completed" || prereq.status === "skipped") continue;
+      if (!needed.includes(prereqId)) {
+        needed.push(prereqId);
+        visit(prereqId);
+      }
+    }
+  };
+  visit(task.id);
+  return needed;
+}
+
+/**
+ * Finish quantity on a task (defaults to all remaining) at 100% progress for that qty.
+ * Uses people already on the task when present.
+ * Optional Hours / OT / DOT are split evenly across those people.
+ */
+export function buildFinishRemainingTaskAction(
+  task: ManufacturingTask,
+  actor: TaskActionActor,
+  options?: {
+    notes?: string;
+    /** How many items to finish now (capped to remaining). Defaults to all remaining. */
+    completedQuantity?: number;
+    actualHours?: number;
+    normalOvertimeHours?: number;
+    doubleOvertimeHours?: number;
+    activeSessionSwitch?: ActiveSessionSwitch;
+  },
+): Extract<ManufacturingTaskAction, { type: "complete" }> {
+  const remaining = remainingQuantity(task);
+  const finishQty = Math.min(
+    remaining,
+    Math.max(
+      0,
+      options?.completedQuantity != null && !Number.isNaN(options.completedQuantity)
+        ? Math.floor(options.completedQuantity)
+        : remaining,
+    ),
+  );
+  const existing = resolveTaskContributors(task);
+  const estimatedForQty =
+    remaining > 0
+      ? round2((remainingEstimatedHours(task) * finishQty) / remaining)
+      : remainingEstimatedHours(task);
+  const hoursTotal =
+    options?.actualHours != null && !Number.isNaN(options.actualHours)
+      ? Math.max(0, options.actualHours)
+      : estimatedForQty;
+  const otTotal = Math.max(0, options?.normalOvertimeHours ?? 0);
+  const dotTotal = Math.max(0, options?.doubleOvertimeHours ?? 0);
+
+  const base = defaultCompleteContributors(existing, actor, {
+    quantity: finishQty,
+    estimatedHours: hoursTotal,
+  });
+  const shares = base.map(() => 1);
+  const hourParts = allocateByShares(hoursTotal, shares);
+  const otParts = allocateByShares(otTotal, shares);
+  const dotParts = allocateByShares(dotTotal, shares);
+
+  const contributors = base.map((person, index) => {
+    const hours = hourParts[index] ?? 0;
+    const ot = otParts[index] ?? 0;
+    const dot = dotParts[index] ?? 0;
+    return {
+      ...person,
+      progressPercentage: 100,
+      actualHours: hours || undefined,
+      normalOvertimeHours: ot || undefined,
+      doubleOvertimeHours: dot || undefined,
+      overtimeHours: ot + dot > 0 ? ot + dot : undefined,
+    };
+  });
+
+  return {
+    type: "complete",
+    taskId: task.id,
+    completedQuantity: finishQty,
+    actualHours: hoursTotal || undefined,
+    overtimeHours: otTotal + dotTotal > 0 ? otTotal + dotTotal : undefined,
+    normalOvertimeHours: otTotal || undefined,
+    doubleOvertimeHours: dotTotal || undefined,
+    contributors,
+    notes: options?.notes,
+    activeSessionSwitch: options?.activeSessionSwitch,
   };
 }

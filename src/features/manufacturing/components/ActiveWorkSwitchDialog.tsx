@@ -11,6 +11,8 @@ type Props = {
   nextOrderNumber: string;
   nextOperation: string;
   loading?: boolean;
+  /** When completing tasks, wording is "continue" instead of "start". */
+  intent?: "start" | "complete";
   onCancel: () => void;
   onConfirm: (action: "pause" | "stop", reason?: string) => void;
 };
@@ -25,11 +27,13 @@ export function ActiveWorkSwitchDialog({
   nextOrderNumber,
   nextOperation,
   loading,
+  intent = "start",
   onCancel,
   onConfirm,
 }: Props) {
   const [reason, setReason] = useState("");
   const [pendingAction, setPendingAction] = useState<"pause" | "stop" | null>(null);
+  const continueVerb = intent === "complete" ? "Complete" : "Start";
 
   useEffect(() => {
     setReason("");
@@ -59,7 +63,7 @@ export function ActiveWorkSwitchDialog({
               onConfirm("stop", reason);
             }}
           >
-            Stop & Start New
+            Stop & {continueVerb}
           </Button>
           <Button
             variant="primary"
@@ -70,7 +74,7 @@ export function ActiveWorkSwitchDialog({
               onConfirm("pause", reason);
             }}
           >
-            Pause & Start New
+            Pause & {continueVerb}
           </Button>
         </div>
       }
@@ -99,7 +103,8 @@ export function ActiveWorkSwitchDialog({
         ))}
 
         <p className="text-foreground">
-          Would you like to pause the current task and start:
+          Would you like to pause the current task and{" "}
+          {intent === "complete" ? "complete" : "start"}:
         </p>
         <dl className="grid grid-cols-[8rem_1fr] gap-x-3 gap-y-1">
           <dt className="text-muted-foreground">Order</dt>

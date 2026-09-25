@@ -6,12 +6,14 @@ import type {
   ProductionTrackingSnapshot,
   TimelineBlock,
 } from "@/types/production-tracking";
+import { coverCompletedJobs } from "@/features/manufacturing/lib/readyToShip";
 import {
   calculateJobLaborBreakdown,
   currentTask,
   remainingQuantity,
   taskQuantityProgressPercent,
 } from "@/lib/manufacturingTasks";
+import type { Delivery } from "@/types/delivery";
 
 function toStageStatus(task: ManufacturingTask): string {
   if (task.status === "completed" || task.status === "skipped") return "completed";
@@ -61,6 +63,7 @@ export function toProductionJobView(job: ManufacturingJob): ProductionJob {
     completionPercent: job.progressPercent,
     status: job.status,
     statusLabel: ManufacturingJobStatus[job.status]?.label ?? job.status,
+    completedAt: job.actualEndDate,
     stages: job.tasks
       .filter((task) => !task.isRework)
       .map((task) => ({
@@ -103,6 +106,7 @@ export function toProductionJobView(job: ManufacturingJob): ProductionJob {
 
 export function buildProductionTrackingSnapshot(
   jobs: ManufacturingJob[],
+  deliveries: Pick<Delivery, "id" | "deliveryNumber" | "salesOrderNumber" | "status" | "items">[] = [],
 ): ProductionTrackingSnapshot {
   const views = jobs.map(toProductionJobView);
   const inProduction = views.filter(
@@ -115,7 +119,20 @@ export function buildProductionTrackingSnapshot(
   const onHold = views.filter((job) => job.status === "on_hold").length;
   const inQualityCheck = views.filter((job) => job.status === "quality_check").length;
   const delayedJobs = views.filter((job) => (job.overdueDays ?? 0) > 0).length;
-  const readyToShip = views.filter((job) => job.status === "completed").length;
+  const coverage = coverCompletedJobs(
+    jobs.map((job) => ({
+      id: job.id,
+      salesOrderNumber: job.salesOrderNumber,
+      productSku: job.productSku,
+      quantity: job.quantity,
+      status: job.status,
+      completedAt: job.actualEndDate,
+    })),
+    deliveries,
+  );
+  const readyToShip = jobs.filter(
+    (job) => job.status === "completed" && (coverage.get(job.id)?.remainingQuantity ?? 0) > 0,
+  ).length;
 
   const kpis: ProductionKpis = {
     jobsInProduction: inProduction,

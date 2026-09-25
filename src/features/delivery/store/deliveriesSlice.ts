@@ -22,6 +22,7 @@ import type { PaginatedResponse } from "@/types/common";
 
 type ListData = PaginatedResponse<Delivery>;
 type UpdateArg = { id: string; data: Partial<DeliveryFormData> };
+type StatusArg = { id: string; status: Delivery["status"] };
 type ProofArg = { id: string; proof: Omit<ProofOfDelivery, "id"> };
 
 export type DeliveriesState = {
@@ -29,6 +30,7 @@ export type DeliveriesState = {
   details: Record<string, AsyncEntry<Delivery>>;
   create: MutationEntry;
   update: MutationEntry;
+  updateStatus: MutationEntry;
   dispatch: MutationEntry;
   recordProof: MutationEntry;
 };
@@ -38,6 +40,7 @@ const initialState: DeliveriesState = {
   details: emptyCache(),
   create: createMutationEntry(),
   update: createMutationEntry(),
+  updateStatus: createMutationEntry(),
   dispatch: createMutationEntry(),
   recordProof: createMutationEntry(),
 };
@@ -96,6 +99,18 @@ const deliveriesSlice = createSlice({
     },
     updateFailure(state, action: PayloadAction<FailurePayload>) {
       setMutationFailure(state.update, action);
+    },
+
+    updateStatusRequest(state, _action: PayloadAction<RequestPayload<StatusArg>>) {
+      setMutationLoading(state.updateStatus);
+    },
+    updateStatusSuccess(state, action: PayloadAction<SuccessPayload<Delivery>>) {
+      setMutationSuccess(state.updateStatus);
+      upsertDetail(state, action.payload.data);
+      invalidateEntries(state.lists);
+    },
+    updateStatusFailure(state, action: PayloadAction<FailurePayload>) {
+      setMutationFailure(state.updateStatus, action);
     },
 
     dispatchRequest(state, _action: PayloadAction<RequestPayload<string>>) {

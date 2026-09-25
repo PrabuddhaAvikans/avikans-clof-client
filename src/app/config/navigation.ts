@@ -165,6 +165,28 @@ export const NAVIGATION: NavItem[] = [
     ],
   },
   {
+    id: "finance",
+    label: "Finance",
+    path: ROUTES.finance.invoices,
+    icon: "Wallet",
+    children: [
+      {
+        id: "finance-invoices",
+        label: "Invoices",
+        path: ROUTES.finance.invoices,
+        icon: "Receipt",
+        permission: "finance:view",
+      },
+      {
+        id: "finance-credit-notes",
+        label: "Credit Notes",
+        path: ROUTES.finance.creditNotes,
+        icon: "FileMinus",
+        permission: "finance:view",
+      },
+    ],
+  },
+  {
     id: "period-close",
     label: "Period Close",
     path: ROUTES.periodClose.day,

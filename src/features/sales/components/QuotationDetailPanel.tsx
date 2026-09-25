@@ -2,6 +2,9 @@ import { Link } from "react-router-dom";
 import { Copy, Package, Phone } from "lucide-react";
 import { toast } from "@/components/feedback/toast";
 import { ROUTES } from "@/app/config/routes";
+import { DocumentActions } from "@/components/documents/DocumentActions";
+import { buildQuotationDocument } from "@/features/sales/lib/quotationDocument";
+import { loadSystemSettings } from "@/lib/systemSettings";
 import { AttachmentPanel } from "@/components/ui/AttachmentPanel";
 import { Button } from "@/components/ui/Button";
 import { MappedStatusBadge } from "@/features/shared/components/MappedStatusBadge";
@@ -62,6 +65,7 @@ export function QuotationDetailPanel({
   }
 
   const remainingDays = daysUntil(quotation.validUntil);
+  const quotationDocument = buildQuotationDocument(quotation, loadSystemSettings());
   const totals = computeQuotationTotals(quotation.lineItems, quotation.discountAmount);
   const taxCountry =
     quotation.billingAddress?.country ||
@@ -149,20 +153,24 @@ export function QuotationDetailPanel({
                   : ""}
             </p>
           </div>
-          {onOpenContacts && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              leftIcon={<Phone className="h-4 w-4" />}
-              onClick={onOpenContacts}
-            >
-              Calls & Contacts
-              {(quotation.contactHistory?.length ?? 0) > 0
-                ? ` (${quotation.contactHistory.length})`
-                : ""}
-            </Button>
-          )}
+          <div className="flex flex-col items-stretch gap-2 sm:items-end">
+            <DocumentActions document={quotationDocument} />
+            {onOpenContacts && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="self-end"
+                leftIcon={<Phone className="h-4 w-4" />}
+                onClick={onOpenContacts}
+              >
+                Calls & Contacts
+                {(quotation.contactHistory?.length ?? 0) > 0
+                  ? ` (${quotation.contactHistory.length})`
+                  : ""}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 

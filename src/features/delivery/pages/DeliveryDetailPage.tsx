@@ -1,5 +1,6 @@
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Send, FileCheck } from "lucide-react";
+import { toast } from "@/components/feedback/toast";
 import { ROUTES } from "@/app/config/routes";
 import { PageHeader } from "@/components/feedback/PageHeader";
 import { PageContent } from "@/components/feedback/PageStates";
@@ -7,14 +8,58 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SummaryCard } from "@/components/ui/SummaryCard";
-import { useDelivery } from "@/features/delivery/hooks/useDeliveries";
+import {
+  useDelivery,
+  useUpdateDeliveryStatus,
+} from "@/features/delivery/hooks/useDeliveries";
+import {
+  DELIVERY_STATUS_FLOW,
+  getDeliveryStatusAction,
+} from "@/features/delivery/lib/deliveryStatus";
 import { statusLabel, statusVariant } from "@/features/shared/utils/statusBadge";
 import { formatDate, formatDateTime } from "@/lib/format";
-import { DeliveryStatus, Priority } from "@/types/status";
+import { cn } from "@/lib/utils";
+import { DeliveryStatus, Priority, type DeliveryStatusValue } from "@/types/status";
 
 export function DeliveryDetailPage() {
   const { id = "" } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { data: delivery, isLoading, error, refetch } = useDelivery(id);
+  const updateStatus = useUpdateDeliveryStatus();
+
+  const statusAction = delivery
+    ? getDeliveryStatusAction(delivery.status as DeliveryStatusValue)
+    : null;
+
+  const handleAdvance = async () => {
+    if (!delivery || !statusAction) return;
+
+    if (statusAction.useScreen === "dispatch") {
+      navigate(ROUTES.deliveries.dispatch(delivery.id));
+      return;
+    }
+    if (statusAction.useScreen === "proof") {
+      navigate(ROUTES.deliveries.proof(delivery.id));
+      return;
+    }
+
+    try {
+      const updated = await updateStatus.mutateAsync({
+        id: delivery.id,
+        status: statusAction.nextStatus,
+      });
+      toast.success(
+        `${updated.deliveryNumber} → ${statusLabel(DeliveryStatus, updated.status)}`,
+      );
+      void refetch();
+    } catch (err) {
+      const message =
+        typeof err === "object" && err && "message" in err
+          ? String((err as { message: string }).message)
+          : "Could not update delivery status";
+      toast.error(message);
+    }
+  };
 
   return (
     <PageContainer>
@@ -33,19 +78,21 @@ export function DeliveryDetailPage() {
                   Back
                 </Button>
               </Link>
-              {delivery.status === "ready_for_dispatch" && (
-                <Link to={ROUTES.deliveries.dispatch(delivery.id)}>
-                  <Button variant="primary" leftIcon={<Send className="h-4 w-4" />}>
-                    Dispatch
-                  </Button>
-                </Link>
-              )}
-              {(delivery.status === "dispatched" || delivery.status === "in_transit") && (
-                <Link to={ROUTES.deliveries.proof(delivery.id)}>
-                  <Button variant="primary" leftIcon={<FileCheck className="h-4 w-4" />}>
-                    Proof of Delivery
-                  </Button>
-                </Link>
+              {statusAction && (
+                <Button
+                  variant="primary"
+                  leftIcon={
+                    statusAction.useScreen === "proof" ? (
+                      <FileCheck className="h-4 w-4" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )
+                  }
+                  loading={updateStatus.isPending}
+                  onClick={() => void handleAdvance()}
+                >
+                  {statusAction.label}
+                </Button>
               )}
             </div>
           )
@@ -70,6 +117,35 @@ export function DeliveryDetailPage() {
                 title="Priority"
                 value={statusLabel(Priority, delivery.priority)}
               />
+            </div>
+
+            <div className="mb-6 rounded-lg border border-border bg-card p-4">
+              <p className="mb-3 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                Status after production
+              </p>
+              <ol className="flex flex-wrap gap-2">
+                {DELIVERY_STATUS_FLOW.map((step, index) => {
+                  const currentIndex = DELIVERY_STATUS_FLOW.indexOf(
+                    delivery.status as DeliveryStatusValue,
+                  );
+                  const stepIndex = index;
+                  const done = currentIndex > stepIndex;
+                  const active = delivery.status === step;
+                  return (
+                    <li
+                      key={step}
+                      className={cn(
+                        "rounded-md border px-2.5 py-1 text-[11px]",
+                        active && "border-foreground bg-foreground text-background",
+                        done && !active && "border-border bg-muted text-foreground",
+                        !done && !active && "border-border text-muted-foreground",
+                      )}
+                    >
+                      {statusLabel(DeliveryStatus, step)}
+                    </li>
+                  );
+                })}
+              </ol>
             </div>
 
             <div className="grid gap-6 lg:grid-cols-2">

@@ -9,6 +9,7 @@ import {
 import { ROUTES } from "@/app/config/routes";
 import { auditEntityPath } from "@/features/admin/lib/auditLabels";
 import { CHART_COLORS } from "@/features/dashboard/lib/chartTheme";
+import { coverCompletedJobs } from "@/features/manufacturing/lib/readyToShip";
 import { percent, round2 } from "@/features/reports/lib/reportHelpers";
 import type { AuditLogEntry } from "@/types/audit";
 import type { CostingRequest } from "@/types/costing";
@@ -235,7 +236,20 @@ export function buildDashboardSummary(sources: DashboardSources): DashboardSumma
   );
   const delayedJobs = jobs.filter((job) => (job.overdueDays ?? 0) > 0);
   const qualityCheckJobs = jobs.filter((job) => job.status === "quality_check");
-  const readyToShip = jobs.filter((job) => job.status === "completed");
+  const shipCoverage = coverCompletedJobs(
+    jobs.map((job) => ({
+      id: job.id,
+      salesOrderNumber: job.salesOrderNumber,
+      productSku: job.productSku,
+      quantity: job.quantity,
+      status: job.status,
+      completedAt: job.completedAt,
+    })),
+    deliveries,
+  );
+  const readyToShip = jobs.filter(
+    (job) => job.status === "completed" && (shipCoverage.get(job.id)?.remainingQuantity ?? 0) > 0,
+  );
 
   const pendingCostingItems = costing.filter((item) => PENDING_COSTING.has(item.status));
   const pendingEstimations = costing.filter((item) => item.coatingStatus === "pending");

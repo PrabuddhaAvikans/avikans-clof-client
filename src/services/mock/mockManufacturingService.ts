@@ -36,7 +36,7 @@ import {
   isProductionJobCompletable,
   refreshJobDerivedFields,
 } from "@/lib/manufacturingTasks";
-import { commitGuardedTaskActionAsync } from "@/services/mock/guardedTaskAction";
+import { commitGuardedBulkCompleteAsync, commitGuardedTaskActionAsync } from "@/services/mock/guardedTaskAction";
 
 export const MANUFACTURING_ACTOR: TaskActionActor = {
   userId: "usr-004",
@@ -280,5 +280,10 @@ export const mockManufacturingService: ManufacturingService = {
   async applyTaskAction(id, action) {
     await delay();
     return commitGuardedTaskActionAsync(id, action, MANUFACTURING_ACTOR);
+  },
+
+  async completeTasks(id, input) {
+    await delay();
+    return commitGuardedBulkCompleteAsync(id, input, MANUFACTURING_ACTOR);
   },
 };

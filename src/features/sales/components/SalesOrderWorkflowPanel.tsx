@@ -250,6 +250,7 @@ export function SalesOrderWorkflowPanel({
               className="inline-flex items-center gap-1 text-foreground hover:underline disabled:text-muted-foreground disabled:no-underline"
               title="Apply credit note"
               disabled={!canApplyCreditNote}
+              onClick={onApplyCreditNote}
             >
               <Receipt className="h-3 w-3 text-muted-foreground" aria-hidden />
               Credit note

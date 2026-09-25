@@ -43,6 +43,12 @@ import { productService } from "@/services";
 import type { Customer } from "@/types/customer";
 import type { Product } from "@/types/product";
 import type { QuotationProductCustomization } from "@/types/quotation";
+import { Priority, type PriorityValue } from "@/types/status";
+
+const PRIORITY_OPTIONS = Object.keys(Priority).map((value) => ({
+  value,
+  label: Priority[value as PriorityValue].label,
+}));
 
 const EMPTY_ADDRESS = {
   line1: "",
@@ -356,7 +362,14 @@ export function SalesOrderFormPage() {
                             label="Requested Delivery"
                             type="date"
                           />
-                          <div className="flex flex-col gap-1.5">
+                          <FormikSelect
+                            name="priority"
+                            label="Priority"
+                            options={PRIORITY_OPTIONS}
+                            required
+                            hint="Used for delivery when this order is shipped."
+                          />
+                          <div className="flex flex-col gap-1.5 sm:col-span-2">
                             <span className="text-xs font-medium leading-none text-foreground">
                               Manufacturing
                             </span>

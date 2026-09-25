@@ -6,6 +6,7 @@ import { computeQuotationTotals } from "@/features/sales/schemas/quotationSchema
 import type { SalesOrderFormValues } from "@/features/sales/schemas/salesOrderSchema";
 import { formatDate } from "@/lib/format";
 import { lineNeedsManufacturing } from "@/lib/productManufacturing";
+import { Priority, type PriorityValue } from "@/types/status";
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -60,6 +61,14 @@ export function SalesOrderFormPreview() {
           <Row
             label="Delivery Date"
             value={values.requestedDeliveryDate ? formatDate(values.requestedDeliveryDate) : "-"}
+          />
+          <Row
+            label="Priority"
+            value={
+              Priority[values.priority as PriorityValue]?.label ??
+              values.priority ??
+              "-"
+            }
           />
           <Row
             label="Manufacturing"

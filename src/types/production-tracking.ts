@@ -30,6 +30,7 @@ export interface ProductionJob {
   completionPercent: number;
   status: ManufacturingJobStatusValue;
   statusLabel: string;
+  completedAt?: string;
   stages: ProductionStageTask[];
   materialIssued: number;
   materialConsumed: number;

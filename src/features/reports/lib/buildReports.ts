@@ -13,6 +13,13 @@ import type { ReprocessingBatch } from "@/types/reprocessing";
 import type { ReportDataset, ReportId, ReportKpi, ReportRow } from "@/types/report";
 import type { SalesOrder } from "@/types/sales-order";
 import { kpi, overdueDays, percent, round2, sumBy } from "@/features/reports/lib/reportHelpers";
+import {
+  buildShipChecks,
+  coverCompletedJobs,
+  emptyCoverage,
+  SHIP_DISPOSITION_LABEL,
+  shipDisposition,
+} from "@/features/manufacturing/lib/readyToShip";
 
 export type ReportSources = {
   quotations: Quotation[];
@@ -210,23 +217,49 @@ const builders: Record<ReportId, Builder> = {
     };
   },
 
-  "ready-to-ship": ({ jobs }) => {
-    const ready = jobs.filter((job) => job.status === "completed");
+  "ready-to-ship": ({ jobs, deliveries, salesOrders }) => {
+    const ordersById = new Map(salesOrders.map((order) => [order.id, order]));
+    const coverage = coverCompletedJobs(
+      jobs.map((job) => ({
+        id: job.id,
+        salesOrderNumber: job.salesOrderNumber,
+        productSku: job.productSku,
+        quantity: job.quantity,
+        status: job.status,
+        completedAt: job.actualEndDate,
+      })),
+      deliveries,
+    );
+    const rows: ReportRow[] = jobs
+      .filter((job) => job.status === "completed")
+      .map((job) => {
+        const cover = coverage.get(job.id) ?? emptyCoverage(job.quantity);
+        const checks = buildShipChecks(job, ordersById.get(job.salesOrderId));
+        const disposition = shipDisposition(
+          cover,
+          checks.every((check) => check.passed),
+        );
+        return {
+          id: job.id,
+          jobNumber: job.jobNumber,
+          salesOrderNumber: job.salesOrderNumber,
+          customerName: job.customerName,
+          productName: job.productName,
+          quantity: job.quantity,
+          remainingQuantity: cover.remainingQuantity,
+          shippedQuantity: cover.shippedQuantity,
+          shipStatus: SHIP_DISPOSITION_LABEL[disposition],
+          actualEndDate: job.actualEndDate ?? "",
+          actualCost: job.actualCost,
+        };
+      });
     return {
       kpis: [
-        kpi("count", "Ready jobs", ready.length),
-        kpi("qty", "Qty", sumBy(ready, (job) => job.quantity)),
+        kpi("ready", "Ready to ship", rows.filter((row) => row.shipStatus === SHIP_DISPOSITION_LABEL.ready).length),
+        kpi("shipped", "Shipped", rows.filter((row) => row.shipStatus === SHIP_DISPOSITION_LABEL.shipped).length),
+        kpi("qty", "Qty still to ship", sumBy(rows, (row) => Number(row.remainingQuantity))),
       ],
-      rows: ready.map((job) => ({
-        id: job.id,
-        jobNumber: job.jobNumber,
-        salesOrderNumber: job.salesOrderNumber,
-        customerName: job.customerName,
-        productName: job.productName,
-        quantity: job.quantity,
-        actualEndDate: job.actualEndDate ?? "",
-        actualCost: job.actualCost,
-      })),
+      rows,
     };
   },
 

@@ -6,7 +6,13 @@ import {
   sessionsBlockingNewWork,
 } from "@/lib/employee-work/activeWork";
 import { calculateSessionWorkedMinutes } from "@/lib/employee-work/sessionTime";
-import { applyReleaseWorker, applyTaskAction } from "@/lib/manufacturingTasks";
+import {
+  applyReleaseWorker,
+  applyTaskAction,
+  buildFinishRemainingTaskAction,
+  refreshJobDerivedFields,
+  allowedTaskActions,
+} from "@/lib/manufacturingTasks";
 import { ensureTaskUnits, overallUnitProgress } from "@/lib/taskUnits";
 import { initialUsers } from "@/services/mock/data/users";
 import {
@@ -310,4 +316,181 @@ export function commitGuardedTaskActionAsync(
   actor: TaskActionActor,
 ): Promise<ManufacturingJob> {
   return runWorkSessionTransaction(() => commitGuardedTaskAction(jobId, action, actor));
+}
+
+export type BulkCompleteTaskEntry = {
+  taskId: string;
+  completedQuantity?: number;
+  rejectedQuantity?: number;
+  wasteQuantity?: number;
+  contributors?: import("@/types/manufacturing").TaskContributorInput[];
+  actualHours?: number;
+  normalOvertimeHours?: number;
+  doubleOvertimeHours?: number;
+  notes?: string;
+};
+
+export type BulkCompleteTasksInput = {
+  /** Prefer per-task details. Falls back to finishing remaining qty when contributors omitted. */
+  tasks?: BulkCompleteTaskEntry[];
+  /** @deprecated Prefer `tasks`. Kept for simple finish-all calls. */
+  taskIds?: string[];
+  notes?: string;
+  activeSessionSwitch?: ActiveSessionSwitch;
+};
+
+function resolveBulkEntries(
+  input: BulkCompleteTasksInput,
+): BulkCompleteTaskEntry[] {
+  if (input.tasks?.length) return input.tasks;
+  return (input.taskIds ?? []).map((taskId) => ({
+    taskId,
+    notes: input.notes,
+  }));
+}
+
+/**
+ * Finish several tasks on one job in sequence order.
+ * Each task can carry its own workers, quantities, and notes.
+ * Active-work confirmation is collected once for the whole batch.
+ */
+export function commitGuardedBulkComplete(
+  jobId: string,
+  input: BulkCompleteTasksInput,
+  actor: TaskActionActor,
+): ManufacturingJob {
+  const job = findManufacturingJob(jobId);
+  if (!job) notFoundError("ProductionJob", jobId);
+
+  const entries = resolveBulkEntries(input);
+  const requested = [...new Set(entries.map((entry) => entry.taskId))];
+  if (requested.length === 0) {
+    throw { code: "INVALID_STATE", message: "Select at least one task to complete." };
+  }
+
+  const entryByTaskId = new Map(entries.map((entry) => [entry.taskId, entry]));
+
+  for (const taskId of requested) {
+    if (!job.tasks.some((task) => task.id === taskId)) {
+      throw {
+        code: "NOT_FOUND",
+        message: `Manufacturing task '${taskId}' was not found on this job.`,
+      };
+    }
+  }
+
+  const asOf = nowIso();
+  const ordered = [...job.tasks]
+    .filter((task) => requested.includes(task.id))
+    .sort((left, right) => left.sequence - right.sequence);
+
+  const sessionSnapshot = structuredClone(getEmployeeWorkSessions());
+  const jobIds = new Set<string>([jobId]);
+  const conflictBySession = new Map<string, ActiveWorkConflict>();
+
+  const buildAction = (
+    task: (typeof job.tasks)[number],
+    switchPayload?: ActiveSessionSwitch,
+  ): ManufacturingTaskAction => {
+    const entry = entryByTaskId.get(task.id) ?? { taskId: task.id };
+    if (entry.contributors?.length) {
+      return {
+        type: "complete",
+        taskId: task.id,
+        completedQuantity: entry.completedQuantity,
+        rejectedQuantity: entry.rejectedQuantity,
+        wasteQuantity: entry.wasteQuantity,
+        actualHours: entry.actualHours,
+        normalOvertimeHours: entry.normalOvertimeHours,
+        doubleOvertimeHours: entry.doubleOvertimeHours,
+        contributors: entry.contributors,
+        notes: entry.notes ?? input.notes,
+        activeSessionSwitch: switchPayload,
+      };
+    }
+    return buildFinishRemainingTaskAction(task, actor, {
+      notes: entry.notes ?? input.notes,
+      completedQuantity: entry.completedQuantity,
+      actualHours: entry.actualHours,
+      normalOvertimeHours: entry.normalOvertimeHours,
+      doubleOvertimeHours: entry.doubleOvertimeHours,
+      activeSessionSwitch: switchPayload,
+    });
+  };
+
+  let working = refreshJobDerivedFields(structuredClone(job), actor);
+  for (const task of ordered) {
+    const live = working.tasks.find((item) => item.id === task.id);
+    if (!live) continue;
+    if (!allowedTaskActions(live).complete) {
+      continue;
+    }
+    const action = buildAction(live);
+    for (const conflict of collectConflicts(working, action, actor, asOf)) {
+      if (conflict.taskId && requested.includes(conflict.taskId)) continue;
+      conflictBySession.set(conflict.sessionId, conflict);
+      if (conflict.productionOrderId) jobIds.add(conflict.productionOrderId);
+    }
+    working = applyTaskAction(working, action, actor);
+  }
+
+  const conflicts = [...conflictBySession.values()];
+  if (conflicts.length > 0 && !switchIsCurrent(conflicts, input.activeSessionSwitch)) {
+    throw confirmationError(
+      conflicts,
+      input.activeSessionSwitch
+        ? "Active work changed while this was being confirmed. Review the current tasks and confirm again."
+        : "One or more workers are already on another task. Confirm before completing these tasks.",
+    );
+  }
+
+  const jobSnapshots = snapshotJobs([...jobIds]);
+
+  try {
+    let saved: ManufacturingJob | null = null;
+    let switchAttached = false;
+
+    for (const selected of ordered) {
+      const current = findManufacturingJob(jobId);
+      if (!current) notFoundError("ProductionJob", jobId);
+      const refreshed = replaceManufacturingJob(refreshJobDerivedFields(current, actor));
+      const task = refreshed.tasks.find((item) => item.id === selected.id);
+      if (!task) {
+        throw {
+          code: "NOT_FOUND",
+          message: `Manufacturing task '${selected.id}' was not found.`,
+        };
+      }
+      if (!allowedTaskActions(task).complete) {
+        throw {
+          code: "INVALID_STATE",
+          message: `Task "${task.name}" is not ready to complete. Include its prerequisite tasks in this batch, or complete them first.`,
+        };
+      }
+
+      const action = buildAction(
+        task,
+        !switchAttached && input.activeSessionSwitch
+          ? input.activeSessionSwitch
+          : undefined,
+      );
+      saved = commitGuardedTaskAction(jobId, action, actor);
+      if (action.type === "complete" && action.activeSessionSwitch) switchAttached = true;
+    }
+
+    return saved ?? findManufacturingJob(jobId)!;
+  } catch (error) {
+    if (isActiveWorkConfirmationError(error)) throw error;
+    replaceEmployeeWorkSessions(sessionSnapshot);
+    restoreJobs(jobSnapshots);
+    throw error;
+  }
+}
+
+export function commitGuardedBulkCompleteAsync(
+  jobId: string,
+  input: BulkCompleteTasksInput,
+  actor: TaskActionActor,
+): Promise<ManufacturingJob> {
+  return runWorkSessionTransaction(() => commitGuardedBulkComplete(jobId, input, actor));
 }

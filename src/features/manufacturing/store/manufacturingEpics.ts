@@ -97,6 +97,16 @@ const taskActionEpic = createAsyncEpic({
   onSuccess: () => [productionTrackingActions.invalidateAll(), ...refreshPeriodClose()],
 });
 
+const bulkCompleteEpic = createAsyncEpic({
+  request: manufacturingActions.bulkCompleteRequest,
+  success: manufacturingActions.bulkCompleteSuccess,
+  failure: manufacturingActions.bulkCompleteFailure,
+  handler: ({ id, tasks, taskIds, notes, activeSessionSwitch }) =>
+    manufacturingService.completeTasks(id, { tasks, taskIds, notes, activeSessionSwitch }),
+  mode: "merge",
+  onSuccess: () => [productionTrackingActions.invalidateAll(), ...refreshPeriodClose()],
+});
+
 export const manufacturingEpic = combineEpics(
   fetchListEpic,
   fetchDetailEpic,
@@ -107,4 +117,5 @@ export const manufacturingEpic = combineEpics(
   completeEpic,
   holdEpic,
   taskActionEpic,
+  bulkCompleteEpic,
 );

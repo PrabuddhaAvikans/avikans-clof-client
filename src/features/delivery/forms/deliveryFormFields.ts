@@ -28,6 +28,7 @@ export function createDeliveryFormSections(
           label: 'Priority',
           type: 'select',
           options: options.priorityOptions ?? [],
+          hint: 'Taken from the sales order. Change only if needed.',
         },
         {
           name: 'carrier',

@@ -54,6 +54,9 @@ export function DispatchPage() {
     }
   };
 
+  const canStartDispatch =
+    delivery?.status === "planned" || delivery?.status === "ready_for_dispatch";
+
   return (
     <PageContainer>
       <PageHeader
@@ -81,6 +84,19 @@ export function DispatchPage() {
       >
         {delivery && (
           <div className="mx-auto max-w-xl space-y-6">
+            {!canStartDispatch && (
+              <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-4">
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">Already past dispatch</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    This delivery is {delivery.status.replace(/_/g, " ")}. Open the delivery to update
+                    the next status.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {!qcPassed && (
               <div className="flex items-start gap-3 rounded-lg border border-warning/40 bg-warning/5 p-4">
                 <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
@@ -135,7 +151,7 @@ export function DispatchPage() {
               variant="primary"
               className="w-full"
               leftIcon={<CheckCircle className="h-4 w-4" />}
-              disabled={!canDispatch}
+              disabled={!canDispatch || !canStartDispatch}
               loading={dispatchDelivery.isPending}
               onClick={() => void handleDispatch()}
             >

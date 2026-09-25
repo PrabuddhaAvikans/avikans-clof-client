@@ -15,11 +15,4 @@ export function WorkOrdersPage() {
   );
 }
 
-export function ReadyToShipPage() {
-  return (
-    <ListPageShell
-      title="Ready to Ship"
-      description="Jobs that have cleared QC and are ready for dispatch."
-    />
-  );
-}
+export { ReadyToShipPage } from "@/features/manufacturing/pages/ReadyToShipPage";

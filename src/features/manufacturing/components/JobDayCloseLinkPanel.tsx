@@ -87,7 +87,7 @@ export function JobDayCloseLinkPanel({
           productive time.
         </p>
       ) : (
-        <ul className="mt-3 divide-y divide-border overflow-hidden rounded-md border border-border">
+        <ul className="mt-3 max-h-64 divide-y divide-border overflow-y-auto rounded-md border border-border">
           {rows.map(({ summary, jobMinutes }) => {
             const isComplete = summary.dayStatus === EmployeeDayStatus.completed;
             const pct = Math.min(
@@ -99,31 +99,35 @@ export function JobDayCloseLinkPanel({
             return (
               <li
                 key={summary.employeeId}
-                className="flex flex-wrap items-center gap-3 px-3 py-2.5 text-sm"
+                className="flex items-center gap-2 px-3 py-2 text-sm"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium">{summary.employeeName}</p>
-                  <p className="text-xs text-muted-foreground">
-                    On this job {formatWorkedDuration(jobMinutes)} · Today{" "}
-                    {formatWorkedDuration(summary.workedMinutes)}
-                    {summary.overtimeMinutes > 0
-                      ? ` · OT ${formatWorkedDuration(summary.overtimeMinutes)}`
-                      : ""}{" "}
-                    / {formatWorkedDuration(summary.requiredMinutes)}
-                  </p>
-                  <div className="mt-1.5 h-1.5 max-w-[10rem] overflow-hidden rounded-full bg-muted">
-                    <div
-                      className={cn(
-                        "h-full rounded-full",
-                        isComplete ? "bg-emerald-500" : "bg-amber-500",
-                      )}
-                      style={{ width: `${pct}%` }}
-                    />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="truncate font-medium">{summary.employeeName}</p>
+                    <StatusBadge variant={isComplete ? "success" : "warning"} size="sm" dot>
+                      {isComplete ? "Day done" : "Day open"}
+                    </StatusBadge>
+                  </div>
+                  <div className="mt-1 flex items-center gap-2">
+                    <div className="h-1 max-w-[8rem] flex-1 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={cn(
+                          "h-full rounded-full",
+                          isComplete ? "bg-emerald-500" : "bg-amber-500",
+                        )}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <p className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                      Job {formatWorkedDuration(jobMinutes)} · Today{" "}
+                      {formatWorkedDuration(summary.workedMinutes)}/
+                      {formatWorkedDuration(summary.requiredMinutes)}
+                      {summary.overtimeMinutes > 0
+                        ? ` · OT ${formatWorkedDuration(summary.overtimeMinutes)}`
+                        : ""}
+                    </p>
                   </div>
                 </div>
-                <StatusBadge variant={isComplete ? "success" : "warning"} size="sm" dot>
-                  {isComplete ? "Day hours complete" : "Day hours incomplete"}
-                </StatusBadge>
               </li>
             );
           })}

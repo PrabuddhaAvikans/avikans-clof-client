@@ -27,6 +27,7 @@ export interface DeliveryService {
   create(data: DeliveryFormData): Promise<Delivery>;
   update(id: string, data: Partial<DeliveryFormData>): Promise<Delivery>;
   delete(id: string): Promise<void>;
+  updateStatus(id: string, status: DeliveryStatusValue): Promise<Delivery>;
   dispatchDelivery(id: string): Promise<Delivery>;
   recordProofOfDelivery(id: string, proof: Omit<ProofOfDelivery, "id">): Promise<Delivery>;
 }

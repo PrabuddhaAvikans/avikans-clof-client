@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRightLeft } from "lucide-react";
+import { ArrowRightLeft, Download, Printer } from "lucide-react";
 import { toast } from "@/components/feedback/toast";
 import { ROUTES } from "@/app/config/routes";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -14,6 +14,13 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import { initialInvoices } from "@/features/finance/mock/mockInvoices";
 import { InvoiceStatus } from "@/types/status";
 import { Input } from "@/components/ui/Input";
+import { RowActions, type RowActionItem } from "@/components/ui/RowActions";
+import { buildInvoiceDocument } from "@/features/finance/lib/invoiceDocument";
+import {
+  downloadCommercialDocument,
+  printCommercialDocument,
+} from "@/lib/commercialDocument";
+import { loadSystemSettings } from "@/lib/systemSettings";
 
 export function FinanceInvoicesPage() {
   const navigate = useNavigate();
@@ -61,6 +68,36 @@ export function FinanceInvoicesPage() {
         accessorKey: "amountCredited",
         header: "Credited",
         cell: ({ row }) => formatCurrency(row.original.amountCredited, row.original.currency),
+      },
+      {
+        id: "actions",
+        header: "Actions",
+        enableSorting: false,
+        cell: ({ row }) => {
+          const invoice = row.original;
+          const document = buildInvoiceDocument(invoice, loadSystemSettings());
+          const actions: RowActionItem[] = [
+            {
+              id: "print",
+              label: "Print",
+              icon: <Printer className="h-4 w-4" />,
+              primary: true,
+              onClick: () => printCommercialDocument(document),
+            },
+            {
+              id: "download",
+              label: "Download",
+              icon: <Download className="h-4 w-4" />,
+              primary: true,
+              onClick: () => {
+                void downloadCommercialDocument(document)
+                  .then(() => toast.success(`${invoice.invoiceNumber} downloaded`))
+                  .catch(() => toast.error(`Couldn't download ${invoice.invoiceNumber}`));
+              },
+            },
+          ];
+          return <RowActions actions={actions} maxVisible={2} />;
+        },
       },
     ];
   }, []);
