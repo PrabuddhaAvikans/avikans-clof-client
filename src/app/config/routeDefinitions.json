@@ -140,28 +140,48 @@
       "permission": "finance:view"
     },
     {
+      "path": "end-of-day-management",
+      "redirect": "/end-of-day-management/day"
+    },
+    {
+      "path": "end-of-day-management/day",
+      "page": "DayCloseWorkspacePage",
+      "permission": "period_close:view"
+    },
+    {
+      "path": "end-of-day-management/day/:periodId",
+      "page": "DayCloseWorkspacePage",
+      "permission": "period_close:view"
+    },
+    {
+      "path": "end-of-day-management/month",
+      "page": "MonthlyCloseWorkspacePage",
+      "permission": "period_close:view"
+    },
+    {
+      "path": "end-of-day-management/month/:periodId",
+      "page": "MonthlyCloseWorkspacePage",
+      "permission": "period_close:view"
+    },
+    {
       "path": "period-close",
-      "redirect": "/period-close/day"
+      "redirect": "/end-of-day-management/day"
     },
     {
       "path": "period-close/day",
-      "page": "DayCloseWorkspacePage",
-      "permission": "period_close:view"
+      "redirect": "/end-of-day-management/day"
     },
     {
       "path": "period-close/day/:periodId",
-      "page": "DayCloseWorkspacePage",
-      "permission": "period_close:view"
+      "redirectHandler": "legacyPeriodCloseDay"
     },
     {
       "path": "period-close/month",
-      "page": "MonthlyCloseWorkspacePage",
-      "permission": "period_close:view"
+      "redirect": "/end-of-day-management/month"
     },
     {
       "path": "period-close/month/:periodId",
-      "page": "MonthlyCloseWorkspacePage",
-      "permission": "period_close:view"
+      "redirectHandler": "legacyPeriodCloseMonth"
     },
 
     {

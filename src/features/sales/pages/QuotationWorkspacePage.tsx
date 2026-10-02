@@ -3,12 +3,15 @@ import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRightLeft,
+  Check,
   Copy,
   Mail,
+  MessageSquareWarning,
   Pencil,
   Plus,
   RefreshCw,
   Trash2,
+  X,
 } from "lucide-react";
 import { toast } from "@/components/feedback/toast";
 import { ROUTES } from "@/app/config/routes";
@@ -17,6 +20,7 @@ import { PageHeader } from "@/components/feedback/PageHeader";
 import { PageContent } from "@/components/feedback/PageStates";
 import { Button } from "@/components/ui/Button";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
+import { Textarea } from "@/components/ui/Textarea";
 import { DuplicateQuotationModal } from "@/features/sales/components/DuplicateQuotationModal";
 import { SendQuotationModal } from "@/features/sales/components/SendQuotationModal";
 import { QuotationContactDrawer } from "@/features/sales/components/QuotationContactHistory";
@@ -30,7 +34,18 @@ import {
   useQuotation,
   useQuotations,
   useSendQuotation,
+  useUpdateQuotation,
 } from "@/features/sales/hooks/useQuotations";
+import {
+  canApproveQuotation,
+  canConvertQuotation,
+  canDeleteQuotation,
+  canEditQuotation,
+  canMarkCustomerFeedback,
+  canRejectQuotation,
+  canRequestRevision,
+  canSendQuotation,
+} from "@/features/sales/lib/quotationLifecycle";
 import { quotationsActions } from "@/features/sales/store/quotationsSlice";
 import type { QuotationContactInput } from "@/services/interfaces/quotationService";
 import type { Quotation } from "@/types/quotation";
@@ -54,6 +69,8 @@ export function QuotationWorkspacePage() {
   const [contactsOpen, setContactsOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [convertOpen, setConvertOpen] = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
   const [duplicateOpen, setDuplicateOpen] = useState(false);
   const [duplicateSource, setDuplicateSource] = useState<Quotation | null>(null);
 
@@ -72,6 +89,7 @@ export function QuotationWorkspacePage() {
   const convertToOrder = useConvertQuotationToSalesOrder();
   const addContact = useAddQuotationContact();
   const deleteQuotation = useDeleteQuotation();
+  const updateQuotation = useUpdateQuotation();
 
   useEffect(() => {
     if (!selectedId && data?.items.length) {
@@ -129,13 +147,59 @@ export function QuotationWorkspacePage() {
       if (!activeQuotation) return;
       try {
         await addContact.mutateAsync({ id: activeQuotation.id, data });
-        toast.success("Contact logged");
-      } catch {
-        toast.error("Could not log contact - approval may already be complete");
+        toast.success(
+          data.type === "comment" ? "Internal comment added" : "Contact logged",
+        );
+        void refetch();
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : "Could not log contact",
+        );
       }
     },
-    [activeQuotation, addContact],
+    [activeQuotation, addContact, refetch],
   );
+
+  const handleStatusChange = useCallback(
+    async (
+      status: QuotationStatusValue,
+      successMessage: string,
+      extra?: { rejectionReason?: string },
+    ) => {
+      if (!activeQuotation) return;
+      try {
+        await updateQuotation.mutateAsync({
+          id: activeQuotation.id,
+          data: {
+            status,
+            ...(extra?.rejectionReason
+              ? { rejectionReason: extra.rejectionReason }
+              : {}),
+          },
+        });
+        toast.success(successMessage);
+        void refetch();
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : "Failed to update quotation status",
+        );
+      }
+    },
+    [activeQuotation, refetch, updateQuotation],
+  );
+
+  const handleReject = useCallback(async () => {
+    const reason = rejectReason.trim();
+    if (reason.length < 3) {
+      toast.error("Enter a rejection reason (at least 3 characters).");
+      return;
+    }
+    await handleStatusChange("rejected", "Quotation rejected", {
+      rejectionReason: reason,
+    });
+    setRejectOpen(false);
+    setRejectReason("");
+  }, [handleStatusChange, rejectReason]);
 
   const handleDelete = useCallback(async () => {
     if (!activeQuotation) return;
@@ -150,22 +214,36 @@ export function QuotationWorkspacePage() {
     }
   }, [activeQuotation, deleteQuotation, refetch]);
 
-  const canEdit =
-    activeQuotation &&
-    (activeQuotation.status === "draft" || activeQuotation.status === "ready_to_send");
-  const canDelete = Boolean(canEdit);
-  const canSend =
-    activeQuotation &&
-    (activeQuotation.status === "draft" || activeQuotation.status === "ready_to_send");
-  const canConvert =
-    activeQuotation &&
-    (activeQuotation.status === "accepted" || activeQuotation.status === "sent");
+  const canEdit = activeQuotation
+    ? canEditQuotation(activeQuotation.status)
+    : false;
+  const canDelete = activeQuotation
+    ? canDeleteQuotation(activeQuotation.status)
+    : false;
+  const canSend = activeQuotation
+    ? canSendQuotation(activeQuotation.status)
+    : false;
+  const canConvert = activeQuotation
+    ? canConvertQuotation(activeQuotation.status)
+    : false;
+  const canApprove = activeQuotation
+    ? canApproveQuotation(activeQuotation.status)
+    : false;
+  const canReject = activeQuotation
+    ? canRejectQuotation(activeQuotation.status)
+    : false;
+  const canFeedback = activeQuotation
+    ? canMarkCustomerFeedback(activeQuotation.status)
+    : false;
+  const canRequestChanges = activeQuotation
+    ? canRequestRevision(activeQuotation.status)
+    : false;
 
   return (
     <PageContainer maxWidth="full" className="py-3">
       <PageHeader
         title="Quotation & Order Conversion"
-        description="Quotation → Sales Order → Product Estimation → Costing Approval → Confirm."
+        description="Quotation → Customer Feedback → Revision → Approval → Sales Order → Costing."
         className="mb-2"
         actions={
           <>
@@ -215,6 +293,65 @@ export function QuotationWorkspacePage() {
             >
               Send to Customer
             </Button>
+            {canFeedback && (
+              <Button
+                variant="outline"
+                size="sm"
+                leftIcon={<MessageSquareWarning className="h-4 w-4" />}
+                loading={updateQuotation.isPending}
+                onClick={() =>
+                  void handleStatusChange(
+                    "customer_feedback",
+                    "Marked as customer feedback",
+                  )
+                }
+              >
+                Customer Feedback
+              </Button>
+            )}
+            {canRequestChanges && (
+              <Button
+                variant="outline"
+                size="sm"
+                leftIcon={<Pencil className="h-4 w-4" />}
+                loading={updateQuotation.isPending}
+                onClick={() =>
+                  void handleStatusChange(
+                    "revision_required",
+                    "Marked as revision required",
+                  )
+                }
+              >
+                Revision Required
+              </Button>
+            )}
+            {canApprove && (
+              <Button
+                variant="outline"
+                size="sm"
+                leftIcon={<Check className="h-4 w-4" />}
+                loading={updateQuotation.isPending}
+                onClick={() =>
+                  void handleStatusChange("accepted", "Quotation approved")
+                }
+              >
+                Approve
+              </Button>
+            )}
+            {canReject && (
+              <Button
+                variant="outline"
+                size="sm"
+                leftIcon={<X className="h-4 w-4" />}
+                loading={updateQuotation.isPending}
+                onClick={() => {
+                  setRejectReason("");
+                  setRejectOpen(true);
+                }}
+              >
+                Reject
+              </Button>
+            )}
             <Button
               variant="primary"
               size="sm"
@@ -273,6 +410,8 @@ export function QuotationWorkspacePage() {
             <QuotationDetailPanel
               quotation={activeQuotation}
               onOpenContacts={() => setContactsOpen(true)}
+              onAddContact={handleAddContact}
+              isAddingContact={addContact.isPending}
               onQuotationUpdated={(updated) => {
                 dispatch(
                   quotationsActions.fetchDetailSuccess({
@@ -318,6 +457,31 @@ export function QuotationWorkspacePage() {
       />
 
       <ConfirmationDialog
+        open={rejectOpen}
+        onClose={() => {
+          setRejectOpen(false);
+          setRejectReason("");
+        }}
+        onConfirm={() => void handleReject()}
+        title="Reject quotation?"
+        description={`Explain why ${activeQuotation?.quotationNumber ?? "this quotation"} is being rejected. This reason is saved in the contact history.`}
+        confirmLabel="Reject"
+        variant="danger"
+        loading={updateQuotation.isPending}
+      >
+        <div className="mt-3">
+          <Textarea
+            label="Rejection reason"
+            value={rejectReason}
+            onChange={(event) => setRejectReason(event.target.value)}
+            placeholder="e.g. Customer chose a competitor due to lead time"
+            rows={3}
+            disabled={updateQuotation.isPending}
+          />
+        </div>
+      </ConfirmationDialog>
+
+      <ConfirmationDialog
         open={convertOpen}
         onClose={() => setConvertOpen(false)}
         onConfirm={() => void handleConvert()}
@@ -357,9 +521,8 @@ export function QuotationWorkspacePage() {
           onClose={() => setSendOpen(false)}
           quotation={activeQuotation}
           onSent={() => {
-            void sendQuotation.mutateAsync(activeQuotation.id);
             setSendOpen(false);
-            toast.success("Quotation sent");
+            void refetch();
           }}
         />
       )}

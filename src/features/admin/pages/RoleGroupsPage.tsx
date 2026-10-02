@@ -21,12 +21,12 @@ import { EntityStatusBadge } from "@/features/shared/components/EntityStatusBadg
 import { useRefreshSessionPermissions } from "@/features/admin/hooks/useRefreshSessionPermissions";
 import {
   useCreateRoleGroup,
+  useDeleteRoleGroup,
   useRoleGroups,
   useRoles,
   useUpdateRoleGroup,
 } from "@/features/admin/hooks/useUsers";
 import { usePermissions } from "@/hooks/usePermissions";
-import { roleService } from "@/services";
 import type { RoleGroup } from "@/types/user";
 import type { EntityStatus } from "@/types/common";
 
@@ -49,6 +49,7 @@ export function RoleGroupsPage() {
   const { data: roles } = useRoles({ page: 1, pageSize: 50 });
   const createGroup = useCreateRoleGroup();
   const updateGroup = useUpdateRoleGroup();
+  const deleteGroup = useDeleteRoleGroup();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<RoleGroup | null>(null);
@@ -57,7 +58,6 @@ export function RoleGroupsPage() {
   const [roleIds, setRoleIds] = useState<string[]>([]);
   const [status, setStatus] = useState<EntityStatus>("active");
   const [deleteTarget, setDeleteTarget] = useState<RoleGroup | null>(null);
-  const [deleting, setDeleting] = useState(false);
 
   const filteredGroups = useMemo(() => {
     const query = applied.search.trim().toLowerCase();
@@ -134,17 +134,14 @@ export function RoleGroupsPage() {
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    setDeleting(true);
     try {
-      await roleService.deleteRoleGroup(deleteTarget.id);
+      await deleteGroup.mutateAsync(deleteTarget.id);
       toast.success(`Group ${deleteTarget.name} deactivated`);
       setDeleteTarget(null);
       await refreshSession();
       void refetch();
     } catch {
       toast.error("Failed to deactivate group");
-    } finally {
-      setDeleting(false);
     }
   };
 
@@ -337,7 +334,7 @@ export function RoleGroupsPage() {
         description={`Deactivate "${deleteTarget?.name}"? It will no longer grant grouped permissions to assigned users.`}
         confirmLabel="Deactivate"
         variant="danger"
-        loading={deleting}
+        loading={deleteGroup.isPending}
       />
     </PageContainer>
   );

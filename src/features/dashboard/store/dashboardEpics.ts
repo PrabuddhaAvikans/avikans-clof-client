@@ -1,13 +1,22 @@
 import { combineEpics } from "redux-observable";
-import { createAsyncEpic } from "@/app/store/async/createAsyncEpic";
-import { dashboardActions } from "@/features/dashboard/store/dashboardSlice";
-import { dashboardService } from "@/services";
+import { createApiEpic } from "@/app/store/async/createApiEpic";
+import { dashboardActions as actions } from "@/features/dashboard/store/dashboardSlice";
+import { http } from "@/services/apiClient";
+import { asRecord } from "@/services/mappers/common";
+import { mapOrderFlow, mapSummary } from "@/services/mappers/dashboardMappers";
 
-const fetchSummaryEpic = createAsyncEpic({
-  request: dashboardActions.fetchSummaryRequest,
-  success: dashboardActions.fetchSummarySuccess,
-  failure: dashboardActions.fetchSummaryFailure,
-  handler: () => dashboardService.getSummary(),
+const fetchSummaryEpic = createApiEpic({
+  request: actions.fetchSummaryRequest,
+  success: actions.fetchSummarySuccess,
+  failure: actions.fetchSummaryFailure,
+  execute: async () => mapSummary(asRecord(await http.get("/api/dashboard/summary"))),
 });
 
-export const dashboardEpic = combineEpics(fetchSummaryEpic);
+const fetchOrderFlowEpic = createApiEpic({
+  request: actions.fetchOrderFlowRequest,
+  success: actions.fetchOrderFlowSuccess,
+  failure: actions.fetchOrderFlowFailure,
+  execute: async () => mapOrderFlow(asRecord(await http.get("/api/dashboard/order-flow"))),
+});
+
+export const dashboardEpic = combineEpics(fetchSummaryEpic, fetchOrderFlowEpic);

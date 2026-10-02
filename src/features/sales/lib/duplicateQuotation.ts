@@ -95,22 +95,25 @@ export function buildQuotationFormPayload(
 ): QuotationFormData {
   return {
     customerId: values.customerId,
-    lineItems: values.lineItems.map((item) => ({
-      productId: item.productId,
-      productSku: item.productSku,
-      productName: item.productName,
-      description: item.description,
-      productVersionId: item.productVersionId,
-      productVersionLabel: item.productVersionLabel,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      discountPercent: item.discountPercent,
-      taxPercent: item.taxPercent,
-      isCustomized: item.isCustomized,
-      customization: item.customization as
-        | QuotationProductCustomization
-        | undefined,
-    })),
+    lineItems: values.lineItems.map((item) => {
+      const line: QuotationFormData["lineItems"][number] = {
+        productId: item.productId,
+        productSku: item.productSku,
+        productName: item.productName,
+        description: item.description,
+        productVersionId: item.productVersionId,
+        productVersionLabel: item.productVersionLabel,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        discountPercent: item.discountPercent,
+        taxPercent: item.taxPercent,
+        isCustomized: item.isCustomized ?? false,
+      };
+      if (item.customization != null) {
+        line.customization = item.customization as QuotationProductCustomization;
+      }
+      return line;
+    }),
     validUntil: values.validUntil,
     priority: values.priority,
     notes: values.notes,

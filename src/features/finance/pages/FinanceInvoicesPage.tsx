@@ -11,7 +11,6 @@ import { DataTable, type ColumnDef } from "@/components/tables/DataTable";
 import { MappedStatusBadge } from "@/features/shared/components/MappedStatusBadge";
 import type { Invoice } from "@/types/invoice";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { initialInvoices } from "@/features/finance/mock/mockInvoices";
 import { InvoiceStatus } from "@/types/status";
 import { Input } from "@/components/ui/Input";
 import { RowActions, type RowActionItem } from "@/components/ui/RowActions";
@@ -21,10 +20,12 @@ import {
   printCommercialDocument,
 } from "@/lib/commercialDocument";
 import { loadSystemSettings } from "@/lib/systemSettings";
+import { useInvoices } from "@/features/finance/hooks/useInvoices";
 
 export function FinanceInvoicesPage() {
   const navigate = useNavigate();
-  const [invoices] = useState<Invoice[]>(initialInvoices);
+  const { data, isLoading, error } = useInvoices({ page: 1, pageSize: 200 });
+  const invoices = data?.items ?? [];
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
@@ -122,7 +123,11 @@ export function FinanceInvoicesPage() {
         }
       />
 
-      <PageContent>
+      <PageContent
+        isLoading={isLoading}
+        error={error ? error.message : null}
+        loadingVariant="table"
+      >
         <div className="mb-4 max-w-md">
           <Input
             label="Search"
@@ -145,4 +150,3 @@ export function FinanceInvoicesPage() {
     </PageContainer>
   );
 }
-

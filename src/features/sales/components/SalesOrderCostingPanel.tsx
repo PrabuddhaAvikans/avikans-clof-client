@@ -81,7 +81,10 @@ export function SalesOrderCostingPanel({
                   <MappedStatusBadge statusMap={CoatingStatus} value={costing.coatingStatus} dot />
                 </div>
                 <p className="mt-1.5 text-sm tabular-nums font-medium">
-                  {formatCurrency(coatingTotal, costing.currency)}
+                  {formatCurrency(costing.totalEstimate, costing.currency)}
+                </p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  Coating {formatCurrency(coatingTotal, costing.currency)}
                 </p>
                 {costing.estimationProductLines.length > 0 && (
                   <p className="mt-0.5 text-[11px] text-muted-foreground">

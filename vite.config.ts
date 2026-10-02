@@ -13,6 +13,15 @@ export default defineConfig({
       "@": path.resolve(rootDir, "./src"),
     },
   },
+  server: {
+    proxy: {
+      "/api": {
+        target: "https://localhost:7231",
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
   build: {
     chunkSizeWarningLimit: 1500,
   },

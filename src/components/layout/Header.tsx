@@ -12,7 +12,7 @@ import {
   Plus,
   Search,
   Truck,
-  UserCog,
+  User,
   Users,
 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
@@ -26,7 +26,6 @@ import {
   toggleSidebarCollapsed,
 } from "@/app/store/uiSlice";
 import { useBreakpoint } from "@/hooks/useMediaQuery";
-import { usePermissions } from "@/hooks/usePermissions";
 import { APP_HEADER_HEIGHT } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { IconButton } from "@/components/ui/IconButton";
@@ -50,7 +49,6 @@ export function Header() {
   );
   const user = useSelector((state: RootState) => state.auth.user);
   const { signOutUser } = useAuthSession();
-  const { hasPermission } = usePermissions();
   const isMobile = !useBreakpoint("md");
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -229,19 +227,19 @@ export function Header() {
                   <p className="text-sm font-medium text-foreground">{displayName}</p>
                   <p className="text-xs text-muted-foreground">{role}</p>
                 </div>
-                {hasPermission("users:view") && (
+                {user?.id && (
                   <button
                     type="button"
                     role="menuitem"
-                    title="Users & roles"
+                    title="View & edit profile"
                     className="flex w-full items-center gap-2 px-3 py-2 text-sm text-popover-foreground hover:bg-muted"
                     onClick={() => {
                       setProfileOpen(false);
-                      navigate(ROUTES.admin.users);
+                      navigate(ROUTES.admin.userEdit(user.id));
                     }}
                   >
-                    <UserCog className="h-4 w-4 text-muted-foreground" aria-hidden />
-                    Users & roles
+                    <User className="h-4 w-4 text-muted-foreground" aria-hidden />
+                    View & edit profile
                   </button>
                 )}
                 <button

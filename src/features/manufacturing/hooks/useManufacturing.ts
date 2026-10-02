@@ -111,3 +111,10 @@ export function useBulkCompleteManufacturingTasks() {
     selectMutation: (state: RootState) => state.manufacturing.bulkComplete,
   });
 }
+
+export function useDeleteManufacturingJob() {
+  return useEpicMutation<string, string>({
+    request: manufacturingActions.deleteRequest,
+    selectMutation: (state: RootState) => state.manufacturing.remove,
+  });
+}

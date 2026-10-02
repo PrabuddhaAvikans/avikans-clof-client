@@ -52,7 +52,15 @@ export type DashboardSources = {
   auditLogs: AuditLogEntry[];
 };
 
-const OPEN_QUOTE_STATUSES = new Set(["draft", "ready_to_send", "sent", "viewed"]);
+const OPEN_QUOTE_STATUSES = new Set([
+  "draft",
+  "ready_to_send",
+  "sent",
+  "viewed",
+  "customer_feedback",
+  "revision_required",
+  "revised",
+]);
 const OPEN_ORDER_STATUSES = new Set([
   "draft",
   "pending_review",

@@ -15,16 +15,16 @@ export const salesOrderLineItemSchema = quotationLineItemSchema;
 
 export const salesOrderFormSchema = yup.object({
   customerId: yup.string().trim().required('Select a customer to continue'),
-  customerName: yup.string().optional(),
-  quotationId: yup.string().optional(),
+  customerName: yup.string().nullable().optional(),
+  quotationId: yup.string().nullable().optional(),
   priority: yup.string().oneOf(['low', 'medium', 'high', 'urgent'] as const).required(),
-  requestedDeliveryDate: yup.string().optional(),
+  requestedDeliveryDate: yup.string().nullable().optional(),
   lineItems: yup
     .array(salesOrderLineItemSchema)
     .min(1, 'Add at least one product to continue')
     .required(),
   discountAmount: coerceNumber().min(0).optional(),
-  notes: yup.string().optional(),
+  notes: yup.string().nullable().optional(),
   requiresManufacturing: yup.boolean().required(),
   deliveryAddress: addressSchema.required(),
 });

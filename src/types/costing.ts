@@ -67,6 +67,8 @@ export interface EstimationProductLine {
   quantity: number;
   sourceType: EstimationSourceType;
   unitPrice: number;
+  sellingAmount?: number;
+  costsAreExtended?: boolean;
   estimatedCost: number;
   materialCost: number;
   labourCost: number;

@@ -125,3 +125,17 @@ export function useUpdateRoleGroup() {
     selectMutation: (state: RootState) => state.users.roleGroups.update,
   });
 }
+
+export function useDeleteRole() {
+  return useEpicMutation<string, string>({
+    request: usersActions.deleteRoleRequest,
+    selectMutation: (state: RootState) => state.users.roles.remove,
+  });
+}
+
+export function useDeleteRoleGroup() {
+  return useEpicMutation<string, string>({
+    request: usersActions.deleteRoleGroupRequest,
+    selectMutation: (state: RootState) => state.users.roleGroups.remove,
+  });
+}

@@ -69,6 +69,44 @@ function computeLineCost(qty: number, wastePercent: number, unitCost: number): n
   return Math.round(computeRequiredQty(qty, wastePercent) * unitCost * 100) / 100;
 }
 
+function lineProductionCost(line: {
+  quantity: number;
+  estimatedCost: number;
+  materialCost: number;
+  labourCost: number;
+  machineCost: number;
+  coatingCost: number;
+  overheadCost: number;
+  costsAreExtended?: boolean;
+}): number {
+  const quantity = Number(line.quantity) || 0;
+  const components =
+    Number(line.materialCost) +
+    Number(line.labourCost) +
+    Number(line.machineCost) +
+    Number(line.coatingCost) +
+    Number(line.overheadCost);
+  const estimated = Number(line.estimatedCost) || 0;
+  if (
+    line.costsAreExtended !== true &&
+    quantity > 1 &&
+    components > 0 &&
+    Math.abs(components - estimated) < 0.05
+  ) {
+    return Math.round(estimated * quantity * 100) / 100;
+  }
+  return estimated;
+}
+
+function lineSellingAmount(line: {
+  quantity: number;
+  unitPrice: number;
+  sellingAmount?: number;
+}): number {
+  if (line.sellingAmount && line.sellingAmount > 0) return line.sellingAmount;
+  return line.unitPrice * line.quantity;
+}
+
 export function EstimationDetailPanel({
   request,
   onSubmitEstimation,
@@ -167,17 +205,17 @@ export function EstimationDetailPanel({
                   </div>
                   <div className="text-right text-[11px] tabular-nums">
                     <p className="font-medium text-foreground">
-                      Est. {formatCurrency(line.estimatedCost, request.currency)}
+                      Est. {formatCurrency(lineProductionCost(line), request.currency)}
                     </p>
                     <p className="text-muted-foreground">
-                      Sell {formatCurrency(line.unitPrice * line.quantity, request.currency)}
+                      Sell {formatCurrency(lineSellingAmount(line), request.currency)}
                     </p>
-                    {line.unitPrice * line.quantity > 0 && (
+                    {lineSellingAmount(line) > 0 && (
                       <p className="text-muted-foreground">
                         Margin{" "}
                         {formatPercent(
-                          ((line.unitPrice * line.quantity - line.estimatedCost) /
-                            (line.unitPrice * line.quantity)) *
+                          ((lineSellingAmount(line) - lineProductionCost(line)) /
+                            lineSellingAmount(line)) *
                             100,
                         )}
                       </p>
@@ -245,6 +283,27 @@ export function EstimationDetailPanel({
                   sum + computeLineCost(Number(m.quantity) || 0, Number(m.wastePercent) || 0, Number(m.unitCost) || 0),
                 0,
               );
+              const retainedCost = request.estimationProductLines.reduce((sum, line) => {
+                const quantity = Number(line.quantity) || 0;
+                const components =
+                  Number(line.materialCost) +
+                  Number(line.labourCost) +
+                  Number(line.machineCost) +
+                  Number(line.coatingCost) +
+                  Number(line.overheadCost);
+                const scale =
+                  line.costsAreExtended !== true &&
+                  quantity > 1 &&
+                  components > 0 &&
+                  Math.abs(components - Number(line.estimatedCost)) < 0.05
+                    ? quantity
+                    : 1;
+                return (
+                  sum +
+                  (Number(line.labourCost) + Number(line.machineCost) + Number(line.overheadCost)) * scale
+                );
+              }, 0);
+              const liveProductionCost = liveMaterialsTotal + liveCoatingTotal + retainedCost;
 
               const addMaterial = (inventoryItemId: string) => {
                 const item = inventoryItems.find((i) => i.id === inventoryItemId);
@@ -475,11 +534,25 @@ export function EstimationDetailPanel({
                     )}
                   </section>
 
-                  <div className="rounded-md border border-border bg-muted/20 px-3 py-2.5 flex items-center justify-between">
-                    <span className="text-sm font-semibold">Estimation Grand Total</span>
-                    <span className="text-sm font-semibold tabular-nums">
-                      {formatCurrency(liveCoatingTotal + liveMaterialsTotal, request.currency)}
-                    </span>
+                  <div className="rounded-md border border-border bg-muted/20 px-3 py-2.5 space-y-1">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Materials</span>
+                      <span className="tabular-nums">{formatCurrency(liveMaterialsTotal, request.currency)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Coating / finishing</span>
+                      <span className="tabular-nums">{formatCurrency(liveCoatingTotal, request.currency)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Labour, machine and overhead</span>
+                      <span className="tabular-nums">{formatCurrency(retainedCost, request.currency)}</span>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-border pt-1">
+                      <span className="text-sm font-semibold">Estimated production cost</span>
+                      <span className="text-sm font-semibold tabular-nums">
+                        {formatCurrency(liveProductionCost, request.currency)}
+                      </span>
+                    </div>
                   </div>
 
                   <FormikTextarea
@@ -629,11 +702,21 @@ export function EstimationDetailPanel({
               </section>
             )}
 
-            <div className="rounded-md border border-border bg-muted/20 px-3 py-2.5 flex items-center justify-between">
-              <span className="text-sm font-semibold">Estimation Grand Total</span>
-              <span className="text-sm font-semibold tabular-nums">
-                {formatCurrency(coatingTotal + materialsTotal, request.currency)}
-              </span>
+            <div className="rounded-md border border-border bg-muted/20 px-3 py-2.5 space-y-1">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Materials</span>
+                <span className="tabular-nums">{formatCurrency(materialsTotal, request.currency)}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Coating / finishing</span>
+                <span className="tabular-nums">{formatCurrency(coatingTotal, request.currency)}</span>
+              </div>
+              <div className="flex items-center justify-between border-t border-border pt-1">
+                <span className="text-sm font-semibold">Estimated production cost</span>
+                <span className="text-sm font-semibold tabular-nums">
+                  {formatCurrency(request.totalEstimate, request.currency)}
+                </span>
+              </div>
             </div>
 
             {request.notes && <p className="text-sm text-muted-foreground">{request.notes}</p>}

@@ -156,6 +156,8 @@ export interface Quotation {
   sentAt?: string;
   viewedAt?: string;
   acceptedAt?: string;
+  rejectionReason?: string;
+  rejectedAt?: string;
   createdAt: string;
   updatedAt: string;
 }

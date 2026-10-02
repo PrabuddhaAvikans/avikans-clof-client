@@ -25,6 +25,7 @@ import { RowActions, type RowActionItem } from "@/components/ui/RowActions";
 import { SearchBar } from "@/components/ui/SearchBar";
 import { Select } from "@/components/ui/Select";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
+import { Textarea } from "@/components/ui/Textarea";
 import { MappedStatusBadge } from "@/features/shared/components/MappedStatusBadge";
 import { DuplicateQuotationModal } from "@/features/sales/components/DuplicateQuotationModal";
 import { SendQuotationModal } from "@/features/sales/components/SendQuotationModal";
@@ -32,9 +33,16 @@ import {
   useConvertQuotationToSalesOrder,
   useDeleteQuotation,
   useQuotations,
-  useSendQuotation,
   useUpdateQuotation,
 } from "@/features/sales/hooks/useQuotations";
+import {
+  canApproveQuotation,
+  canConvertQuotation,
+  canDeleteQuotation,
+  canEditQuotation,
+  canRejectQuotation,
+  canSendQuotation,
+} from "@/features/sales/lib/quotationLifecycle";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { QuotationStatus, type QuotationStatusValue } from "@/types/status";
 import type { Quotation } from "@/types/quotation";
@@ -53,6 +61,8 @@ export function EstimateListPage() {
     status: "" as QuotationStatusValue | "",
   });
   const [deleteTarget, setDeleteTarget] = useState<Quotation | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<Quotation | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
   const [sendTarget, setSendTarget] = useState<Quotation | null>(null);
   const [duplicateOpen, setDuplicateOpen] = useState(false);
   const [duplicateSource, setDuplicateSource] = useState<Quotation | null>(null);
@@ -64,7 +74,6 @@ export function EstimateListPage() {
     status: applied.status || undefined,
   });
 
-  const sendQuotation = useSendQuotation();
   const deleteQuotation = useDeleteQuotation();
   const updateQuotation = useUpdateQuotation();
   const convertToOrder = useConvertQuotationToSalesOrder();
@@ -142,7 +151,7 @@ export function EstimateListPage() {
             },
           ];
 
-          if (q.status === "draft") {
+          if (canEditQuotation(q.status)) {
             actions.push({
               id: "edit",
               label: "Edit",
@@ -152,7 +161,7 @@ export function EstimateListPage() {
             });
           }
 
-          if (["draft", "ready_to_send"].includes(q.status)) {
+          if (canSendQuotation(q.status)) {
             actions.push({
               id: "send",
               label: "Send",
@@ -169,33 +178,33 @@ export function EstimateListPage() {
             onClick: () => navigate(ROUTES.quotations.preview(q.id)),
           });
 
-          if (["sent", "viewed"].includes(q.status)) {
-            actions.push(
-              {
-                id: "accept",
-                label: "Mark Accepted",
-                icon: <Check className="h-4 w-4" />,
-                onClick: () =>
-                  void updateQuotation.mutateAsync({
-                    id: q.id,
-                    data: { status: "accepted" },
-                  }),
-              },
-              {
-                id: "reject",
-                label: "Mark Rejected",
-                icon: <X className="h-4 w-4" />,
-                danger: true,
-                onClick: () =>
-                  void updateQuotation.mutateAsync({
-                    id: q.id,
-                    data: { status: "rejected" },
-                  }),
-              },
-            );
+          if (canApproveQuotation(q.status)) {
+            actions.push({
+              id: "accept",
+              label: "Approve",
+              icon: <Check className="h-4 w-4" />,
+              onClick: () =>
+                void updateQuotation.mutateAsync({
+                  id: q.id,
+                  data: { status: "accepted" },
+                }),
+            });
           }
 
-          if (["accepted", "sent"].includes(q.status)) {
+          if (canRejectQuotation(q.status)) {
+            actions.push({
+              id: "reject",
+              label: "Reject",
+              icon: <X className="h-4 w-4" />,
+              danger: true,
+              onClick: () => {
+                setRejectReason("");
+                setRejectTarget(q);
+              },
+            });
+          }
+
+          if (canConvertQuotation(q.status)) {
             actions.push({
               id: "convert",
               label: "Convert to Sales Order",
@@ -214,7 +223,7 @@ export function EstimateListPage() {
             });
           }
 
-          if (q.status === "draft") {
+          if (canDeleteQuotation(q.status)) {
             actions.push({
               id: "delete",
               label: "Delete Draft",
@@ -305,6 +314,54 @@ export function EstimateListPage() {
       </div>
 
       <ConfirmationDialog
+        open={Boolean(rejectTarget)}
+        onClose={() => {
+          setRejectTarget(null);
+          setRejectReason("");
+        }}
+        onConfirm={() => {
+          if (!rejectTarget) return;
+          const reason = rejectReason.trim();
+          if (reason.length < 3) {
+            toast.error("Enter a rejection reason (at least 3 characters).");
+            return;
+          }
+          void updateQuotation
+            .mutateAsync({
+              id: rejectTarget.id,
+              data: { status: "rejected", rejectionReason: reason },
+            })
+            .then(() => {
+              toast.success("Quotation rejected");
+              setRejectTarget(null);
+              setRejectReason("");
+              void refetch();
+            })
+            .catch((err) => {
+              toast.error(
+                err instanceof Error ? err.message : "Failed to reject quotation",
+              );
+            });
+        }}
+        title="Reject quotation?"
+        description={`Explain why ${rejectTarget?.quotationNumber ?? "this quotation"} is being rejected.`}
+        confirmLabel="Reject"
+        variant="danger"
+        loading={updateQuotation.isPending}
+      >
+        <div className="mt-3">
+          <Textarea
+            label="Rejection reason"
+            value={rejectReason}
+            onChange={(event) => setRejectReason(event.target.value)}
+            placeholder="e.g. Customer chose a competitor due to lead time"
+            rows={3}
+            disabled={updateQuotation.isPending}
+          />
+        </div>
+      </ConfirmationDialog>
+
+      <ConfirmationDialog
         open={Boolean(deleteTarget)}
         onClose={() => setDeleteTarget(null)}
         onConfirm={() =>
@@ -324,8 +381,8 @@ export function EstimateListPage() {
           onClose={() => setSendTarget(null)}
           quotation={sendTarget}
           onSent={() => {
-            void sendQuotation.mutateAsync(sendTarget.id);
             setSendTarget(null);
+            void refetch();
           }}
         />
       )}

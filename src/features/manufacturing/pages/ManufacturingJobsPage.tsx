@@ -23,7 +23,7 @@ import {
   useStartProduction,
   useUpdateProductionStage,
 } from "@/features/manufacturing/hooks/useProductionTracking";
-import { manufacturingService } from "@/services";
+import { useDeleteManufacturingJob } from "@/features/manufacturing/hooks/useManufacturing";
 import type { ProductionJob } from "@/types/production-tracking";
 import { ManufacturingJobStatus, Priority } from "@/types/status";
 
@@ -61,7 +61,7 @@ export function ManufacturingJobsPage() {
   const [appliedPriority, setAppliedPriority] = useState("");
   const [appliedDelayedOnly, setAppliedDelayedOnly] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ProductionJob | null>(null);
-  const [deleting, setDeleting] = useState(false);
+  const deleteJob = useDeleteManufacturingJob();
   const [startConfirmOpen, setStartConfirmOpen] = useState(false);
   const [overrideMaterials, setOverrideMaterials] = useState(false);
 
@@ -212,17 +212,14 @@ export function ManufacturingJobsPage() {
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    setDeleting(true);
     try {
-      await manufacturingService.delete(deleteTarget.id);
+      await deleteJob.mutateAsync(deleteTarget.id);
       toast.success(`Job ${deleteTarget.jobNumber} deleted`);
       setDeleteTarget(null);
       void refetch();
       void refetchJobs();
     } catch {
       toast.error("Failed to delete job");
-    } finally {
-      setDeleting(false);
     }
   };
 
@@ -449,7 +446,7 @@ export function ManufacturingJobsPage() {
         description={`Are you sure you want to delete ${deleteTarget?.jobNumber}? This action cannot be undone.`}
         confirmLabel="Delete"
         variant="danger"
-        loading={deleting}
+        loading={deleteJob.isPending}
       />
 
       <ConfirmationDialog

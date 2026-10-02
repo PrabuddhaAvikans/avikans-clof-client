@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { MappedStatusBadge } from "@/features/shared/components/MappedStatusBadge";
 import { SendQuotationModal } from "@/features/sales/components/SendQuotationModal";
 import { QuotationTotalsSummary } from "@/features/sales/components/QuotationTotalsSummary";
-import { computeLineAmounts, computeQuotationTotals } from "@/features/sales/schemas/quotationSchema";
+import { computeLineAmounts, storedQuotationTotals } from "@/features/sales/schemas/quotationSchema";
 import { useQuotation } from "@/features/sales/hooks/useQuotations";
 import { getCountryConfig } from "@/lib/countryConfig";
 import { DEFAULT_COUNTRY } from "@/lib/countries";
@@ -27,7 +27,7 @@ export function QuotationPreviewPage() {
 
   const { data: quotation, isLoading, error } = useQuotation(id);
   const totals = quotation
-    ? computeQuotationTotals(quotation.lineItems, quotation.discountAmount)
+    ? storedQuotationTotals(quotation.lineItems, quotation)
     : null;
   const taxCountry =
     quotation?.billingAddress?.country ||
@@ -110,15 +110,15 @@ export function QuotationPreviewPage() {
 
               <table className="mb-8 w-full text-sm">
                 <thead>
-                  <tr className="border-b-2 border-border bg-muted/40">
-                    <th className="px-3 py-2 text-left">#</th>
-                    <th className="px-3 py-2 text-left">Description</th>
-                    <th className="px-3 py-2 text-right">Qty</th>
-                    <th className="px-3 py-2 text-right">Unit Price</th>
-                    <th className="px-3 py-2 text-right">Discount %</th>
-                    <th className="px-3 py-2 text-right">Excl. {taxName}</th>
-                    <th className="px-3 py-2 text-right">{taxName}</th>
-                    <th className="px-3 py-2 text-right">Line Total</th>
+                  <tr className="border-b-2 border-border bg-muted/50">
+                    <th className="px-3 py-1 text-left">#</th>
+                    <th className="px-3 py-1 text-left">Description</th>
+                    <th className="px-3 py-1 text-right">Qty</th>
+                    <th className="px-3 py-1 text-right">Unit Price</th>
+                    <th className="px-4 py-1 text-right">Discount %</th>
+                    <th className="px-2 py-1 text-right">Excl. {taxName}</th>
+                    <th className="px-3 py-1 text-right">{taxName}</th>
+                    <th className="px-3 py-1 text-right">Line Total</th>
                   </tr>
                 </thead>
                 <tbody>

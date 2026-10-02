@@ -55,10 +55,10 @@ export function AuditLogDetailPanel({
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
             <StatusBadge variant={auditActionVariant(log.action)}>
-              {AUDIT_ACTION_LABELS[log.action]}
+              {AUDIT_ACTION_LABELS[log.action] ?? log.action}
             </StatusBadge>
             <StatusBadge variant={auditSeverityVariant(log.severity)} dot>
-              {AUDIT_SEVERITY_LABELS[log.severity]}
+              {AUDIT_SEVERITY_LABELS[log.severity] ?? log.severity}
             </StatusBadge>
             <IconButton
               variant="outline"

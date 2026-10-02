@@ -257,9 +257,9 @@ export function ManufacturingJobDetailPage() {
         ]}
         actions={
           <div className="flex flex-wrap gap-2">
-            <Link to={ROUTES.periodClose.day}>
+            <Link to={ROUTES.endOfDayManagement.day}>
               <Button variant="outline" size="sm" leftIcon={<Clock3 className="h-4 w-4" />}>
-                Day Close
+                Day-End Closing
               </Button>
             </Link>
             <Link to={ROUTES.manufacturing.jobs}>

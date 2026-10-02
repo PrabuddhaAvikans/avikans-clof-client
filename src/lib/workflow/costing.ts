@@ -1,7 +1,8 @@
 import type { ApprovalLevel, CostingRequest } from "@/types/costing";
 import type { SalesOrder } from "@/types/sales-order";
 import type { WorkflowInstance, WorkflowSelectionContext } from "@/types/workflow";
-import { COSTING_APPROVAL_WORKFLOW_ID } from "@/lib/workflow/catalog";
+import { approvalStepsInOrder } from "@/lib/workflow/graphPath";
+import { activeApprovalLevels, costingStage, resolveCostingDefinitionId } from "@/lib/workflow/stages";
 import {
   freezeExistingApprovalLevels,
   getWorkflowInstance,
@@ -49,14 +50,23 @@ export function previewCostingApprovalLevels(
   order?: SalesOrder,
 ): ApprovalLevel[] {
   const version = selectWorkflowVersion(
-    COSTING_APPROVAL_WORKFLOW_ID,
+    resolveCostingDefinitionId(),
     costingWorkflowContext(request, order),
   );
-  return version.steps.map((step, index) => ({
+  const stage = costingStage(version);
+  if (stage) {
+    return activeApprovalLevels(stage).map((level) => ({
+      id: `preview-${level.id}`,
+      role: level.assignedRoleName || level.name,
+      assigneeName: level.assignedUserName?.trim() || "Unassigned",
+      status: "waiting" as const,
+    }));
+  }
+  return approvalStepsInOrder(version.steps).map((step) => ({
     id: `preview-${step.id}`,
-    role: step.approvalRoleName,
+    role: step.approvalRoleName || step.stepName,
     assigneeName: step.assigneeName?.trim() || "Unassigned",
-    status: index === 0 ? "waiting" : "waiting",
+    status: "waiting" as const,
   }));
 }
 

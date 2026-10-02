@@ -1,110 +1,173 @@
 import { combineEpics } from "redux-observable";
-import { createAsyncEpic } from "@/app/store/async/createAsyncEpic";
+import { createApiEpic } from "@/app/store/async/createApiEpic";
 import { inventoryActions } from "@/features/inventory/store/inventorySlice";
-import { manufacturingActions } from "@/features/manufacturing/store/manufacturingSlice";
+import { manufacturingActions as actions } from "@/features/manufacturing/store/manufacturingSlice";
 import { productionTrackingActions } from "@/features/manufacturing/store/productionTrackingSlice";
-import { periodCloseActions } from "@/features/period-close/store/periodCloseSlice";
-import { manufacturingService } from "@/services";
+import { endOfDayManagementActions } from "@/features/end-of-day-management/store/endOfDayManagementSlice";
+import { buildQuery, http } from "@/services/apiClient";
+import { asRecord, mapPaginatedResponse } from "@/services/mappers/common";
+import { mapManufacturingJob } from "@/services/mappers/manufacturingMappers";
 
-const refreshPeriodClose = () => [periodCloseActions.invalidateAll()];
+const refreshEndOfDayManagement = () => [endOfDayManagementActions.invalidateAll()];
 
-const fetchListEpic = createAsyncEpic({
-  request: manufacturingActions.fetchListRequest,
-  success: manufacturingActions.fetchListSuccess,
-  failure: manufacturingActions.fetchListFailure,
-  handler: (filters) => manufacturingService.list(filters),
+const fetchListEpic = createApiEpic({
+  request: actions.fetchListRequest,
+  success: actions.fetchListSuccess,
+  failure: actions.fetchListFailure,
+  execute: async (filters) =>
+    mapPaginatedResponse(
+      await http.get(
+        `/api/manufacturing/jobs${buildQuery(filters)}`,
+      ),
+      mapManufacturingJob,
+    ),
 });
 
-const fetchDetailEpic = createAsyncEpic({
-  request: manufacturingActions.fetchDetailRequest,
-  success: manufacturingActions.fetchDetailSuccess,
-  failure: manufacturingActions.fetchDetailFailure,
-  handler: (id) => manufacturingService.getById(id),
+const fetchDetailEpic = createApiEpic({
+  request: actions.fetchDetailRequest,
+  success: actions.fetchDetailSuccess,
+  failure: actions.fetchDetailFailure,
+  execute: async (id) =>
+    mapManufacturingJob(asRecord(await http.get(`/api/manufacturing/jobs/${id}`))),
 });
 
-const createEpic = createAsyncEpic({
-  request: manufacturingActions.createRequest,
-  success: manufacturingActions.createSuccess,
-  failure: manufacturingActions.createFailure,
-  handler: (data) => manufacturingService.create(data),
-  mode: "merge",
-  onSuccess: () => [...refreshPeriodClose()],
+const createEpic = createApiEpic({
+  request: actions.createRequest,
+  success: actions.createSuccess,
+  failure: actions.createFailure,
+  concurrency: "merge",
+  execute: async (data) =>
+    mapManufacturingJob(asRecord(await http.post("/api/manufacturing/jobs", data))),
+  onSuccess: () => [...refreshEndOfDayManagement()],
 });
 
-const updateEpic = createAsyncEpic({
-  request: manufacturingActions.updateRequest,
-  success: manufacturingActions.updateSuccess,
-  failure: manufacturingActions.updateFailure,
-  handler: ({ id, data }) => manufacturingService.update(id, data),
-  mode: "merge",
-  onSuccess: () => [productionTrackingActions.invalidateAll(), ...refreshPeriodClose()],
-});
-
-const reserveMaterialsEpic = createAsyncEpic({
-  request: manufacturingActions.reserveMaterialsRequest,
-  success: manufacturingActions.reserveMaterialsSuccess,
-  failure: manufacturingActions.reserveMaterialsFailure,
-  handler: (id) => manufacturingService.reserveMaterials(id),
-  mode: "merge",
+const updateEpic = createApiEpic({
+  request: actions.updateRequest,
+  success: actions.updateSuccess,
+  failure: actions.updateFailure,
+  concurrency: "merge",
+  execute: async ({ id, data }) =>
+    mapManufacturingJob(
+      asRecord(await http.put(`/api/manufacturing/jobs/${id}`, data)),
+    ),
   onSuccess: () => [
-    inventoryActions.invalidateAll(),
     productionTrackingActions.invalidateAll(),
-    ...refreshPeriodClose(),
+    ...refreshEndOfDayManagement(),
   ],
 });
 
-const startEpic = createAsyncEpic({
-  request: manufacturingActions.startRequest,
-  success: manufacturingActions.startSuccess,
-  failure: manufacturingActions.startFailure,
-  handler: (id) => manufacturingService.startJob(id),
-  mode: "merge",
+const reserveMaterialsEpic = createApiEpic({
+  request: actions.reserveMaterialsRequest,
+  success: actions.reserveMaterialsSuccess,
+  failure: actions.reserveMaterialsFailure,
+  concurrency: "merge",
+  execute: async (id) =>
+    mapManufacturingJob(
+      asRecord(await http.post(`/api/manufacturing/jobs/${id}/reserve-materials`)),
+    ),
   onSuccess: () => [
     inventoryActions.invalidateAll(),
     productionTrackingActions.invalidateAll(),
-    ...refreshPeriodClose(),
+    ...refreshEndOfDayManagement(),
   ],
 });
 
-const completeEpic = createAsyncEpic({
-  request: manufacturingActions.completeRequest,
-  success: manufacturingActions.completeSuccess,
-  failure: manufacturingActions.completeFailure,
-  handler: ({ id, completion }) => manufacturingService.completeJob(id, completion),
-  mode: "merge",
+const startEpic = createApiEpic({
+  request: actions.startRequest,
+  success: actions.startSuccess,
+  failure: actions.startFailure,
+  concurrency: "merge",
+  execute: async (id) =>
+    mapManufacturingJob(
+      asRecord(await http.post(`/api/manufacturing/jobs/${id}/start`)),
+    ),
   onSuccess: () => [
     inventoryActions.invalidateAll(),
     productionTrackingActions.invalidateAll(),
-    ...refreshPeriodClose(),
+    ...refreshEndOfDayManagement(),
   ],
 });
 
-const holdEpic = createAsyncEpic({
-  request: manufacturingActions.holdRequest,
-  success: manufacturingActions.holdSuccess,
-  failure: manufacturingActions.holdFailure,
-  handler: ({ id, reason }) => manufacturingService.holdJob(id, reason),
-  mode: "merge",
-  onSuccess: () => [productionTrackingActions.invalidateAll(), ...refreshPeriodClose()],
+const completeEpic = createApiEpic({
+  request: actions.completeRequest,
+  success: actions.completeSuccess,
+  failure: actions.completeFailure,
+  concurrency: "merge",
+  execute: async ({ id, completion }) =>
+    mapManufacturingJob(
+      asRecord(
+        await http.post(`/api/manufacturing/jobs/${id}/complete`, completion ?? {}),
+      ),
+    ),
+  onSuccess: () => [
+    inventoryActions.invalidateAll(),
+    productionTrackingActions.invalidateAll(),
+    ...refreshEndOfDayManagement(),
+  ],
 });
 
-const taskActionEpic = createAsyncEpic({
-  request: manufacturingActions.taskActionRequest,
-  success: manufacturingActions.taskActionSuccess,
-  failure: manufacturingActions.taskActionFailure,
-  handler: ({ id, action }) => manufacturingService.applyTaskAction(id, action),
-  mode: "merge",
-  onSuccess: () => [productionTrackingActions.invalidateAll(), ...refreshPeriodClose()],
+const holdEpic = createApiEpic({
+  request: actions.holdRequest,
+  success: actions.holdSuccess,
+  failure: actions.holdFailure,
+  concurrency: "merge",
+  execute: async ({ id, reason }) =>
+    mapManufacturingJob(
+      asRecord(await http.post(`/api/manufacturing/jobs/${id}/hold`, { reason })),
+    ),
+  onSuccess: () => [
+    productionTrackingActions.invalidateAll(),
+    ...refreshEndOfDayManagement(),
+  ],
 });
 
-const bulkCompleteEpic = createAsyncEpic({
-  request: manufacturingActions.bulkCompleteRequest,
-  success: manufacturingActions.bulkCompleteSuccess,
-  failure: manufacturingActions.bulkCompleteFailure,
-  handler: ({ id, tasks, taskIds, notes, activeSessionSwitch }) =>
-    manufacturingService.completeTasks(id, { tasks, taskIds, notes, activeSessionSwitch }),
-  mode: "merge",
-  onSuccess: () => [productionTrackingActions.invalidateAll(), ...refreshPeriodClose()],
+const taskActionEpic = createApiEpic({
+  request: actions.taskActionRequest,
+  success: actions.taskActionSuccess,
+  failure: actions.taskActionFailure,
+  concurrency: "merge",
+  execute: async ({ id, action }) =>
+    mapManufacturingJob(
+      asRecord(await http.post(`/api/manufacturing/jobs/${id}/task-actions`, action)),
+    ),
+  onSuccess: () => [
+    productionTrackingActions.invalidateAll(),
+    ...refreshEndOfDayManagement(),
+  ],
+});
+
+const bulkCompleteEpic = createApiEpic({
+  request: actions.bulkCompleteRequest,
+  success: actions.bulkCompleteSuccess,
+  failure: actions.bulkCompleteFailure,
+  concurrency: "merge",
+  execute: async ({ id, tasks, taskIds, notes, activeSessionSwitch }) =>
+    mapManufacturingJob(
+      asRecord(
+        await http.post(`/api/manufacturing/jobs/${id}/complete-tasks`, {
+          tasks,
+          taskIds,
+          notes,
+          activeSessionSwitch,
+        }),
+      ),
+    ),
+  onSuccess: () => [
+    productionTrackingActions.invalidateAll(),
+    ...refreshEndOfDayManagement(),
+  ],
+});
+
+const deleteEpic = createApiEpic({
+  request: actions.deleteRequest,
+  success: actions.deleteSuccess,
+  failure: actions.deleteFailure,
+  concurrency: "merge",
+  execute: async (id) => {
+    await http.delete(`/api/manufacturing/jobs/${id}`);
+    return id;
+  },
+  onSuccess: () => [productionTrackingActions.invalidateAll()],
 });
 
 export const manufacturingEpic = combineEpics(
@@ -118,4 +181,5 @@ export const manufacturingEpic = combineEpics(
   holdEpic,
   taskActionEpic,
   bulkCompleteEpic,
+  deleteEpic,
 );

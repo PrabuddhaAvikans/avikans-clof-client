@@ -1,66 +1,100 @@
 import { combineEpics } from "redux-observable";
-import { createAsyncEpic } from "@/app/store/async/createAsyncEpic";
-import { inventoryActions } from "@/features/inventory/store/inventorySlice";
-import { inventoryService } from "@/services";
+import { createApiEpic } from "@/app/store/async/createApiEpic";
+import { inventoryActions as actions } from "@/features/inventory/store/inventorySlice";
+import { buildQuery, http } from "@/services/apiClient";
+import { asRecord, mapPaginatedResponse } from "@/services/mappers/common";
+import {
+  mapItem,
+  mapMovement,
+  mapPriceHistory,
+} from "@/services/mappers/inventoryMappers";
 
-const fetchListEpic = createAsyncEpic({
-  request: inventoryActions.fetchListRequest,
-  success: inventoryActions.fetchListSuccess,
-  failure: inventoryActions.fetchListFailure,
-  handler: (filters) => inventoryService.list(filters),
+const fetchListEpic = createApiEpic({
+  request: actions.fetchListRequest,
+  success: actions.fetchListSuccess,
+  failure: actions.fetchListFailure,
+  execute: async (filters) =>
+    mapPaginatedResponse(
+      await http.get(`/api/inventory${buildQuery(filters)}`),
+      mapItem,
+    ),
 });
 
-const fetchDetailEpic = createAsyncEpic({
-  request: inventoryActions.fetchDetailRequest,
-  success: inventoryActions.fetchDetailSuccess,
-  failure: inventoryActions.fetchDetailFailure,
-  handler: (id) => inventoryService.getById(id),
+const fetchDetailEpic = createApiEpic({
+  request: actions.fetchDetailRequest,
+  success: actions.fetchDetailSuccess,
+  failure: actions.fetchDetailFailure,
+  execute: async (id) => mapItem(asRecord(await http.get(`/api/inventory/${id}`))),
 });
 
-const fetchPriceHistoryEpic = createAsyncEpic({
-  request: inventoryActions.fetchPriceHistoryRequest,
-  success: inventoryActions.fetchPriceHistorySuccess,
-  failure: inventoryActions.fetchPriceHistoryFailure,
-  handler: (id) => inventoryService.getPriceHistory(id),
+const fetchPriceHistoryEpic = createApiEpic({
+  request: actions.fetchPriceHistoryRequest,
+  success: actions.fetchPriceHistorySuccess,
+  failure: actions.fetchPriceHistoryFailure,
+  execute: async (id) => {
+    const raw = await http.get<unknown[]>(`/api/inventory/${id}/price-history`);
+    return (raw ?? []).map((item) => mapPriceHistory(item as Record<string, unknown>));
+  },
 });
 
-const fetchLowStockEpic = createAsyncEpic({
-  request: inventoryActions.fetchLowStockRequest,
-  success: inventoryActions.fetchLowStockSuccess,
-  failure: inventoryActions.fetchLowStockFailure,
-  handler: () => inventoryService.getLowStock(),
+const fetchLowStockEpic = createApiEpic({
+  request: actions.fetchLowStockRequest,
+  success: actions.fetchLowStockSuccess,
+  failure: actions.fetchLowStockFailure,
+  execute: async () => {
+    const raw = await http.get<unknown[]>("/api/inventory/low-stock");
+    return (raw ?? []).map((item) => mapItem(item as Record<string, unknown>));
+  },
 });
 
-const fetchMovementsEpic = createAsyncEpic({
-  request: inventoryActions.fetchMovementsRequest,
-  success: inventoryActions.fetchMovementsSuccess,
-  failure: inventoryActions.fetchMovementsFailure,
-  handler: (filters) => inventoryService.listMovements(filters),
+const fetchMovementsEpic = createApiEpic({
+  request: actions.fetchMovementsRequest,
+  success: actions.fetchMovementsSuccess,
+  failure: actions.fetchMovementsFailure,
+  execute: async (filters) =>
+    mapPaginatedResponse(
+      await http.get(
+        `/api/inventory/movements${buildQuery(filters)}`,
+      ),
+      mapMovement,
+    ),
 });
 
-const createEpic = createAsyncEpic({
-  request: inventoryActions.createRequest,
-  success: inventoryActions.createSuccess,
-  failure: inventoryActions.createFailure,
-  handler: (data) => inventoryService.create(data),
-  mode: "merge",
+const createEpic = createApiEpic({
+  request: actions.createRequest,
+  success: actions.createSuccess,
+  failure: actions.createFailure,
+  concurrency: "merge",
+  execute: async (data) => mapItem(asRecord(await http.post("/api/inventory", data))),
 });
 
-const updateEpic = createAsyncEpic({
-  request: inventoryActions.updateRequest,
-  success: inventoryActions.updateSuccess,
-  failure: inventoryActions.updateFailure,
-  handler: ({ id, data }) => inventoryService.update(id, data),
-  mode: "merge",
+const updateEpic = createApiEpic({
+  request: actions.updateRequest,
+  success: actions.updateSuccess,
+  failure: actions.updateFailure,
+  concurrency: "merge",
+  execute: async ({ id, data }) =>
+    mapItem(asRecord(await http.put(`/api/inventory/${id}`, data))),
 });
 
-const recordMovementEpic = createAsyncEpic({
-  request: inventoryActions.recordMovementRequest,
-  success: inventoryActions.recordMovementSuccess,
-  failure: inventoryActions.recordMovementFailure,
-  handler: ({ inventoryItemId, type, quantity, reference }) =>
-    inventoryService.recordMovement(inventoryItemId, type, quantity, reference),
-  mode: "merge",
+const recordMovementEpic = createApiEpic({
+  request: actions.recordMovementRequest,
+  success: actions.recordMovementSuccess,
+  failure: actions.recordMovementFailure,
+  concurrency: "merge",
+  execute: async ({ inventoryItemId, type, quantity, reference }) =>
+    mapMovement(
+      asRecord(
+        await http.post(`/api/inventory/${inventoryItemId}/movements`, {
+          type,
+          quantity,
+          referenceType: reference?.referenceType,
+          referenceId: reference?.referenceId,
+          notes: reference?.notes,
+          trace: reference?.trace,
+        }),
+      ),
+    ),
 });
 
 export const inventoryEpic = combineEpics(

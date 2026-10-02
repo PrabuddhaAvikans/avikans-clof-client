@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Copy, Package, Phone } from "lucide-react";
+import { Copy, MessageSquare, Package, Phone } from "lucide-react";
 import { toast } from "@/components/feedback/toast";
 import { ROUTES } from "@/app/config/routes";
 import { DocumentActions } from "@/components/documents/DocumentActions";
@@ -7,9 +7,10 @@ import { buildQuotationDocument } from "@/features/sales/lib/quotationDocument";
 import { loadSystemSettings } from "@/lib/systemSettings";
 import { AttachmentPanel } from "@/components/ui/AttachmentPanel";
 import { Button } from "@/components/ui/Button";
+import { Textarea } from "@/components/ui/Textarea";
 import { MappedStatusBadge } from "@/features/shared/components/MappedStatusBadge";
 import { QuotationTotalsSummary } from "@/features/sales/components/QuotationTotalsSummary";
-import { computeQuotationTotals } from "@/features/sales/schemas/quotationSchema";
+import { storedQuotationTotals } from "@/features/sales/schemas/quotationSchema";
 import { getChangedSpecDiffs } from "@/lib/quotationCustomization";
 import { DEFAULT_COUNTRY } from "@/lib/countries";
 import { formatCurrency, formatDate, formatDateTime, formatPercent } from "@/lib/format";
@@ -25,9 +26,13 @@ import {
   QuotationCustomizationStatus,
   QuotationStatus,
 } from "@/types/status";
-import { quotationService } from "@/services";
-import { useState } from "react";
-
+import {
+  useApproveQuotationCustomization,
+  usePromoteQuotationCustomization,
+} from "@/features/sales/hooks/useQuotations";
+import { useMemo, useState } from "react";
+import type { QuotationContactInput } from "@/services/interfaces/quotationService";
+import { canLogQuotationContact } from "@/features/sales/lib/quotationLifecycle";
 
 function formatAddress(address: Address): string {
   return [address.line1, address.line2, `${address.city}, ${address.state} ${address.postalCode}`, address.country]
@@ -44,6 +49,8 @@ function daysUntil(date: string): number | null {
 export type QuotationDetailPanelProps = {
   quotation: Quotation | null;
   onOpenContacts?: () => void;
+  onAddContact?: (data: QuotationContactInput) => void | Promise<void>;
+  isAddingContact?: boolean;
   onQuotationUpdated?: (quotation: Quotation) => void;
   className?: string;
 };
@@ -51,10 +58,46 @@ export type QuotationDetailPanelProps = {
 export function QuotationDetailPanel({
   quotation,
   onOpenContacts,
+  onAddContact,
+  isAddingContact,
   onQuotationUpdated,
   className,
 }: QuotationDetailPanelProps) {
   const [actionBusy, setActionBusy] = useState<string | null>(null);
+  const [internalComment, setInternalComment] = useState("");
+  const approveCustomization = useApproveQuotationCustomization();
+  const promoteCustomization = usePromoteQuotationCustomization();
+
+  const internalComments = useMemo(
+    () =>
+      [...(quotation?.contactHistory ?? [])]
+        .filter((entry) => entry.type === "comment")
+        .sort(
+          (a, b) =>
+            new Date(b.contactedAt).getTime() - new Date(a.contactedAt).getTime(),
+        )
+        .slice(0, 5),
+    [quotation?.contactHistory],
+  );
+
+  const canComment =
+    Boolean(quotation && onAddContact && canLogQuotationContact(quotation.status));
+
+  const handlePostInternalComment = async () => {
+    const trimmed = internalComment.trim();
+    if (!trimmed || !onAddContact) return;
+    try {
+      await onAddContact({
+        type: "comment",
+        summary: trimmed,
+      });
+      setInternalComment("");
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to add internal comment",
+      );
+    }
+  };
 
   if (!quotation) {
     return (
@@ -66,7 +109,7 @@ export function QuotationDetailPanel({
 
   const remainingDays = daysUntil(quotation.validUntil);
   const quotationDocument = buildQuotationDocument(quotation, loadSystemSettings());
-  const totals = computeQuotationTotals(quotation.lineItems, quotation.discountAmount);
+  const totals = storedQuotationTotals(quotation.lineItems, quotation);
   const taxCountry =
     quotation.billingAddress?.country ||
     quotation.shippingAddress?.country ||
@@ -84,10 +127,10 @@ export function QuotationDetailPanel({
   const handleApprove = async (lineItemId: string) => {
     setActionBusy(`approve-${lineItemId}`);
     try {
-      const updated = await quotationService.approveLineCustomization(
-        quotation.id,
+      const updated = await approveCustomization.mutateAsync({
+        quotationId: quotation.id,
         lineItemId,
-      );
+      });
       onQuotationUpdated?.(updated);
       toast.success("Customization approved");
     } catch (err) {
@@ -100,11 +143,10 @@ export function QuotationDetailPanel({
   const handlePromote = async (lineItemId: string) => {
     setActionBusy(`promote-${lineItemId}`);
     try {
-      const { quotation: updated, product } =
-        await quotationService.promoteCustomizationToProductVersion(
-          quotation.id,
-          lineItemId,
-        );
+      const { quotation: updated, product } = await promoteCustomization.mutateAsync({
+        quotationId: quotation.id,
+        lineItemId,
+      });
       onQuotationUpdated?.(updated);
       const version = product.versions[product.versions.length - 1];
       toast.success(`Created ${product.name} ${version.label} from customization`);
@@ -152,6 +194,12 @@ export function QuotationDetailPanel({
                   ? " (expired)"
                   : ""}
             </p>
+            {quotation.status === "rejected" && quotation.rejectionReason && (
+              <p className="mt-2 rounded-md border border-destructive/30 bg-destructive/5 px-2.5 py-1.5 text-xs text-foreground">
+                <span className="font-medium text-destructive">Rejected: </span>
+                {quotation.rejectionReason}
+              </p>
+            )}
           </div>
           <div className="flex flex-col items-stretch gap-2 sm:items-end">
             <DocumentActions document={quotationDocument} />
@@ -161,10 +209,10 @@ export function QuotationDetailPanel({
                 variant="outline"
                 size="sm"
                 className="self-end"
-                leftIcon={<Phone className="h-4 w-4" />}
+                leftIcon={<MessageSquare className="h-4 w-4" />}
                 onClick={onOpenContacts}
               >
-                Calls & Contacts
+                Communication Log
                 {(quotation.contactHistory?.length ?? 0) > 0
                   ? ` (${quotation.contactHistory.length})`
                   : ""}
@@ -373,6 +421,86 @@ export function QuotationDetailPanel({
               );
             })}
           </ul>
+        </section>
+
+        <section className="rounded-lg border border-border bg-card">
+          <div className="border-b border-border px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">
+                  Internal team comments
+                </h3>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Notes for sales/ops only. These do not change quotation status.
+                </p>
+              </div>
+              {onOpenContacts && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  leftIcon={<Phone className="h-3.5 w-3.5" />}
+                  onClick={onOpenContacts}
+                >
+                  Full log
+                </Button>
+              )}
+            </div>
+          </div>
+          <div className="space-y-3 p-4">
+            {canComment && (
+              <div className="space-y-2">
+                <Textarea
+                  value={internalComment}
+                  onChange={(event) => setInternalComment(event.target.value)}
+                  placeholder="Add an internal comment for the team…"
+                  rows={2}
+                  disabled={isAddingContact}
+                />
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    size="sm"
+                    leftIcon={<MessageSquare className="h-3.5 w-3.5" />}
+                    loading={isAddingContact}
+                    disabled={!internalComment.trim()}
+                    onClick={() => void handlePostInternalComment()}
+                  >
+                    Post comment
+                  </Button>
+                </div>
+              </div>
+            )}
+            {internalComments.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No internal comments yet.
+              </p>
+            ) : (
+              <ul className="divide-y divide-border rounded-md border border-border">
+                {internalComments.map((entry) => (
+                  <li key={entry.id} className="px-3 py-2.5">
+                    <div className="flex flex-wrap items-baseline gap-x-2">
+                      <span className="text-[11px] font-medium uppercase tracking-wide text-primary">
+                        Internal
+                      </span>
+                      <time className="ml-auto text-[11px] text-muted-foreground">
+                        {formatDateTime(entry.contactedAt)}
+                      </time>
+                    </div>
+                    <p className="mt-0.5 text-sm text-foreground">{entry.summary}</p>
+                    {entry.detail && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {entry.detail}
+                      </p>
+                    )}
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      by {entry.contactedByName}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </section>
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">

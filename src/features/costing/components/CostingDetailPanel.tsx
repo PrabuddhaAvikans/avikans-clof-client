@@ -44,8 +44,6 @@ export function CostingDetailPanel({
     );
   }
 
-  const lineTotal = request.lineItems.reduce((sum, item) => sum + item.baseCost, 0);
-
   return (
     <div className={cn(workspacePanelShell, className)}>
       <div className="border-b border-border px-4 py-3">
@@ -193,7 +191,7 @@ export function CostingDetailPanel({
                     Total Estimate
                   </td>
                   <td className="px-3 py-2 text-right font-semibold tabular-nums">
-                    {formatCurrency(lineTotal, request.currency)}
+                    {formatCurrency(request.totalEstimate, request.currency)}
                   </td>
                   <td className="px-3 py-2 text-right font-semibold tabular-nums">100%</td>
                 </tr>

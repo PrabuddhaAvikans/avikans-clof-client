@@ -7,13 +7,15 @@ import { Textarea } from "@/components/ui/Textarea";
 import { Tabs, TabList, Tab, TabPanel } from "@/components/ui/Tabs";
 import { ROUTES } from "@/app/config/routes";
 import { loadSystemSettings } from "@/lib/systemSettings";
+import { useSendQuotation } from "@/features/sales/hooks/useQuotations";
+import { toast } from "@/components/feedback/toast";
 import type { Quotation } from "@/types/quotation";
 
 export type SendQuotationModalProps = {
   open: boolean;
   onClose: () => void;
   quotation: Quotation;
-  onSent?: () => void;
+  onSent?: (quotation: Quotation) => void;
 };
 
 type SendStatus = "idle" | "sending" | "sent" | "error";
@@ -27,15 +29,26 @@ export function SendQuotationModal({
   const [activeTab, setActiveTab] = useState("email");
   const [status, setStatus] = useState<SendStatus>("idle");
   const [copied, setCopied] = useState(false);
+  const sendQuotation = useSendQuotation();
 
   const previewLink = `${window.location.origin}${ROUTES.quotations.preview(quotation.id)}`;
   const companyName = loadSystemSettings().companyName;
 
   const handleSend = async () => {
     setStatus("sending");
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-    setStatus("sent");
-    onSent?.();
+    try {
+      const sent = await sendQuotation.mutateAsync(quotation.id);
+      setStatus("sent");
+      toast.success(`Quotation ${sent.quotationNumber} sent`);
+      onSent?.(sent);
+    } catch (err) {
+      setStatus("error");
+      const message =
+        err && typeof err === "object" && "message" in err && typeof err.message === "string"
+          ? err.message
+          : "Failed to send quotation";
+      toast.error(message);
+    }
   };
 
   const handleCopyLink = async () => {
@@ -62,7 +75,11 @@ export function SendQuotationModal({
             <Button variant="outline" onClick={handleClose} disabled={status === "sending"}>
               Cancel
             </Button>
-            <Button onClick={() => void handleSend()} loading={status === "sending"} disabled={status === "sent"}>
+            <Button
+              onClick={() => void handleSend()}
+              loading={status === "sending" || sendQuotation.isPending}
+              disabled={status === "sent"}
+            >
               {status === "sent" ? "Sent" : "Send"}
             </Button>
           </>
@@ -92,6 +109,11 @@ export function SendQuotationModal({
                 <Check className="h-4 w-4" /> Email sent successfully
               </p>
             )}
+            {status === "error" && (
+              <p className="text-sm text-destructive">
+                Could not send this quotation. Resolve any pending customizations and try again.
+              </p>
+            )}
           </div>
         </TabPanel>
 
@@ -106,6 +128,11 @@ export function SendQuotationModal({
             {status === "sent" && (
               <p className="flex items-center gap-2 text-sm text-success">
                 <Check className="h-4 w-4" /> WhatsApp message sent
+              </p>
+            )}
+            {status === "error" && (
+              <p className="text-sm text-destructive">
+                Could not send this quotation. Resolve any pending customizations and try again.
               </p>
             )}
           </div>

@@ -14,22 +14,23 @@ export const quotationLineItemSchema = yup.object({
   productId: yup.string().min(1).required(),
   productSku: yup.string().min(1).required(),
   productName: yup.string().min(1).required(),
-  description: yup.string().optional(),
-  productVersionId: yup.string().optional(),
-  productVersionLabel: yup.string().optional(),
+  description: yup.string().nullable().optional(),
+  productVersionId: yup.string().nullable().optional(),
+  productVersionLabel: yup.string().nullable().optional(),
   quantity: coerceNumber().required().positive('Quantity must be greater than 0'),
   unitPrice: coerceNumber().required().min(0, 'Unit price must be 0 or more'),
   discountPercent: coerceNumber().required().min(0).max(100),
   taxPercent: coerceNumber().required().min(0).max(100),
-  isCustomized: yup.boolean().optional(),
-  customization: yup.mixed().optional(),
-  requiresManufacturing: yup.boolean().optional(),
+  isCustomized: yup.boolean().nullable().optional(),
+  // API / Formik often store absent customization as null; optional() alone rejects null.
+  customization: yup.mixed().nullable().optional(),
+  requiresManufacturing: yup.boolean().nullable().optional(),
 });
 
 export const quotationFormSchema = yup
   .object({
     customerId: yup.string().trim().required('Select a customer to continue'),
-    customerName: yup.string().optional(),
+    customerName: yup.string().nullable().optional(),
     validUntil: yup.string().required('Valid until date is required'),
     quoteDate: yup.string().required('Quote date is required'),
     priority: yup.string().oneOf(['low', 'medium', 'high', 'urgent'] as const).required(),
@@ -38,8 +39,8 @@ export const quotationFormSchema = yup
       .min(1, 'Add at least one product to continue')
       .required(),
     discountAmount: coerceNumber().min(0).optional(),
-    notes: yup.string().optional(),
-    termsAndConditions: yup.string().optional(),
+    notes: yup.string().nullable().optional(),
+    termsAndConditions: yup.string().nullable().optional(),
     attachments: yup.array(yup.mixed<UploadedFile>().required()).default([]),
   })
   .test('valid-until-after-quote-date', 'Valid until must be after quote date', (values) => {
@@ -131,5 +132,25 @@ export function computeQuotationTotals(
     taxableAmount,
     taxAmount,
     totalAmount,
+  };
+}
+
+export function storedQuotationTotals(
+  lineItems: Parameters<typeof computeQuotationTotals>[0],
+  document: {
+    discountAmount: number;
+    subtotal: number;
+    taxAmount: number;
+    totalAmount: number;
+  },
+): QuotationTotalsBreakdown {
+  const computed = computeQuotationTotals(lineItems, document.discountAmount);
+  return {
+    ...computed,
+    subtotal: document.subtotal,
+    discountAmount: document.discountAmount,
+    taxableAmount: Math.max(0, document.subtotal - document.discountAmount),
+    taxAmount: document.taxAmount,
+    totalAmount: document.totalAmount,
   };
 }

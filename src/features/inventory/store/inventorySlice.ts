@@ -21,6 +21,7 @@ import type {
   InventoryListFilters,
   StockMovementFilters,
 } from "@/services";
+import type { StockMovementReference } from "@/services/interfaces/inventoryService";
 import type {
   InventoryItem,
   InventoryPriceHistoryEntry,
@@ -36,9 +37,8 @@ type RecordMovementArg = {
   inventoryItemId: string;
   type: StockMovementTypeValue;
   quantity: number;
-  reference?: { referenceType: string; referenceId: string; notes?: string };
+  reference?: StockMovementReference;
 };
-
 export type InventoryState = {
   lists: Record<string, AsyncEntry<ListData>>;
   details: Record<string, AsyncEntry<InventoryItem>>;

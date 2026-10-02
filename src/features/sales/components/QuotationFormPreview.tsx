@@ -22,10 +22,14 @@ function Row({ label, value }: { label: string; value: string }) {
 
 export type QuotationFormPreviewProps = {
   showQuickActions?: boolean;
+  onPreview?: () => void;
+  onSend?: () => void;
 };
 
 export function QuotationFormPreview({
   showQuickActions = true,
+  onPreview,
+  onSend,
 }: QuotationFormPreviewProps) {
   const { values } = useFormikContext<QuotationFormValues>();
   const totals = computeQuotationTotals(values.lineItems, values.discountAmount ?? 0);
@@ -90,10 +94,26 @@ export function QuotationFormPreview({
           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Quick Actions
           </p>
-          <Button type="button" variant="outline" size="sm" className="h-8 w-full justify-start text-[12px]" leftIcon={<Eye className="h-3.5 w-3.5" />}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 w-full justify-start text-[12px]"
+            leftIcon={<Eye className="h-3.5 w-3.5" />}
+            onClick={onPreview}
+            disabled={!onPreview}
+          >
             Preview as Customer
           </Button>
-          <Button type="button" variant="outline" size="sm" className="h-8 w-full justify-start text-[12px]" leftIcon={<Send className="h-3.5 w-3.5" />}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 w-full justify-start text-[12px]"
+            leftIcon={<Send className="h-3.5 w-3.5" />}
+            onClick={onSend}
+            disabled={!onSend}
+          >
             Email Customer
           </Button>
         </section>

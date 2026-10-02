@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { useSelector } from "react-redux";
+import { useEffect, type ReactNode } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import {
   Navigate,
   Route,
@@ -10,13 +10,15 @@ import {
 import routeDefinitions from "@/app/config/routeDefinitions.json";
 import type { Permission } from "@/app/config/permissions";
 import { ROUTES } from "@/app/config/routes";
-import type { RootState } from "@/app/store";
+import type { AppDispatch, RootState } from "@/app/store";
+import { signOut } from "@/app/store/authSlice";
+import { setUnauthorizedHandler } from "@/services/apiClient";
 import { AppShell } from "@/components/layout/AppShell";
 import { RequirePermission } from "@/components/layout/RequirePermission";
 import { PAGE_REGISTRY, type PageKey } from "@/app/router/pageRegistry";
 import { LoginPage } from "@/features/auth/pages/LoginPage";
 
-type RedirectHandler = "legacyEstimate";
+type RedirectHandler = "legacyEstimate" | "legacyPeriodCloseDay" | "legacyPeriodCloseMonth";
 type RedirectHandlerMode = "edit" | "preview";
 
 type RouteDefinition = {
@@ -75,6 +77,18 @@ function LegacyEstimateRedirect({ mode }: { mode?: RedirectHandlerMode }) {
   return <Navigate to={`/quotations/${id}`} replace />;
 }
 
+function LegacyPeriodCloseDayRedirect() {
+  const { periodId } = useParams<{ periodId?: string }>();
+  if (!periodId) return <Navigate to={ROUTES.endOfDayManagement.day} replace />;
+  return <Navigate to={ROUTES.endOfDayManagement.dayDetail(periodId)} replace />;
+}
+
+function LegacyPeriodCloseMonthRedirect() {
+  const { periodId } = useParams<{ periodId?: string }>();
+  if (!periodId) return <Navigate to={ROUTES.endOfDayManagement.month} replace />;
+  return <Navigate to={ROUTES.endOfDayManagement.monthDetail(periodId)} replace />;
+}
+
 function resolveRouteElement(route: RouteDefinition) {
   if (route.redirect) {
     return <Navigate to={route.redirect} replace />;
@@ -82,6 +96,14 @@ function resolveRouteElement(route: RouteDefinition) {
 
   if (route.redirectHandler === "legacyEstimate") {
     return <LegacyEstimateRedirect mode={route.redirectHandlerMode} />;
+  }
+
+  if (route.redirectHandler === "legacyPeriodCloseDay") {
+    return <LegacyPeriodCloseDayRedirect />;
+  }
+
+  if (route.redirectHandler === "legacyPeriodCloseMonth") {
+    return <LegacyPeriodCloseMonthRedirect />;
   }
 
   if (!route.page) {
@@ -102,29 +124,44 @@ function resolveRouteElement(route: RouteDefinition) {
 
 const routes = routeDefinitions.routes as RouteDefinition[];
 
+function UnauthorizedSessionRedirect() {
+  const dispatch = useDispatch<AppDispatch>();
+
+  useEffect(() => {
+    return setUnauthorizedHandler(() => {
+      dispatch(signOut());
+    });
+  }, [dispatch]);
+
+  return null;
+}
+
 export function AppRouter() {
   return (
-    <Routes>
-      <Route path={ROUTES.login} element={<LoginRoute />} />
-      <Route
-        element={
-          <RequireAuth>
-            <AppShell />
-          </RequireAuth>
-        }
-      >
+    <>
+      <UnauthorizedSessionRedirect />
+      <Routes>
+        <Route path={ROUTES.login} element={<LoginRoute />} />
         <Route
-          index
-          element={<Navigate to={routeDefinitions.indexRedirect} replace />}
-        />
-        {routes.map((route) => (
+          element={
+            <RequireAuth>
+              <AppShell />
+            </RequireAuth>
+          }
+        >
           <Route
-            key={route.path}
-            path={route.path}
-            element={resolveRouteElement(route)}
+            index
+            element={<Navigate to={routeDefinitions.indexRedirect} replace />}
           />
-        ))}
-      </Route>
-    </Routes>
+          {routes.map((route) => (
+            <Route
+              key={route.path}
+              path={route.path}
+              element={resolveRouteElement(route)}
+            />
+          ))}
+        </Route>
+      </Routes>
+    </>
   );
 }

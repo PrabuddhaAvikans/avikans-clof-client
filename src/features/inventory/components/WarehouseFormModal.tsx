@@ -7,11 +7,12 @@ import {
   type WarehouseFormValues,
 } from "@/features/inventory/schemas/inventorySchema";
 import {
-  addWarehouse,
-  findWarehouseByCode,
-  findWarehouseByName,
+  useCreateWarehouse,
+  useUpdateWarehouse,
+} from "@/features/inventory/hooks/useWarehousesApi";
+import {
   suggestWarehouseCode,
-  updateWarehouse,
+  WAREHOUSES_UPDATED_EVENT,
   type Warehouse,
 } from "@/lib/warehouses";
 
@@ -36,6 +37,8 @@ export function WarehouseFormModal({
   warehouse = null,
 }: WarehouseFormModalProps) {
   const isEditing = Boolean(warehouse);
+  const createWarehouse = useCreateWarehouse();
+  const updateWarehouse = useUpdateWarehouse();
 
   const initialValues = useMemo<WarehouseFormValues>(
     () => ({
@@ -47,43 +50,27 @@ export function WarehouseFormModal({
     [defaultName, warehouse],
   );
 
-  const handleSubmit = (values: WarehouseFormValues) => {
-    const payload: Warehouse = {
+  const handleSubmit = async (values: WarehouseFormValues) => {
+    const payload = {
       code: values.code,
       name: values.name,
       address: values.address ?? "",
       status: values.status,
     };
 
-    if (!isEditing) {
-      const existing =
-        findWarehouseByCode(payload.code) ?? findWarehouseByName(payload.name);
-      if (existing) {
-        onSaved(existing.name);
-        onClose();
-        toast.info(`"${existing.name}" already exists.`);
-        return;
-      }
-    } else if (warehouse) {
-      const codeTaken = findWarehouseByCode(payload.code);
-      if (codeTaken && codeTaken.code.toLowerCase() !== warehouse.code.toLowerCase()) {
-        toast.error("That warehouse code already exists.");
-        return;
-      }
-      const nameTaken = findWarehouseByName(payload.name);
-      if (nameTaken && nameTaken.code.toLowerCase() !== warehouse.code.toLowerCase()) {
-        toast.error("That warehouse name already exists.");
-        return;
-      }
+    try {
+      const saved =
+        isEditing && warehouse?.id
+          ? await updateWarehouse.mutateAsync({ id: warehouse.id, data: payload })
+          : await createWarehouse.mutateAsync(payload);
+
+      window.dispatchEvent(new Event(WAREHOUSES_UPDATED_EVENT));
+      onSaved(saved.name);
+      onClose();
+      toast.success(isEditing ? `Updated ${saved.name}.` : `Added ${saved.name}.`);
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Could not save warehouse.");
     }
-
-    const saved = isEditing && warehouse
-      ? updateWarehouse(warehouse.code, payload)
-      : addWarehouse(payload);
-
-    onSaved(saved.name);
-    onClose();
-    toast.success(isEditing ? `Updated ${saved.name}.` : `Added ${saved.name}.`);
   };
 
   return (

@@ -68,3 +68,10 @@ export function useRecordProofOfDelivery() {
     selectMutation: (state: RootState) => state.deliveries.recordProof,
   });
 }
+
+export function useDeleteDelivery() {
+  return useEpicMutation<string, string>({
+    request: deliveriesActions.deleteRequest,
+    selectMutation: (state: RootState) => state.deliveries.remove,
+  });
+}

@@ -301,6 +301,17 @@ export function contextsToCostingLineItems(
         sourceType: context.sourceType,
       });
     }
+    if (context.coatingCost > 0) {
+      items.push({
+        id: `cli-${orderId}-${++index}`,
+        description: `${label} - coating`,
+        category: "Coating / Finishing",
+        baseCost: context.coatingCost,
+        percentOfCost: 0,
+        salesOrderLineItemId: context.salesOrderLineItemId,
+        sourceType: context.sourceType,
+      });
+    }
   }
 
   return items;
@@ -320,6 +331,7 @@ export function contextsToEstimationProductLines(
     quantity: context.quantity,
     sourceType: context.sourceType,
     unitPrice: context.unitPrice,
+    costsAreExtended: true,
     estimatedCost: context.totalCost,
     materialCost: context.materialCost,
     labourCost: context.labourCost,

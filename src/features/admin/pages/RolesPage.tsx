@@ -28,11 +28,11 @@ import { PERMISSION_MODULE_LABELS } from "@/features/admin/lib/permissionLabels"
 import { useRefreshSessionPermissions } from "@/features/admin/hooks/useRefreshSessionPermissions";
 import {
   useCreateRole,
+  useDeleteRole,
   useRoles,
   useUpdateRole,
 } from "@/features/admin/hooks/useUsers";
 import { usePermissions } from "@/hooks/usePermissions";
-import { roleService } from "@/services";
 import type { Role } from "@/types/user";
 import type { EntityStatus } from "@/types/common";
 
@@ -54,6 +54,7 @@ export function RolesPage() {
   });
   const createRole = useCreateRole();
   const updateRole = useUpdateRole();
+  const deleteRole = useDeleteRole();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
@@ -62,7 +63,6 @@ export function RolesPage() {
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [status, setStatus] = useState<EntityStatus>("active");
   const [deleteTarget, setDeleteTarget] = useState<Role | null>(null);
-  const [deleting, setDeleting] = useState(false);
 
   const filteredRoles = useMemo(() => {
     const query = applied.search.trim().toLowerCase();
@@ -150,9 +150,8 @@ export function RolesPage() {
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    setDeleting(true);
     try {
-      await roleService.deleteRole(deleteTarget.id);
+      await deleteRole.mutateAsync(deleteTarget.id);
       toast.success(`Role ${deleteTarget.name} deactivated`);
       setDeleteTarget(null);
       await refreshSession();
@@ -163,8 +162,6 @@ export function RolesPage() {
           ? String((error as { message: string }).message)
           : "Failed to deactivate role";
       toast.error(message);
-    } finally {
-      setDeleting(false);
     }
   };
 
@@ -394,7 +391,7 @@ export function RolesPage() {
         description={`Deactivate role "${deleteTarget?.name}"? Users keep the assignment, but the role can no longer be selected for new users.`}
         confirmLabel="Deactivate"
         variant="danger"
-        loading={deleting}
+        loading={deleteRole.isPending}
       />
     </PageContainer>
   );

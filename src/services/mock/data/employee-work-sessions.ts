@@ -1,4 +1,4 @@
-import { toBusinessDate } from "@/lib/period-close/constants";
+import { toBusinessDate } from "@/lib/end-of-day-management/constants";
 import type { EmployeeWorkSession } from "@/types/employee-work";
 
 function todayAt(hours: number, minutes: number): string {

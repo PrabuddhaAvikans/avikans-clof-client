@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
-import { useFormikContext } from "formik";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useFormikContext, type FormikProps } from "formik";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Calculator, Save } from "lucide-react";
 import { toast } from "@/components/feedback/toast";
 import { ROUTES } from "@/app/config/routes";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -39,7 +39,8 @@ import {
   orderNeedsManufacturing,
   productNeedsManufacturing,
 } from "@/lib/productManufacturing";
-import { productService } from "@/services";
+import { useFetchProduct } from "@/features/products/hooks/useProducts";
+import type { SalesOrderFormData } from "@/services";
 import type { Customer } from "@/types/customer";
 import type { Product } from "@/types/product";
 import type { QuotationProductCustomization } from "@/types/quotation";
@@ -58,6 +59,27 @@ const EMPTY_ADDRESS = {
   postalCode: "",
   country: DEFAULT_COUNTRY,
 };
+
+type SalesOrderAction = "draft" | "costing";
+
+function firstFormError(errors: unknown): string | null {
+  if (!errors) return null;
+  if (typeof errors === "string") return errors;
+  if (Array.isArray(errors)) {
+    for (const item of errors) {
+      const found = firstFormError(item);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (typeof errors === "object") {
+    for (const value of Object.values(errors as Record<string, unknown>)) {
+      const found = firstFormError(value);
+      if (found) return found;
+    }
+  }
+  return null;
+}
 
 function ManufacturingFromLinesSync() {
   const { values, setFieldValue } = useFormikContext<SalesOrderFormValues>();
@@ -107,16 +129,16 @@ function toFormLineItem(item: FormLineSource): SalesOrderFormValues["lineItems"]
     productId: item.productId,
     productSku: item.productSku,
     productName: item.productName,
-    description: item.description,
-    productVersionId: item.productVersionId,
-    productVersionLabel: item.productVersionLabel,
+    description: item.description ?? undefined,
+    productVersionId: item.productVersionId ?? undefined,
+    productVersionLabel: item.productVersionLabel ?? undefined,
     quantity: item.quantity,
     unitPrice: item.unitPrice,
     discountPercent: item.discountPercent,
     taxPercent: item.taxPercent,
-    isCustomized: item.isCustomized,
-    customization: item.customization,
-    requiresManufacturing: item.requiresManufacturing,
+    isCustomized: item.isCustomized ?? undefined,
+    ...(item.customization != null ? { customization: item.customization } : {}),
+    requiresManufacturing: item.requiresManufacturing ?? undefined,
   };
 }
 
@@ -149,6 +171,41 @@ function manufacturingHint(lineItems: SalesOrderFormValues["lineItems"]) {
   return "All products can ship as existing stock";
 }
 
+function toSalesOrderPayload(
+  values: SalesOrderFormValues,
+  quotationNumber?: string,
+): SalesOrderFormData {
+  return {
+    customerId: values.customerId,
+    quotationId: values.quotationId || undefined,
+    quotationNumber,
+    lineItems: values.lineItems.map((line) => {
+      const item: SalesOrderFormData["lineItems"][number] = {
+        productId: line.productId,
+        productSku: line.productSku,
+        productName: line.productName,
+        description: line.description,
+        productVersionId: line.productVersionId,
+        productVersionLabel: line.productVersionLabel,
+        quantity: line.quantity,
+        unitPrice: line.unitPrice,
+        discountPercent: line.discountPercent,
+        taxPercent: line.taxPercent,
+        isCustomized: Boolean(line.isCustomized && line.customization),
+        requiresManufacturing: line.requiresManufacturing,
+      };
+      if (line.customization != null) {
+        item.customization = line.customization as QuotationProductCustomization;
+      }
+      return item;
+    }),
+    priority: values.priority,
+    requestedDeliveryDate: values.requestedDeliveryDate || undefined,
+    notes: values.notes,
+    discountAmount: values.discountAmount ?? 0,
+  };
+}
+
 export function SalesOrderFormPage() {
   const { id } = useParams<{ id: string }>();
   const isEdit = Boolean(id);
@@ -167,11 +224,14 @@ export function SalesOrderFormPage() {
   const [editingLineIndex, setEditingLineIndex] = useState<number | null>(null);
   const [existingCustomization, setExistingCustomization] =
     useState<QuotationProductCustomization | null>(null);
+  const [pendingAction, setPendingAction] = useState<SalesOrderAction | null>(null);
+  const pendingActionRef = useRef<SalesOrderAction>("draft");
 
   const { data: order, isLoading, error } = useSalesOrder(id ?? "");
   const { data: fromQuotation } = useQuotation(quotationIdParam ?? "");
   const createOrder = useCreateSalesOrder();
   const updateOrder = useUpdateSalesOrder();
+  const fetchProduct = useFetchProduct();
 
   const initialValues = useMemo<SalesOrderFormValues>(() => {
     if (order) {
@@ -225,35 +285,86 @@ export function SalesOrderFormPage() {
 
   const busy = createOrder.isPending || updateOrder.isPending;
 
-  const handleSubmit = async (values: SalesOrderFormValues) => {
-    const payload = {
-      customerId: values.customerId,
-      quotationId: values.quotationId,
-      quotationNumber: fromQuotation?.quotationNumber ?? order?.quotationNumber,
-      lineItems: values.lineItems,
-      priority: values.priority,
-      requestedDeliveryDate: values.requestedDeliveryDate,
-      notes: values.notes,
-      discountAmount: values.discountAmount,
-    };
+  const persistOrder = async (values: SalesOrderFormValues) => {
+    const payload = toSalesOrderPayload(
+      values,
+      fromQuotation?.quotationNumber ?? order?.quotationNumber,
+    );
 
     if (isEdit && id) {
-      await updateOrder.mutateAsync({ id, data: payload });
-      toast.success(
-        values.quotationId
-          ? "Sales order saved. Quotation BOM estimation is ready for costing approval."
-          : "Sales order saved. Product BOM estimation is ready for costing approval.",
-      );
-      navigate(ROUTES.costing.forOrder(id));
-    } else {
-      const created = await createOrder.mutateAsync(payload);
-      toast.success(
-        created.quotationNumber
-          ? `Sales order created from ${created.quotationNumber}. BOM estimation sent for costing approval.`
-          : "Direct sales order created. Product BOM estimation sent for costing approval.",
-      );
-      navigate(ROUTES.costing.forOrder(created.id));
+      return updateOrder.mutateAsync({ id, data: payload });
     }
+    return createOrder.mutateAsync(payload);
+  };
+
+  const handleSubmit = async (values: SalesOrderFormValues) => {
+    const action = pendingActionRef.current;
+    try {
+      const saved = await persistOrder(values);
+
+      if (action === "draft") {
+        toast.success("Sales order draft saved.");
+        if (!isEdit) {
+          navigate(ROUTES.salesOrders.edit(saved.id));
+        } else {
+          navigate(ROUTES.salesOrders.detail(saved.id));
+        }
+        return;
+      }
+
+      toast.success(
+        saved.quotationNumber
+          ? `Sales order saved from ${saved.quotationNumber}. Open costing to review the estimate.`
+          : "Sales order saved. Open costing to review the estimate.",
+      );
+      navigate(
+        saved.costingRequestId
+          ? ROUTES.costing.forOrder(saved.id)
+          : ROUTES.estimation.forOrder(saved.id),
+      );
+    } catch (err) {
+      const message =
+        err && typeof err === "object" && "message" in err && typeof err.message === "string"
+          ? err.message
+          : "Failed to save sales order";
+      toast.error(message);
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const runAction = async (
+    formik: FormikProps<SalesOrderFormValues>,
+    action: SalesOrderAction,
+  ) => {
+    pendingActionRef.current = action;
+    setPendingAction(action);
+    const errors = await formik.validateForm();
+    const message = firstFormError(errors);
+    if (message) {
+      await formik.setTouched(
+        {
+          customerId: true,
+          priority: true,
+          lineItems: true,
+          discountAmount: true,
+          notes: true,
+          requiresManufacturing: true,
+          deliveryAddress: {
+            line1: true,
+            city: true,
+            state: true,
+            postalCode: true,
+            country: true,
+          },
+        },
+        true,
+      );
+      toast.error(message);
+      setPendingAction(null);
+      return;
+    }
+    await formik.submitForm();
   };
 
   return (
@@ -288,7 +399,7 @@ export function SalesOrderFormPage() {
               const line = formik.values.lineItems[index];
               if (!line) return;
               try {
-                const product = await productService.getById(line.productId);
+                const product = await fetchProduct(line.productId);
                 setSelectedProduct(product);
                 setConfigureVersionId(line.productVersionId || product.currentVersionId);
                 setConfigureQuantity(line.quantity);
@@ -327,15 +438,25 @@ export function SalesOrderFormPage() {
                       </Button>
                     </Link>
                     <Button
-                      type="submit"
+                      type="button"
                       variant="outline"
                       size="sm"
                       leftIcon={<Save className="h-3.5 w-3.5" />}
-                      loading={busy}
+                      loading={busy && pendingAction === "draft"}
+                      disabled={busy}
+                      onClick={() => void runAction(formik, "draft")}
                     >
                       Save Draft
                     </Button>
-                    <Button type="submit" variant="primary" size="sm" loading={busy}>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      leftIcon={<Calculator className="h-3.5 w-3.5" />}
+                      loading={busy && pendingAction === "costing"}
+                      disabled={busy}
+                      onClick={() => void runAction(formik, "costing")}
+                    >
                       Save and send to costing
                     </Button>
                   </div>

@@ -1,27 +1,42 @@
 import { combineEpics } from "redux-observable";
-import { createAsyncEpic } from "@/app/store/async/createAsyncEpic";
-import { auditLogsActions } from "@/features/admin/store/auditLogsSlice";
-import { auditService } from "@/services";
+import { createApiEpic } from "@/app/store/async/createApiEpic";
+import { auditLogsActions as actions } from "@/features/admin/store/auditLogsSlice";
+import { buildQuery, http } from "@/services/apiClient";
+import { asRecord, mapPaginatedResponse } from "@/services/mappers/common";
+import { mapAuditSummary, mapEntry } from "@/services/mappers/auditMappers";
 
-const fetchListEpic = createAsyncEpic({
-  request: auditLogsActions.fetchListRequest,
-  success: auditLogsActions.fetchListSuccess,
-  failure: auditLogsActions.fetchListFailure,
-  handler: (filters) => auditService.list(filters),
+const fetchListEpic = createApiEpic({
+  request: actions.fetchListRequest,
+  success: actions.fetchListSuccess,
+  failure: actions.fetchListFailure,
+  execute: async (filters) =>
+    mapPaginatedResponse(
+      await http.get(`/api/audit-logs${buildQuery(filters)}`),
+      mapEntry,
+    ),
 });
 
-const fetchDetailEpic = createAsyncEpic({
-  request: auditLogsActions.fetchDetailRequest,
-  success: auditLogsActions.fetchDetailSuccess,
-  failure: auditLogsActions.fetchDetailFailure,
-  handler: (id) => auditService.getById(id),
+const fetchDetailEpic = createApiEpic({
+  request: actions.fetchDetailRequest,
+  success: actions.fetchDetailSuccess,
+  failure: actions.fetchDetailFailure,
+  execute: async (id) => mapEntry(asRecord(await http.get(`/api/audit-logs/${id}`))),
 });
 
-const fetchSummaryEpic = createAsyncEpic({
-  request: auditLogsActions.fetchSummaryRequest,
-  success: auditLogsActions.fetchSummarySuccess,
-  failure: auditLogsActions.fetchSummaryFailure,
-  handler: (filters) => auditService.summary(filters),
+const fetchSummaryEpic = createApiEpic({
+  request: actions.fetchSummaryRequest,
+  success: actions.fetchSummarySuccess,
+  failure: actions.fetchSummaryFailure,
+  execute: async (filters) =>
+    mapAuditSummary(
+      await http.get(
+        `/api/audit-logs/summary${buildQuery((filters ?? {}))}`,
+      ),
+    ),
 });
 
-export const auditLogsEpic = combineEpics(fetchListEpic, fetchDetailEpic, fetchSummaryEpic);
+export const auditLogsEpic = combineEpics(
+  fetchListEpic,
+  fetchDetailEpic,
+  fetchSummaryEpic,
+);

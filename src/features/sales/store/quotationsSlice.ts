@@ -29,6 +29,7 @@ type ListData = PaginatedResponse<Quotation>;
 
 type UpdateArg = { id: string; data: Partial<QuotationFormData> };
 type AddContactArg = { id: string; data: QuotationContactInput };
+type LineActionArg = { quotationId: string; lineItemId: string; notes?: string };
 
 export type QuotationsState = {
   lists: Record<string, AsyncEntry<ListData>>;
@@ -39,6 +40,8 @@ export type QuotationsState = {
   convert: MutationEntry;
   remove: MutationEntry;
   addContact: MutationEntry;
+  approveCustomization: MutationEntry;
+  promoteCustomization: MutationEntry;
 };
 
 const initialState: QuotationsState = {
@@ -50,6 +53,8 @@ const initialState: QuotationsState = {
   convert: createMutationEntry(),
   remove: createMutationEntry(),
   addContact: createMutationEntry(),
+  approveCustomization: createMutationEntry(),
+  promoteCustomization: createMutationEntry(),
 };
 
 function upsertDetail(state: QuotationsState, quotation: Quotation): void {
@@ -154,6 +159,39 @@ const quotationsSlice = createSlice({
     },
     addContactFailure(state, action: PayloadAction<FailurePayload>) {
       setMutationFailure(state.addContact, action);
+    },
+
+    approveCustomizationRequest(
+      state,
+      _action: PayloadAction<RequestPayload<LineActionArg>>,
+    ) {
+      setMutationLoading(state.approveCustomization);
+    },
+    approveCustomizationSuccess(state, action: PayloadAction<SuccessPayload<Quotation>>) {
+      setMutationSuccess(state.approveCustomization);
+      upsertDetail(state, action.payload.data);
+      invalidateEntries(state.lists);
+    },
+    approveCustomizationFailure(state, action: PayloadAction<FailurePayload>) {
+      setMutationFailure(state.approveCustomization, action);
+    },
+
+    promoteCustomizationRequest(
+      state,
+      _action: PayloadAction<RequestPayload<LineActionArg>>,
+    ) {
+      setMutationLoading(state.promoteCustomization);
+    },
+    promoteCustomizationSuccess(
+      state,
+      action: PayloadAction<SuccessPayload<{ quotation: Quotation; product: import("@/types/product").Product }>>,
+    ) {
+      setMutationSuccess(state.promoteCustomization);
+      upsertDetail(state, action.payload.data.quotation);
+      invalidateEntries(state.lists);
+    },
+    promoteCustomizationFailure(state, action: PayloadAction<FailurePayload>) {
+      setMutationFailure(state.promoteCustomization, action);
     },
 
     invalidateAll(state) {

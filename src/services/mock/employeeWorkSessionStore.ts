@@ -5,7 +5,7 @@ import {
 } from "@/lib/employee-work/activeWork";
 import { minutesBetween } from "@/lib/employee-work/constants";
 import { isActiveWorkSession } from "@/lib/employee-work/sessionTime";
-import { toBusinessDate } from "@/lib/period-close/constants";
+import { toBusinessDate } from "@/lib/end-of-day-management/constants";
 import { seedEmployeeWorkSessions } from "@/services/mock/data/employee-work-sessions";
 import { initialUsers } from "@/services/mock/data/users";
 import { appendAuditLog } from "@/services/mock/mockAuditService";

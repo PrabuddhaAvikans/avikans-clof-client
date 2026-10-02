@@ -76,3 +76,23 @@ export function useAddQuotationContact() {
     selectMutation: (state: RootState) => state.quotations.addContact,
   });
 }
+
+export function useApproveQuotationCustomization() {
+  return useEpicMutation<
+    { quotationId: string; lineItemId: string; notes?: string },
+    Quotation
+  >({
+    request: quotationsActions.approveCustomizationRequest,
+    selectMutation: (state: RootState) => state.quotations.approveCustomization,
+  });
+}
+
+export function usePromoteQuotationCustomization() {
+  return useEpicMutation<
+    { quotationId: string; lineItemId: string; notes?: string },
+    { quotation: Quotation; product: import("@/types/product").Product }
+  >({
+    request: quotationsActions.promoteCustomizationRequest,
+    selectMutation: (state: RootState) => state.quotations.promoteCustomization,
+  });
+}

@@ -61,6 +61,7 @@ export type ManufacturingState = {
   hold: MutationEntry;
   taskAction: MutationEntry;
   bulkComplete: MutationEntry;
+  remove: MutationEntry;
 };
 
 const initialState: ManufacturingState = {
@@ -74,6 +75,7 @@ const initialState: ManufacturingState = {
   hold: createMutationEntry(),
   taskAction: createMutationEntry(),
   bulkComplete: createMutationEntry(),
+  remove: createMutationEntry(),
 };
 
 function upsertDetail(state: ManufacturingState, job: ManufacturingJob): void {
@@ -214,6 +216,18 @@ const manufacturingSlice = createSlice({
     },
     bulkCompleteFailure(state, action: PayloadAction<FailurePayload>) {
       setMutationFailure(state.bulkComplete, action);
+    },
+
+    deleteRequest(state, _action: PayloadAction<RequestPayload<string>>) {
+      setMutationLoading(state.remove);
+    },
+    deleteSuccess(state, action: PayloadAction<SuccessPayload<string>>) {
+      setMutationSuccess(state.remove);
+      delete state.details[action.payload.data];
+      invalidateEntries(state.lists);
+    },
+    deleteFailure(state, action: PayloadAction<FailurePayload>) {
+      setMutationFailure(state.remove, action);
     },
 
     invalidateAll(state) {

@@ -151,7 +151,9 @@ export function applyCoatingItems(
   });
 
   const coatingTotal = coatingItems.reduce((sum, item) => sum + item.lineTotal, 0);
-  const withoutCoating = request.lineItems.filter((item) => item.category !== "Coating");
+  const withoutCoating = request.lineItems.filter(
+    (item) => item.category !== "Coating" && item.category !== "Coating / Finishing",
+  );
   const lineItems: CostingLineItem[] = [
     ...withoutCoating,
     {
@@ -192,7 +194,7 @@ export function buildCostingFromSalesOrder(
         id: `cli-${order.id}-${index + 1}`,
         description: `${item.productName} × ${item.quantity}`,
         category: "Materials",
-        baseCost: round2(item.unitPrice * item.quantity * 0.62),
+        baseCost: 0,
         percentOfCost: 0,
       }));
 
@@ -216,7 +218,7 @@ export function buildCostingFromSalesOrder(
     totalEstimate: 0,
     proposedPrice: order.totalAmount,
     marginPercent: 0,
-    targetMargin: 22,
+    targetMargin: 25,
     riskFlag: order.priority === "urgent" || order.priority === "high" ? "medium" : "low",
     slaRemaining: allApproved ? "Completed" : "24h 00m",
     status,

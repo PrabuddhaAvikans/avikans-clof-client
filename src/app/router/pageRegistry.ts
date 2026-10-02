@@ -74,7 +74,7 @@ import { FinanceInvoicesPage, FinanceCreditNotesPage } from "@/features/finance/
 import {
   DayCloseWorkspacePage,
   MonthlyCloseWorkspacePage,
-} from "@/features/period-close/pages/PeriodClosePages";
+} from "@/features/end-of-day-management/pages/EndOfDayManagementPages";
 import { CostingApprovalWorkspacePage } from "@/features/costing/pages/CostingApprovalWorkspacePage";
 import { EstimationWorkspacePage } from "@/features/costing/pages/EstimationWorkspacePage";
 import { NotFoundPage } from "@/features/shared/pages/NotFoundPage";

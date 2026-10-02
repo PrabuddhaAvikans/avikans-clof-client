@@ -26,6 +26,7 @@ export interface QuotationFormData {
   termsAndConditions?: string;
   discountAmount?: number;
   status?: QuotationStatusValue;
+  rejectionReason?: string;
   attachments?: Attachment[];
   saveMode?: "draft" | "save";
 }

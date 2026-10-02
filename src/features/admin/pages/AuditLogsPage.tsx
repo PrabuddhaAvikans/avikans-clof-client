@@ -12,7 +12,7 @@ import { Select } from "@/components/ui/Select";
 import { AuditLogDetailPanel } from "@/features/admin/components/AuditLogDetailPanel";
 import { AuditLogListPanel } from "@/features/admin/components/AuditLogListPanel";
 import { AuditMetricCards } from "@/features/admin/components/AuditMetricCards";
-import { useAuditLogSummary, useAuditLogs } from "@/features/admin/hooks/useAuditLogs";
+import { useAuditLogSummary, useAuditLogs, useFetchAuditLogs } from "@/features/admin/hooks/useAuditLogs";
 import { useUsers } from "@/features/admin/hooks/useUsers";
 import { AUDIT_ACTION_LABELS, AUDIT_SEVERITY_LABELS } from "@/features/admin/lib/auditLabels";
 import { downloadAuditLogsCsv } from "@/features/admin/lib/exportAuditLogs";
@@ -20,7 +20,6 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { usePermissions } from "@/hooks/usePermissions";
 import { workspaceGrid, workspaceGridCol } from "@/lib/panelLayout";
 import { cn } from "@/lib/utils";
-import { auditService } from "@/services";
 import {
   AUDIT_ACTIONS,
   AUDIT_ENTITIES,
@@ -72,6 +71,7 @@ export function AuditLogsPage() {
   };
 
   const { data, isLoading, error, refetch } = useAuditLogs(listFilters);
+  const fetchAuditLogs = useFetchAuditLogs();
   const { data: summary } = useAuditLogSummary({
     search: listFilters.search,
     entity: listFilters.entity,
@@ -182,7 +182,7 @@ export function AuditLogsPage() {
 
   const handleExport = async () => {
     try {
-      const result = await auditService.list({
+      const result = await fetchAuditLogs({
         ...listFilters,
         page: 1,
         pageSize: Math.max(totalCount, pageSize),

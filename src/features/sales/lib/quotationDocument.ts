@@ -1,6 +1,6 @@
 import {
   computeLineAmounts,
-  computeQuotationTotals,
+  storedQuotationTotals,
 } from "@/features/sales/schemas/quotationSchema";
 import {
   companyDetailLines,
@@ -28,7 +28,7 @@ export function buildQuotationDocument(
   quotation: Quotation,
   company: SystemSettings,
 ): CommercialDocument {
-  const totals = computeQuotationTotals(quotation.lineItems, quotation.discountAmount);
+  const totals = storedQuotationTotals(quotation.lineItems, quotation);
   const country =
     quotation.billingAddress?.country ||
     quotation.shippingAddress?.country ||

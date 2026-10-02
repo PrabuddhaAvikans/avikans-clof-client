@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { workspacePanelEmpty, workspacePanelShell } from "@/lib/panelLayout";
 import {
   buildSalesOrderFlowSteps,
+  canCancelSalesOrder,
   canConfirmSalesOrder,
   getConfirmBlockReason,
 } from "@/features/sales/lib/salesOrderFlow";
@@ -148,7 +149,7 @@ export function SalesOrderWorkflowPanel({
   }
 
   const canEdit = order.status === "draft" || order.status === "pending_review";
-  const canCancel = !["cancelled", "completed", "delivered"].includes(order.status);
+  const canCancel = canCancelSalesOrder(order);
   const canConfirm = canConfirmSalesOrder(order, costing);
   const confirmBlockReason = getConfirmBlockReason(order, costing);
 

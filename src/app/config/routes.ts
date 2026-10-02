@@ -99,11 +99,11 @@ export const ROUTES = {
     creditNoteDetail: (id: string) => `/finance/credit-notes/${id}` as const,
   },
 
-  periodClose: {
-    day: "/period-close/day",
-    dayDetail: (id: string) => `/period-close/day/${id}` as const,
-    month: "/period-close/month",
-    monthDetail: (id: string) => `/period-close/month/${id}` as const,
+  endOfDayManagement: {
+    day: "/end-of-day-management/day",
+    dayDetail: (id: string) => `/end-of-day-management/day/${id}` as const,
+    month: "/end-of-day-management/month",
+    monthDetail: (id: string) => `/end-of-day-management/month/${id}` as const,
   },
 
   manufacturing: {

@@ -1,6 +1,10 @@
+import { useCallback } from "react";
+import { useDispatch } from "react-redux";
+import type { UnknownAction } from "@reduxjs/toolkit";
 import { useEpicMutation } from "@/app/store/async/useEpicMutation";
 import { useEpicQuery } from "@/app/store/async/useEpicQuery";
-import type { RootState } from "@/app/store";
+import { registerDeferred } from "@/app/store/async/deferred";
+import type { AppDispatch, RootState } from "@/app/store";
 import { productsActions } from "@/features/products/store/productsSlice";
 import type { ProductListFilters } from "@/services";
 import type {
@@ -27,6 +31,25 @@ export function useProduct(id: string) {
     request: productsActions.fetchDetailRequest,
     selectEntry: (state, key) => state.products.details[key],
   });
+}
+
+/** Imperative product fetch through the products epic (for form helpers). */
+export function useFetchProduct() {
+  const dispatch = useDispatch<AppDispatch>();
+  return useCallback(
+    (id: string) => {
+      const { requestId, promise } = registerDeferred<Product>();
+      dispatch(
+        productsActions.fetchDetailRequest({
+          arg: id,
+          key: id,
+          requestId,
+        }) as UnknownAction,
+      );
+      return promise;
+    },
+    [dispatch],
+  );
 }
 
 export function useCreateProduct() {

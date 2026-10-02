@@ -16,7 +16,7 @@ import {
   type QuotationFormValues,
   type QuotationLineItemFormValues,
 } from "@/features/sales/schemas/quotationSchema";
-import { productService } from "@/services";
+import { useFetchProduct } from "@/features/products/hooks/useProducts";
 import type { Product } from "@/types/product";
 import type { QuotationProductCustomization } from "@/types/quotation";
 
@@ -41,14 +41,19 @@ function TotalsCard() {
 export type QuotationFormEditorProps = {
   variant?: "page" | "modal";
   showQuickActions?: boolean;
+  onPreview?: () => void;
+  onSend?: () => void;
 };
 
 export function QuotationFormEditor({
   variant = "page",
   showQuickActions = true,
+  onPreview,
+  onSend,
 }: QuotationFormEditorProps) {
   const formik = useFormikContext<QuotationFormValues>();
   const isModal = variant === "modal";
+  const fetchProduct = useFetchProduct();
 
   const [tab, setTab] = useState("overview");
   const [productModalOpen, setProductModalOpen] = useState(false);
@@ -80,7 +85,7 @@ export function QuotationFormEditor({
     const line = formik.values.lineItems[index];
     if (!line) return;
     try {
-      const product = await productService.getById(line.productId);
+      const product = await fetchProduct(line.productId);
       setSelectedProduct(product);
       setConfigureVersionId(line.productVersionId || product.currentVersionId);
       setConfigureQuantity(line.quantity);
@@ -95,7 +100,11 @@ export function QuotationFormEditor({
   };
 
   const preview = (
-    <QuotationFormPreview showQuickActions={showQuickActions && !isModal} />
+    <QuotationFormPreview
+      showQuickActions={showQuickActions && !isModal}
+      onPreview={onPreview}
+      onSend={onSend}
+    />
   );
 
   return (

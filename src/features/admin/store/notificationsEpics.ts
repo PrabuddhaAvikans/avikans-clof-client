@@ -1,38 +1,55 @@
 import { combineEpics } from "redux-observable";
-import { createAsyncEpic } from "@/app/store/async/createAsyncEpic";
-import { notificationsActions } from "@/features/admin/store/notificationsSlice";
-import { notificationService } from "@/services";
+import { createApiEpic } from "@/app/store/async/createApiEpic";
+import { notificationsActions as actions } from "@/features/admin/store/notificationsSlice";
+import { buildQuery, http } from "@/services/apiClient";
+import { asRecord, mapPaginatedResponse } from "@/services/mappers/common";
+import { mapNotification } from "@/services/mappers/notificationMappers";
 
-const fetchListEpic = createAsyncEpic({
-  request: notificationsActions.fetchListRequest,
-  success: notificationsActions.fetchListSuccess,
-  failure: notificationsActions.fetchListFailure,
-  handler: (filters) => notificationService.list(filters),
+const fetchListEpic = createApiEpic({
+  request: actions.fetchListRequest,
+  success: actions.fetchListSuccess,
+  failure: actions.fetchListFailure,
+  execute: async (filters) =>
+    mapPaginatedResponse(
+      await http.get(
+        `/api/notifications${buildQuery(filters)}`,
+      ),
+      mapNotification,
+    ),
 });
 
-const fetchUnreadCountEpic = createAsyncEpic({
-  request: notificationsActions.fetchUnreadCountRequest,
-  success: notificationsActions.fetchUnreadCountSuccess,
-  failure: notificationsActions.fetchUnreadCountFailure,
-  handler: (recipientId) => notificationService.getUnreadCount(recipientId),
-});
-
-const markAsReadEpic = createAsyncEpic({
-  request: notificationsActions.markAsReadRequest,
-  success: notificationsActions.markAsReadSuccess,
-  failure: notificationsActions.markAsReadFailure,
-  handler: (id) => notificationService.markAsRead(id),
-  mode: "merge",
-});
-
-const markAllAsReadEpic = createAsyncEpic({
-  request: notificationsActions.markAllAsReadRequest,
-  success: notificationsActions.markAllAsReadSuccess,
-  failure: notificationsActions.markAllAsReadFailure,
-  handler: async (recipientId) => {
-    await notificationService.markAllAsRead(recipientId);
+const fetchUnreadCountEpic = createApiEpic({
+  request: actions.fetchUnreadCountRequest,
+  success: actions.fetchUnreadCountSuccess,
+  failure: actions.fetchUnreadCountFailure,
+  execute: async (recipientId) => {
+    const raw = asRecord(
+      await http.get(
+        `/api/notifications/unread-count${buildQuery({ recipientId })}`,
+      ),
+    );
+    return Number(raw.count ?? 0);
   },
-  mode: "merge",
+});
+
+const markAsReadEpic = createApiEpic({
+  request: actions.markAsReadRequest,
+  success: actions.markAsReadSuccess,
+  failure: actions.markAsReadFailure,
+  concurrency: "merge",
+  execute: async (id) =>
+    mapNotification(asRecord(await http.post(`/api/notifications/${id}/read`))),
+});
+
+const markAllAsReadEpic = createApiEpic({
+  request: actions.markAllAsReadRequest,
+  success: actions.markAllAsReadSuccess,
+  failure: actions.markAllAsReadFailure,
+  concurrency: "merge",
+  execute: async (recipientId) => {
+    await http.post("/api/notifications/mark-all-read", { recipientId });
+    return undefined;
+  },
 });
 
 export const notificationsEpic = combineEpics(

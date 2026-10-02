@@ -20,21 +20,33 @@ import {
 } from "@/components/forms";
 import { Button } from "@/components/ui/Button";
 import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
+import { useLogin } from "@/features/auth/hooks/useLogin";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import {
   loginFormSchema,
   loginInitialValues,
   type LoginFormValues,
 } from "@/features/auth/schemas/loginSchema";
-import { authService } from "@/services";
 import {
   DEMO_LOGIN_EMAIL,
   DEMO_LOGIN_PASSWORD,
 } from "@/services/mock/mockAuthService";
 
 function getErrorMessage(error: unknown): string {
-  if (typeof error === "object" && error && "message" in error) {
-    return String((error as { message: string }).message);
+  if (typeof error === "object" && error) {
+    const apiError = error as {
+      message?: string;
+      details?: Record<string, string[]>;
+    };
+    const fieldErrors = apiError.details
+      ? Object.values(apiError.details).flat().filter(Boolean)
+      : [];
+    if (fieldErrors.length > 0) {
+      return fieldErrors.join(" ");
+    }
+    if (typeof apiError.message === "string" && apiError.message.trim()) {
+      return apiError.message;
+    }
   }
   return "Unable to sign in. Please try again.";
 }
@@ -61,6 +73,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { signInUser } = useAuthSession();
+  const login = useLogin();
   const { appSubtitle } = useSystemSettings();
   const [showPassword, setShowPassword] = useState(false);
 
@@ -158,7 +171,7 @@ export function LoginPage() {
               className="space-y-5"
               onSubmit={async (values, helpers) => {
                 try {
-                  const user = await authService.login({
+                  const user = await login.mutateAsync({
                     email: values.email,
                     password: values.password,
                   });

@@ -33,6 +33,7 @@ export type DeliveriesState = {
   updateStatus: MutationEntry;
   dispatch: MutationEntry;
   recordProof: MutationEntry;
+  remove: MutationEntry;
 };
 
 const initialState: DeliveriesState = {
@@ -43,6 +44,7 @@ const initialState: DeliveriesState = {
   updateStatus: createMutationEntry(),
   dispatch: createMutationEntry(),
   recordProof: createMutationEntry(),
+  remove: createMutationEntry(),
 };
 
 function upsertDetail(state: DeliveriesState, delivery: Delivery): void {
@@ -135,6 +137,18 @@ const deliveriesSlice = createSlice({
     },
     recordProofFailure(state, action: PayloadAction<FailurePayload>) {
       setMutationFailure(state.recordProof, action);
+    },
+
+    deleteRequest(state, _action: PayloadAction<RequestPayload<string>>) {
+      setMutationLoading(state.remove);
+    },
+    deleteSuccess(state, action: PayloadAction<SuccessPayload<string>>) {
+      setMutationSuccess(state.remove);
+      delete state.details[action.payload.data];
+      invalidateEntries(state.lists);
+    },
+    deleteFailure(state, action: PayloadAction<FailurePayload>) {
+      setMutationFailure(state.remove, action);
     },
 
     invalidateAll(state) {

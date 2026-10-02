@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import {
   PERMISSION_MODULES,
   PERMISSIONS_BY_MODULE,
+  type Permission,
   type PermissionModule,
 } from "@/app/config/permissions";
 import { PageHeader } from "@/components/feedback/PageHeader";
@@ -10,14 +11,30 @@ import { FilterPanel } from "@/components/ui/FilterPanel";
 import { SearchBar } from "@/components/ui/SearchBar";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { PERMISSION_MODULE_LABELS } from "@/features/admin/lib/permissionLabels";
+import { usePermissionCatalog } from "@/features/admin/hooks/usePermissionsCatalog";
 import { useRoles } from "@/features/admin/hooks/useUsers";
+import { catalogToPermissionsByModule } from "@/services/mappers/permissionMappers";
 
 export function PermissionsPage() {
   const [search, setSearch] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
+  const { data: catalog, error: catalogQueryError } = usePermissionCatalog();
+  const catalogError = catalogQueryError
+    ? catalogQueryError.message
+    : null;
   const { data: roles } = useRoles({ page: 1, pageSize: 50, status: "active" });
+  const permissionsByModule = useMemo(() => {
+    if (catalog) return catalogToPermissionsByModule(catalog);
+    return PERMISSIONS_BY_MODULE;
+  }, [catalog]);
 
-  const modules = Object.values(PERMISSION_MODULES) as PermissionModule[];
+  const modules = useMemo(() => {
+    if (catalog?.byModule.length) {
+      return catalog.byModule.map((g) => g.module as PermissionModule);
+    }
+    return Object.values(PERMISSION_MODULES) as PermissionModule[];
+  }, [catalog]);
+
   const query = appliedSearch.trim().toLowerCase();
 
   const rolesByPermission = useMemo(() => {
@@ -35,13 +52,13 @@ export function PermissionsPage() {
   const visibleModules = useMemo(() => {
     if (!query) return modules;
     return modules.filter((module) => {
-      const label = PERMISSION_MODULE_LABELS[module].toLowerCase();
+      const label = (PERMISSION_MODULE_LABELS[module] ?? module).toLowerCase();
       if (label.includes(query) || module.includes(query)) return true;
-      return PERMISSIONS_BY_MODULE[module].some((permission) =>
+      return (permissionsByModule[module] ?? []).some((permission) =>
         permission.toLowerCase().includes(query),
       );
     });
-  }, [modules, query]);
+  }, [modules, permissionsByModule, query]);
 
   return (
     <PageContainer maxWidth="wide">
@@ -50,6 +67,12 @@ export function PermissionsPage() {
         description="Catalog of system permissions and the active roles that include them."
         breadcrumbs={[{ label: "Administration" }, { label: "Permissions" }]}
       />
+
+      {catalogError ? (
+        <p className="mb-4 text-sm text-muted-foreground">
+          Using local permission catalog ({catalogError}).
+        </p>
+      ) : null}
 
       <div className="mb-4">
         <FilterPanel
@@ -80,32 +103,32 @@ export function PermissionsPage() {
             </tr>
           </thead>
           <tbody>
-            {visibleModules.flatMap((module) =>
-              PERMISSIONS_BY_MODULE[module]
-                .filter((permission) =>
-                  query
-                    ? permission.toLowerCase().includes(query) ||
-                      PERMISSION_MODULE_LABELS[module].toLowerCase().includes(query)
-                    : true,
-                )
-                .map((permission, index, list) => (
-                  <tr key={permission} className="border-b border-border last:border-0">
-                    {index === 0 ? (
-                      <td className="px-4 py-3 align-top font-medium" rowSpan={list.length}>
-                        {PERMISSION_MODULE_LABELS[module]}
-                      </td>
-                    ) : null}
-                    <td className="px-4 py-3">
-                      <StatusBadge variant="neutral" size="sm">
-                        {permission}
-                      </StatusBadge>
+            {visibleModules.flatMap((module) => {
+              const permissions = (permissionsByModule[module] ?? []) as Permission[];
+              const filtered = permissions.filter((permission) =>
+                query
+                  ? permission.toLowerCase().includes(query) ||
+                    (PERMISSION_MODULE_LABELS[module] ?? module).toLowerCase().includes(query)
+                  : true,
+              );
+              return filtered.map((permission, index, list) => (
+                <tr key={permission} className="border-b border-border last:border-0">
+                  {index === 0 ? (
+                    <td className="px-4 py-3 align-top font-medium" rowSpan={list.length}>
+                      {PERMISSION_MODULE_LABELS[module] ?? module}
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {(rolesByPermission.get(permission) ?? []).join(", ") || "-"}
-                    </td>
-                  </tr>
-                )),
-            )}
+                  ) : null}
+                  <td className="px-4 py-3">
+                    <StatusBadge variant="neutral" size="sm">
+                      {permission}
+                    </StatusBadge>
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {(rolesByPermission.get(permission) ?? []).join(", ") || "-"}
+                  </td>
+                </tr>
+              ));
+            })}
             {visibleModules.length === 0 && (
               <tr>
                 <td colSpan={3} className="px-4 py-8 text-center text-sm text-muted-foreground">

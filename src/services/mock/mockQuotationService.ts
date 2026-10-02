@@ -190,7 +190,25 @@ export const mockQuotationService: QuotationService = {
     if (index === -1) notFoundError("Quotation", id);
 
     const existing = quotations[index];
-    const { saveMode: requestedSaveMode, ...rest } = data;
+    const locked = new Set(["converted", "rejected", "expired"]);
+    if (locked.has(existing.status)) {
+      throw {
+        code: "INVALID_STATE",
+        message: "Converted, rejected, or expired quotations cannot be updated.",
+      };
+    }
+
+    const { saveMode: requestedSaveMode, rejectionReason, ...rest } = data;
+    if (rest.status === "rejected") {
+      const reason = String(rejectionReason ?? "").trim();
+      if (reason.length < 3) {
+        throw {
+          code: "Validation",
+          message: "A rejection reason is required.",
+        };
+      }
+    }
+
     const lineItems = rest.lineItems
       ? buildLineItems(rest.lineItems)
       : existing.lineItems;
@@ -212,7 +230,31 @@ export const mockQuotationService: QuotationService = {
     const nextStatus =
       requestedSaveMode === "save" && existing.status === "draft"
         ? "ready_to_send"
-        : (rest.status ?? existing.status);
+        : requestedSaveMode === "save" &&
+            ["sent", "viewed", "customer_feedback", "revision_required", "accepted"].includes(
+              existing.status,
+            )
+          ? "revised"
+          : requestedSaveMode === "draft" &&
+              ["sent", "viewed", "customer_feedback", "accepted"].includes(existing.status)
+            ? "revision_required"
+            : (rest.status ?? existing.status);
+
+    const rejectionContact =
+      nextStatus === "rejected" && nextStatus !== existing.status
+        ? [
+            {
+              id: generateId("qch"),
+              type: "comment" as const,
+              summary: "Quotation rejected",
+              detail: String(rejectionReason ?? "").trim(),
+              outcome: "Rejected",
+              contactedBy: actor.id,
+              contactedByName: actor.name,
+              contactedAt: timestamp,
+            },
+          ]
+        : [];
 
     quotations[index] = {
       ...existing,
@@ -222,6 +264,12 @@ export const mockQuotationService: QuotationService = {
       attachments: rest.attachments ?? existing.attachments,
       status: nextStatus,
       revisions,
+      contactHistory: [...rejectionContact, ...existing.contactHistory],
+      rejectionReason:
+        nextStatus === "rejected"
+          ? String(rejectionReason ?? "").trim()
+          : existing.rejectionReason,
+      rejectedAt: nextStatus === "rejected" ? timestamp : existing.rejectedAt,
       updatedAt: timestamp,
     };
     return quotations[index];
@@ -244,6 +292,22 @@ export const mockQuotationService: QuotationService = {
     await delay();
     const index = quotations.findIndex((q) => q.id === id);
     if (index === -1) notFoundError("Quotation", id);
+
+    const sendable = new Set([
+      "draft",
+      "ready_to_send",
+      "revised",
+      "revision_required",
+      "customer_feedback",
+      "viewed",
+      "sent",
+    ]);
+    if (!sendable.has(quotations[index].status)) {
+      throw {
+        code: "INVALID_STATE",
+        message: `Cannot send a quotation in '${quotations[index].status}' status.`,
+      };
+    }
 
     const pendingCustom = quotations[index].lineItems.find(
       (line) =>
@@ -288,16 +352,6 @@ export const mockQuotationService: QuotationService = {
     if (index === -1) notFoundError("Quotation", id);
 
     const quotation = quotations[index];
-    const locked =
-      quotation.status === "accepted" ||
-      quotation.status === "converted" ||
-      quotation.status === "rejected";
-    if (locked) {
-      throw {
-        code: "INVALID_STATE",
-        message: "Contact history can only be logged until the quotation is approved.",
-      };
-    }
 
     const entry: QuotationContactEntry = {
       id: generateId("qch"),
@@ -310,8 +364,13 @@ export const mockQuotationService: QuotationService = {
       contactedAt: nowIso(),
     };
 
+    const shouldMarkFeedback =
+      (quotation.status === "sent" || quotation.status === "viewed") &&
+      ["call", "email", "whatsapp", "meeting", "follow_up"].includes(data.type);
+
     quotations[index] = {
       ...quotation,
+      status: shouldMarkFeedback ? "customer_feedback" : quotation.status,
       contactHistory: [entry, ...quotation.contactHistory],
       updatedAt: nowIso(),
     };
@@ -322,10 +381,10 @@ export const mockQuotationService: QuotationService = {
     await delay();
     const quotation = quotations.find((q) => q.id === id);
     if (!quotation) notFoundError("Quotation", id);
-    if (quotation.status !== "accepted" && quotation.status !== "sent") {
+    if (quotation.status !== "accepted" && quotation.status !== "sent" && quotation.status !== "revised") {
       throw {
         code: "INVALID_STATE",
-        message: "Quotation must be accepted or sent before conversion.",
+        message: "Quotation must be approved, sent, or revised before conversion.",
       };
     }
 

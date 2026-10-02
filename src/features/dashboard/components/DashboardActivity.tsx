@@ -241,7 +241,9 @@ export function DashboardActivityList({ entries }: { entries: DashboardActivityI
 
   if (!entries.length) {
     return (
-      <p className="px-4 py-10 text-center text-xs text-muted-foreground">No recent activity</p>
+      <p className="px-4 py-10 text-center text-xs text-muted-foreground">
+        No recent activities available.
+      </p>
     );
   }
 

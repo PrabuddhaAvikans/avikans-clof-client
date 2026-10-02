@@ -16,7 +16,7 @@ import type {
   EmployeeTaskWorkBreakdown,
   EmployeeWorkSession,
 } from "@/types/employee-work";
-import type { DayCloseValidationIssue } from "@/types/period-close";
+import type { DayCloseValidationIssue } from "@/types/end-of-day-management";
 
 /** Default: double OT after 10 hours (8h regular + 2h normal OT). */
 export const DEFAULT_DOUBLE_OVERTIME_AFTER_MINUTES = 10 * 60;

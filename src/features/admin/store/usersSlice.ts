@@ -44,6 +44,7 @@ type EntityCache<TList, TDetail> = {
   details: Record<string, AsyncEntry<TDetail>>;
   create: MutationEntry;
   update: MutationEntry;
+  remove: MutationEntry;
 };
 
 export type UsersState = {
@@ -61,18 +62,21 @@ const initialState: UsersState = {
     permissions: emptyCache(),
     create: createMutationEntry(),
     update: createMutationEntry(),
+    remove: createMutationEntry(),
   },
   roles: {
     lists: emptyCache(),
     details: emptyCache(),
     create: createMutationEntry(),
     update: createMutationEntry(),
+    remove: createMutationEntry(),
   },
   roleGroups: {
     lists: emptyCache(),
     details: emptyCache(),
     create: createMutationEntry(),
     update: createMutationEntry(),
+    remove: createMutationEntry(),
   },
 };
 
@@ -261,6 +265,30 @@ const usersSlice = createSlice({
     },
     updateRoleGroupFailure(state, action: PayloadAction<FailurePayload>) {
       setMutationFailure(state.roleGroups.update, action);
+    },
+
+    deleteRoleRequest(state, _action: PayloadAction<RequestPayload<string>>) {
+      setMutationLoading(state.roles.remove);
+    },
+    deleteRoleSuccess(state, action: PayloadAction<SuccessPayload<string>>) {
+      setMutationSuccess(state.roles.remove);
+      delete state.roles.details[action.payload.data];
+      invalidateEntries(state.roles.lists);
+    },
+    deleteRoleFailure(state, action: PayloadAction<FailurePayload>) {
+      setMutationFailure(state.roles.remove, action);
+    },
+
+    deleteRoleGroupRequest(state, _action: PayloadAction<RequestPayload<string>>) {
+      setMutationLoading(state.roleGroups.remove);
+    },
+    deleteRoleGroupSuccess(state, action: PayloadAction<SuccessPayload<string>>) {
+      setMutationSuccess(state.roleGroups.remove);
+      delete state.roleGroups.details[action.payload.data];
+      invalidateEntries(state.roleGroups.lists);
+    },
+    deleteRoleGroupFailure(state, action: PayloadAction<FailurePayload>) {
+      setMutationFailure(state.roleGroups.remove, action);
     },
 
     invalidateAll(state) {

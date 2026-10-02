@@ -21,9 +21,32 @@ import {
 import { currentQuotationRevision } from "@/lib/quotationRevisions";
 import { buildQuotationFormPayload } from "@/features/sales/lib/duplicateQuotation";
 import { quotationAttachmentsToForm } from "@/features/sales/lib/quotationAttachments";
+import { isIssuedQuotation } from "@/features/sales/lib/quotationLifecycle";
 import type { Quotation } from "@/types/quotation";
 import { loadSystemSettings, quotationValidUntilDate } from "@/lib/systemSettings";
 import { toast } from "@/components/feedback/toast";
+import type { FormikProps } from "formik";
+
+type QuotationAction = "draft" | "save" | "preview" | "send";
+
+function firstFormError(errors: unknown): string | null {
+  if (!errors) return null;
+  if (typeof errors === "string") return errors;
+  if (Array.isArray(errors)) {
+    for (const item of errors) {
+      const found = firstFormError(item);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (typeof errors === "object") {
+    for (const value of Object.values(errors as Record<string, unknown>)) {
+      const found = firstFormError(value);
+      if (found) return found;
+    }
+  }
+  return null;
+}
 
 function createDefaultValues(): QuotationFormValues {
   const settings = loadSystemSettings();
@@ -51,9 +74,9 @@ export function EstimateFormPage() {
 
   const [sendModalOpen, setSendModalOpen] = useState(false);
   const [pendingSendQuotation, setPendingSendQuotation] = useState<Quotation | null>(null);
-  const [pendingAction, setPendingAction] = useState<"draft" | "save" | "preview" | "send">("draft");
-  const pendingActionRef = useRef(pendingAction);
-  const setAction = (action: typeof pendingAction) => {
+  const [pendingAction, setPendingAction] = useState<QuotationAction>("draft");
+  const pendingActionRef = useRef<QuotationAction>(pendingAction);
+  const setAction = (action: QuotationAction) => {
     pendingActionRef.current = action;
     setPendingAction(action);
   };
@@ -82,7 +105,7 @@ export function EstimateFormPage() {
           discountPercent: item.discountPercent,
           taxPercent: item.taxPercent,
           isCustomized: item.isCustomized,
-          customization: item.customization,
+          ...(item.customization != null ? { customization: item.customization } : {}),
         })),
         discountAmount: quotation.discountAmount,
         notes: quotation.notes ?? "",
@@ -97,9 +120,10 @@ export function EstimateFormPage() {
   }, [quotation, preselectedCustomerId]);
 
   const busy = createQuotation.isPending || updateQuotation.isPending;
-  const showSaveDraft = !isEdit || quotation?.status === "draft";
+  const showSaveDraft = !isEdit || quotation?.status === "draft" || isIssuedQuotation(quotation?.status ?? "draft");
+  const isPostSendEdit = Boolean(quotation && isIssuedQuotation(quotation.status));
 
-  const handleSubmit = async (values: QuotationFormValues) => {
+  const persistQuotation = async (values: QuotationFormValues) => {
     const action = pendingActionRef.current;
     const saveMode = action === "save" || action === "send" ? "save" : "draft";
     const payload = buildQuotationFormPayload(values, {
@@ -107,34 +131,85 @@ export function EstimateFormPage() {
       existingAttachments: quotation?.attachments,
     });
 
-    const saved =
-      isEdit && id
-        ? await updateQuotation.mutateAsync({ id, data: payload })
-        : await createQuotation.mutateAsync(payload);
+    return isEdit && id
+      ? updateQuotation.mutateAsync({ id, data: payload })
+      : createQuotation.mutateAsync(payload);
+  };
 
-    const revision = currentQuotationRevision(saved.revisions);
+  const handleSubmit = async (values: QuotationFormValues) => {
+    const action = pendingActionRef.current;
 
-    if (action === "send") {
-      setPendingSendQuotation(saved);
-      setSendModalOpen(true);
-      return;
-    }
+    try {
+      const saved = await persistQuotation(values);
+      const revision = currentQuotationRevision(saved.revisions);
 
-    if (action === "preview") {
-      navigate(ROUTES.quotations.preview(saved.id));
-      return;
-    }
+      if (action === "send") {
+        setPendingSendQuotation(saved);
+        setSendModalOpen(true);
+        return;
+      }
 
-    if (action === "draft") {
+      if (action === "preview") {
+        navigate(ROUTES.quotations.preview(saved.id));
+        return;
+      }
+
+      if (action === "draft") {
+        toast.success(
+          revision
+            ? isPostSendEdit
+              ? `Draft revision saved as ${revision.label}`
+              : `Draft saved as ${revision.label}`
+            : "Draft saved",
+        );
+        if (!isEdit) navigate(ROUTES.quotations.edit(saved.id));
+        return;
+      }
+
       toast.success(
-        revision ? `Draft saved as ${revision.label}` : "Draft saved",
+        revision
+          ? isPostSendEdit
+            ? `Revision ${revision.label} saved. Previous issued versions remain in history.`
+            : `Saved ${revision.label}`
+          : "Quotation saved",
       );
-      if (!isEdit) navigate(ROUTES.quotations.edit(saved.id));
+      navigate(ROUTES.quotations.detail(saved.id));
+    } catch (err) {
+      const message =
+        err && typeof err === "object" && "message" in err && typeof err.message === "string"
+          ? err.message
+          : "Failed to save quotation";
+      toast.error(message);
+    }
+  };
+
+  const runAction = async (
+    formik: FormikProps<QuotationFormValues>,
+    action: QuotationAction,
+  ) => {
+    setAction(action);
+    const errors = await formik.validateForm();
+    const message = firstFormError(errors);
+    if (message) {
+      await formik.setTouched(
+        {
+          customerId: true,
+          customerName: true,
+          quoteDate: true,
+          validUntil: true,
+          priority: true,
+          lineItems: true,
+          discountAmount: true,
+          notes: true,
+          termsAndConditions: true,
+          attachments: true,
+        },
+        true,
+      );
+      toast.error(message);
       return;
     }
-
-    toast.success(revision ? `Saved ${revision.label}` : "Quotation saved");
-    navigate(ROUTES.quotations.detail(saved.id));
+    await formik.submitForm();
   };
 
   return (
@@ -146,79 +221,92 @@ export function EstimateFormPage() {
           onSubmit={handleSubmit}
           enableReinitialize
         >
-          <>
-            <PageHeader
-              title={isEdit ? "Edit Quotation" : "Add / Configure Quotation"}
-              description={
-                isEdit
-                  ? "Save records a new version in Revision History. Save Draft updates the current draft only."
-                  : "Create a quotation with products, pricing, and commercial terms."
-              }
-              className="mb-2"
-              breadcrumbs={[
-                { label: "Sales", href: ROUTES.quotations.list },
-                { label: "Quotations", href: ROUTES.quotations.list },
-                { label: isEdit ? "Edit Quotation" : "Add / Configure Quotation" },
-              ]}
-              actions={
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <Link to={ROUTES.quotations.list}>
+          {(formik) => (
+            <>
+              <PageHeader
+                title={isEdit ? "Edit Quotation" : "Add / Configure Quotation"}
+                description={
+                  isEdit
+                    ? isPostSendEdit
+                      ? "Saving creates a new revision. Previously issued versions stay in Revision History."
+                      : "Save records a new version in Revision History. Save Draft updates the current draft only."
+                    : "Create a quotation with products, pricing, and commercial terms."
+                }
+                className="mb-2"
+                breadcrumbs={[
+                  { label: "Sales", href: ROUTES.quotations.list },
+                  { label: "Quotations", href: ROUTES.quotations.list },
+                  { label: isEdit ? "Edit Quotation" : "Add / Configure Quotation" },
+                ]}
+                actions={
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Link to={ROUTES.quotations.list}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        leftIcon={<ArrowLeft className="h-3.5 w-3.5" />}
+                      >
+                        Back to Quotations
+                      </Button>
+                    </Link>
+                    {showSaveDraft && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        leftIcon={<Save className="h-3.5 w-3.5" />}
+                        loading={busy && pendingAction === "draft"}
+                        disabled={busy}
+                        onClick={() => void runAction(formik, "draft")}
+                      >
+                        Save Draft
+                      </Button>
+                    )}
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      leftIcon={<ArrowLeft className="h-3.5 w-3.5" />}
+                      leftIcon={<Save className="h-3.5 w-3.5" />}
+                      loading={busy && pendingAction === "save"}
+                      disabled={busy}
+                      onClick={() => void runAction(formik, "save")}
                     >
-                      Back to Quotations
+                      Save
                     </Button>
-                  </Link>
-                  {showSaveDraft && (
                     <Button
-                      type="submit"
+                      type="button"
                       variant="outline"
                       size="sm"
-                      leftIcon={<Save className="h-3.5 w-3.5" />}
-                      loading={busy && pendingAction === "draft"}
-                      onClick={() => setAction("draft")}
+                      leftIcon={<Eye className="h-3.5 w-3.5" />}
+                      loading={busy && pendingAction === "preview"}
+                      disabled={busy}
+                      onClick={() => void runAction(formik, "preview")}
                     >
-                      Save Draft
+                      Preview
                     </Button>
-                  )}
-                  <Button
-                    type="submit"
-                    variant="outline"
-                    size="sm"
-                    leftIcon={<Save className="h-3.5 w-3.5" />}
-                    loading={busy && pendingAction === "save"}
-                    onClick={() => setAction("save")}
-                  >
-                    Save
-                  </Button>
-                  <Button
-                    type="submit"
-                    variant="outline"
-                    size="sm"
-                    leftIcon={<Eye className="h-3.5 w-3.5" />}
-                    loading={busy && pendingAction === "preview"}
-                    onClick={() => setAction("preview")}
-                  >
-                    Preview
-                  </Button>
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    size="sm"
-                    leftIcon={<Send className="h-3.5 w-3.5" />}
-                    onClick={() => setAction("send")}
-                  >
-                    Send Quotation
-                  </Button>
-                </div>
-              }
-            />
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      leftIcon={<Send className="h-3.5 w-3.5" />}
+                      loading={busy && pendingAction === "send"}
+                      disabled={busy}
+                      onClick={() => void runAction(formik, "send")}
+                    >
+                      Send Quotation
+                    </Button>
+                  </div>
+                }
+              />
 
-            <QuotationFormEditor variant="page" />
-          </>
+              <QuotationFormEditor
+                variant="page"
+                onPreview={() => void runAction(formik, "preview")}
+                onSend={() => void runAction(formik, "send")}
+              />
+            </>
+          )}
         </FormikForm>
       </PageContent>
 

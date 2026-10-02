@@ -11,6 +11,7 @@ import {
   isAuthPersisted,
   writeStoredAuthUser,
 } from "@/app/store/authStorage";
+import { clearAuthToken, getAuthToken, writeAuthToken } from "@/services/apiClient";
 
 export function useAuthSession() {
   const dispatch = useDispatch<AppDispatch>();
@@ -22,6 +23,10 @@ export function useAuthSession() {
   const signInUser = useCallback(
     (nextUser: AuthUser, persist = isAuthPersisted()) => {
       writeStoredAuthUser(nextUser, persist);
+      const token = getAuthToken();
+      if (token) {
+        writeAuthToken(token, persist);
+      }
       dispatch(signIn(nextUser));
     },
     [dispatch],
@@ -29,6 +34,7 @@ export function useAuthSession() {
 
   const signOutUser = useCallback(() => {
     clearStoredAuthUser();
+    clearAuthToken();
     dispatch(signOut());
   }, [dispatch]);
 

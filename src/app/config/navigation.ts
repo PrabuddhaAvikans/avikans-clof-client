@@ -19,13 +19,6 @@ export const NAVIGATION: NavItem[] = [
     permission: "dashboard:view",
   },
   {
-    id: "reports",
-    label: "Reports",
-    path: ROUTES.reports.hub,
-    icon: "BarChart3",
-    permission: "reports:view",
-  },
-  {
     id: "sales",
     label: "Sales",
     path: ROUTES.quotations.list,
@@ -69,7 +62,7 @@ export const NAVIGATION: NavItem[] = [
       },
     ],
   },
-   {
+  {
     id: "manufacturing",
     label: "Production",
     path: ROUTES.manufacturing.jobs,
@@ -95,6 +88,28 @@ export const NAVIGATION: NavItem[] = [
         path: ROUTES.manufacturing.readyToShip,
         icon: "PackageCheck",
         permission: "manufacturing:view",
+      },
+    ],
+  },
+  {
+    id: "end-of-day-management",
+    label: "End-of-Day Management",
+    path: ROUTES.endOfDayManagement.day,
+    icon: "CalendarCheck",
+    children: [
+      {
+        id: "end-of-day-day",
+        label: "Day-End Closing",
+        path: ROUTES.endOfDayManagement.day,
+        icon: "Calendar",
+        permission: "period_close:view",
+      },
+      {
+        id: "end-of-day-month",
+        label: "Month-End Closing",
+        path: ROUTES.endOfDayManagement.month,
+        icon: "CalendarRange",
+        permission: "period_close:view",
       },
     ],
   },
@@ -187,26 +202,11 @@ export const NAVIGATION: NavItem[] = [
     ],
   },
   {
-    id: "period-close",
-    label: "Period Close",
-    path: ROUTES.periodClose.day,
-    icon: "CalendarCheck",
-    children: [
-      {
-        id: "period-close-day",
-        label: "Day Close",
-        path: ROUTES.periodClose.day,
-        icon: "Calendar",
-        permission: "period_close:view",
-      },
-      {
-        id: "period-close-month",
-        label: "Monthly Close",
-        path: ROUTES.periodClose.month,
-        icon: "CalendarRange",
-        permission: "period_close:view",
-      },
-    ],
+    id: "reports",
+    label: "Reports",
+    path: ROUTES.reports.hub,
+    icon: "BarChart3",
+    permission: "reports:view",
   },
   {
     id: "configuration",

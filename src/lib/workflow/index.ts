@@ -29,3 +29,5 @@ export {
   startFirstWorkflowStep,
   startWorkflowInstance,
 } from "@/lib/workflow/engine";
+
+export { approvalStepsInOrder, isApprovalStep } from "@/lib/workflow/graphPath";

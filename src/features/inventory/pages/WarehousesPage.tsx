@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Pencil, Plus, Trash2 } from "lucide-react";
+import { toast } from "@/components/feedback/toast";
 import { ROUTES } from "@/app/config/routes";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/feedback/PageHeader";
@@ -8,15 +9,17 @@ import { PageContent } from "@/components/feedback/PageStates";
 import { DataTable } from "@/components/tables/DataTable";
 import { Button, ConfirmationDialog, IconButton, StatusBadge } from "@/components/ui";
 import { WarehouseFormModal } from "@/features/inventory/components/WarehouseFormModal";
+import { useDeleteWarehouse } from "@/features/inventory/hooks/useWarehousesApi";
 import { useWarehouses } from "@/hooks/useWarehouses";
 import {
   formatWarehouseLabel,
-  removeWarehouse,
+  WAREHOUSES_UPDATED_EVENT,
   type Warehouse,
 } from "@/lib/warehouses";
 
 export function WarehousesPage() {
   const warehouses = useWarehouses();
+  const deleteWarehouse = useDeleteWarehouse();
   const [createOpen, setCreateOpen] = useState(false);
   const [editWarehouse, setEditWarehouse] = useState<Warehouse | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Warehouse | null>(null);
@@ -71,6 +74,18 @@ export function WarehousesPage() {
     [warehouses.length],
   );
 
+  const handleDelete = async () => {
+    if (!deleteTarget?.id) return;
+    try {
+      await deleteWarehouse.mutateAsync(deleteTarget.id);
+      window.dispatchEvent(new Event(WAREHOUSES_UPDATED_EVENT));
+      setDeleteTarget(null);
+      toast.success(`Deleted ${deleteTarget.name}.`);
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Could not delete warehouse.");
+    }
+  };
+
   return (
     <PageContainer maxWidth="wide">
       <PageHeader
@@ -102,7 +117,7 @@ export function WarehousesPage() {
           data={warehouses}
           columns={columns}
           pageSize={15}
-          getRowId={(row) => row.code}
+          getRowId={(row) => row.id || row.code}
           forceTable
           density="compact"
         />
@@ -124,9 +139,7 @@ export function WarehousesPage() {
         open={Boolean(deleteTarget)}
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => {
-          if (!deleteTarget) return;
-          removeWarehouse(deleteTarget.code);
-          setDeleteTarget(null);
+          void handleDelete();
         }}
         title="Delete Warehouse"
         description={
@@ -136,6 +149,7 @@ export function WarehousesPage() {
         }
         confirmLabel="Delete"
         variant="danger"
+        loading={deleteWarehouse.isPending}
       />
     </PageContainer>
   );

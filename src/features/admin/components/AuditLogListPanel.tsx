@@ -83,12 +83,12 @@ export function AuditLogListPanel({
                         {item.entityLabel || item.entity}
                       </p>
                       <StatusBadge variant={auditSeverityVariant(item.severity)} dot size="sm">
-                        {AUDIT_SEVERITY_LABELS[item.severity]}
+                        {AUDIT_SEVERITY_LABELS[item.severity] ?? item.severity}
                       </StatusBadge>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <StatusBadge variant={auditActionVariant(item.action)} size="sm">
-                        {AUDIT_ACTION_LABELS[item.action]}
+                        {AUDIT_ACTION_LABELS[item.action] ?? item.action}
                       </StatusBadge>
                       <span className="truncate text-xs text-muted-foreground" title={item.details}>{item.details}</span>
                     </div>

@@ -1,4 +1,4 @@
-export type WorkflowModule = "costing";
+export type WorkflowModule = "costing" | "sales";
 
 export type WorkflowVersionStatus = "draft" | "published" | "retired";
 
@@ -13,6 +13,31 @@ export type WorkflowInstanceStatus =
 export type WorkflowStepStatus = "waiting" | "pending" | "approved" | "rejected" | "skipped";
 
 export type WorkflowApprovalType = "sequential" | "any" | "all";
+
+export type WorkflowNodeType = "start" | "stage" | "approval" | "completed" | "rejected";
+
+export type WorkflowStageKey =
+  | "quotation"
+  | "sales_order"
+  | "estimation"
+  | "costing"
+  | "production"
+  | "delivery"
+  | "completed";
+
+export interface WorkflowApprovalLevel {
+  id: string;
+  name: string;
+  sequence: number;
+  assignedRoleId: string;
+  assignedRoleName?: string;
+  assignedUserId?: string;
+  assignedUserName?: string;
+  description?: string;
+  isActive: boolean;
+}
+
+export type WorkflowNodeStatus = "active" | "inactive";
 
 export type WorkflowConditionField =
   | "orderAmount"
@@ -45,6 +70,15 @@ export interface WorkflowStepDefinition {
   assigneeName?: string;
   approvalType: WorkflowApprovalType;
   minApprovals: number;
+  nodeType: WorkflowNodeType;
+  description?: string;
+  status: WorkflowNodeStatus;
+  positionX?: number;
+  positionY?: number;
+  approveNextStepId?: string;
+  rejectNextStepId?: string;
+  stageKey?: WorkflowStageKey;
+  approvalLevels?: WorkflowApprovalLevel[];
 }
 
 export interface WorkflowDefinition {

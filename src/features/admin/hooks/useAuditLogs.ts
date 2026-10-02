@@ -1,4 +1,9 @@
+import { useCallback } from "react";
+import { useDispatch } from "react-redux";
+import type { UnknownAction } from "@reduxjs/toolkit";
 import { useEpicQuery } from "@/app/store/async/useEpicQuery";
+import { registerDeferred } from "@/app/store/async/deferred";
+import type { AppDispatch } from "@/app/store";
 import { auditLogsActions } from "@/features/admin/store/auditLogsSlice";
 import type { AuditLogListFilters } from "@/services";
 import type { PaginatedResponse } from "@/types/common";
@@ -30,4 +35,23 @@ export function useAuditLogSummary(
     request: auditLogsActions.fetchSummaryRequest,
     selectEntry: (state, key) => state.auditLogs.summaries[key],
   });
+}
+
+export function useFetchAuditLogs() {
+  const dispatch = useDispatch<AppDispatch>();
+  return useCallback(
+    (filters: AuditLogListFilters) => {
+      const { requestId, promise } =
+        registerDeferred<PaginatedResponse<AuditLogEntry>>();
+      dispatch(
+        auditLogsActions.fetchListRequest({
+          arg: filters,
+          key: `export-${requestId}`,
+          requestId,
+        }) as UnknownAction,
+      );
+      return promise;
+    },
+    [dispatch],
+  );
 }

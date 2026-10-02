@@ -1,54 +1,73 @@
 import { combineEpics } from "redux-observable";
-import { createAsyncEpic } from "@/app/store/async/createAsyncEpic";
-import { categoriesActions } from "@/features/products/store/categoriesSlice";
-import { categoryService } from "@/services";
+import { createApiEpic } from "@/app/store/async/createApiEpic";
+import { categoriesActions as actions } from "@/features/products/store/categoriesSlice";
+import { buildQuery, http } from "@/services/apiClient";
+import { asRecord, mapPaginatedResponse } from "@/services/mappers/common";
+import { mapCategory } from "@/services/mappers/categoryMappers";
 
-const fetchListEpic = createAsyncEpic({
-  request: categoriesActions.fetchListRequest,
-  success: categoriesActions.fetchListSuccess,
-  failure: categoriesActions.fetchListFailure,
-  handler: (filters) => categoryService.list(filters),
+const fetchListEpic = createApiEpic({
+  request: actions.fetchListRequest,
+  success: actions.fetchListSuccess,
+  failure: actions.fetchListFailure,
+  execute: async (filters) =>
+    mapPaginatedResponse(
+      await http.get(`/api/categories${buildQuery(filters)}`),
+      mapCategory,
+    ),
 });
 
-const fetchDetailEpic = createAsyncEpic({
-  request: categoriesActions.fetchDetailRequest,
-  success: categoriesActions.fetchDetailSuccess,
-  failure: categoriesActions.fetchDetailFailure,
-  handler: (id) => categoryService.getById(id),
+const fetchDetailEpic = createApiEpic({
+  request: actions.fetchDetailRequest,
+  success: actions.fetchDetailSuccess,
+  failure: actions.fetchDetailFailure,
+  execute: async (id) =>
+    mapCategory(asRecord(await http.get(`/api/categories/${id}`))),
 });
 
-const fetchTreeEpic = createAsyncEpic({
-  request: categoriesActions.fetchTreeRequest,
-  success: categoriesActions.fetchTreeSuccess,
-  failure: categoriesActions.fetchTreeFailure,
-  handler: () => categoryService.getTree(),
+const fetchTreeEpic = createApiEpic({
+  request: actions.fetchTreeRequest,
+  success: actions.fetchTreeSuccess,
+  failure: actions.fetchTreeFailure,
+  execute: async () => {
+    const raw = await http.get<unknown[]>("/api/categories/tree");
+    return (raw ?? []).map((item) => mapCategory(item as Record<string, unknown>));
+  },
 });
 
-const createEpic = createAsyncEpic({
-  request: categoriesActions.createRequest,
-  success: categoriesActions.createSuccess,
-  failure: categoriesActions.createFailure,
-  handler: (data) => categoryService.create(data),
-  mode: "merge",
+const createEpic = createApiEpic({
+  request: actions.createRequest,
+  success: actions.createSuccess,
+  failure: actions.createFailure,
+  concurrency: "merge",
+  execute: async (data) =>
+    mapCategory(asRecord(await http.post("/api/categories", data))),
 });
 
-const updateEpic = createAsyncEpic({
-  request: categoriesActions.updateRequest,
-  success: categoriesActions.updateSuccess,
-  failure: categoriesActions.updateFailure,
-  handler: ({ id, data }) => categoryService.update(id, data),
-  mode: "merge",
+const updateEpic = createApiEpic({
+  request: actions.updateRequest,
+  success: actions.updateSuccess,
+  failure: actions.updateFailure,
+  concurrency: "merge",
+  execute: async ({ id, data }) =>
+    mapCategory(
+      asRecord(
+        await http.put(`/api/categories/${id}`, {
+          ...data,
+          clearParent: data.parentId === null,
+        }),
+      ),
+    ),
 });
 
-const deleteEpic = createAsyncEpic({
-  request: categoriesActions.deleteRequest,
-  success: categoriesActions.deleteSuccess,
-  failure: categoriesActions.deleteFailure,
-  handler: async (id) => {
-    await categoryService.delete(id);
+const deleteEpic = createApiEpic({
+  request: actions.deleteRequest,
+  success: actions.deleteSuccess,
+  failure: actions.deleteFailure,
+  concurrency: "merge",
+  execute: async (id) => {
+    await http.delete(`/api/categories/${id}`);
     return id;
   },
-  mode: "merge",
 });
 
 export const categoriesEpic = combineEpics(

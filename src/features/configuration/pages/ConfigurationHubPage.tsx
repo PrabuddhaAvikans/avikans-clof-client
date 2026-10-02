@@ -50,7 +50,7 @@ const CONFIG_ITEMS: {
   },
   {
     title: "Workflows",
-    description: "Activate an old or new costing approval flow for new orders.",
+    description: "Sales order stages and the approval levels inside them.",
     path: ROUTES.configuration.workflows,
     icon: Workflow,
     permission: "settings:view",

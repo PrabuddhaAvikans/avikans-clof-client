@@ -1,6 +1,7 @@
 export type WarehouseStatus = "active" | "inactive";
 
 export type Warehouse = {
+  id: string;
   code: string;
   name: string;
   address: string;
@@ -13,18 +14,21 @@ const STORAGE_KEY = "ats.warehouses";
 
 export const DEFAULT_WAREHOUSES: Warehouse[] = [
   {
+    id: "wh-main",
     code: "MAIN",
     name: DEFAULT_WAREHOUSE_NAME,
     address: "Colombo, Sri Lanka",
     status: "active",
   },
   {
+    id: "wh-a",
     code: "WHA",
     name: "Warehouse A",
     address: "",
     status: "active",
   },
   {
+    id: "wh-b",
     code: "WHB",
     name: "Warehouse B",
     address: "",
@@ -68,6 +72,7 @@ function isWarehouse(value: unknown): value is Warehouse {
 
 function normalizeWarehouse(warehouse: Warehouse): Warehouse {
   return {
+    id: warehouse.id?.trim() || `wh-${warehouse.code.trim().toLowerCase()}`,
     code: warehouse.code.trim(),
     name: warehouse.name.trim(),
     address: warehouse.address.trim(),
@@ -110,7 +115,10 @@ export function findWarehouseByCode(code: string): Warehouse | undefined {
 }
 
 export function addWarehouse(input: Warehouse): Warehouse {
-  const next = normalizeWarehouse(input);
+  const next = normalizeWarehouse({
+    ...input,
+    id: input.id?.trim() || `wh-${input.code.trim().toLowerCase()}`,
+  });
   const existingByCode = findWarehouseByCode(next.code);
   if (existingByCode) return existingByCode;
   const existingByName = findWarehouseByName(next.name);

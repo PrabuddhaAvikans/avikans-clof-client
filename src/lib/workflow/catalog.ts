@@ -1,13 +1,27 @@
 import type {
+  WorkflowApprovalLevel,
   WorkflowCatalog,
   WorkflowDefinition,
+  WorkflowModule,
   WorkflowRule,
+  WorkflowStageKey,
   WorkflowStepDefinition,
   WorkflowVersion,
 } from "@/types/workflow";
 
 export const WORKFLOW_CATALOG_UPDATED_EVENT = "ats-workflow-catalog-updated";
 export const COSTING_APPROVAL_WORKFLOW_ID = "wf-costing";
+export const SALES_ORDER_WORKFLOW_ID = "wf-sales-order";
+
+const STAGE_KEYS = new Set<WorkflowStageKey>([
+  "quotation",
+  "sales_order",
+  "estimation",
+  "costing",
+  "production",
+  "delivery",
+  "completed",
+]);
 
 const STORAGE_KEY = "ats.workflowCatalog";
 const LEGACY_STORAGE_KEY = "ats.workflowConfig";
@@ -33,6 +47,7 @@ function step(
   roleName: string,
   assigneeUserId: string,
   assigneeName: string,
+  extras?: Partial<WorkflowStepDefinition>,
 ): WorkflowStepDefinition {
   return {
     id,
@@ -44,6 +59,34 @@ function step(
     assigneeName,
     approvalType: "sequential",
     minApprovals: 1,
+    nodeType: "approval",
+    status: "active",
+    ...extras,
+  };
+}
+
+function terminalNode(
+  id: string,
+  order: number,
+  name: string,
+  nodeType: "start" | "completed" | "rejected",
+  positionX: number,
+  positionY: number,
+  approveNextStepId?: string,
+): WorkflowStepDefinition {
+  return {
+    id,
+    stepOrder: order,
+    stepName: name,
+    approvalRoleId: "",
+    approvalRoleName: "",
+    approvalType: "sequential",
+    minApprovals: 1,
+    nodeType,
+    status: "active",
+    positionX,
+    positionY,
+    approveNextStepId,
   };
 }
 
@@ -56,6 +99,13 @@ const SEED_DEFINITION: WorkflowDefinition = {
 };
 
 function seedVersions(createdAt: string): WorkflowVersion[] {
+  const startId = "wfs-v1-start";
+  const step1Id = "wfs-v1-1";
+  const step2Id = "wfs-v1-2";
+  const step3Id = "wfs-v1-3";
+  const completedId = "wfs-v1-completed";
+  const rejectedId = "wfs-v1-rejected";
+
   return [
     {
       id: "wfv-costing-1",
@@ -66,9 +116,113 @@ function seedVersions(createdAt: string): WorkflowVersion[] {
       createdAt,
       publishedAt: createdAt,
       steps: [
-        step("wfs-v1-1", 1, "rol-003", "Production Manager", "usr-004", "Nuwan Wickramasinghe"),
-        step("wfs-v1-2", 2, "rol-002", "Sales Manager", "usr-002", "Chamari Perera"),
-        step("wfs-v1-3", 3, "rol-001", "Administrator", "usr-001", "Prabuddha Jayawardhana"),
+        terminalNode(startId, 1, "Start", "start", 80, 240, step1Id),
+        step("wfs-v1-1", 2, "rol-003", "Production Manager", "usr-004", "Nuwan Wickramasinghe", {
+          positionX: 320,
+          positionY: 80,
+          approveNextStepId: step2Id,
+          rejectNextStepId: rejectedId,
+        }),
+        step("wfs-v1-2", 3, "rol-002", "Sales Manager", "usr-002", "Chamari Perera", {
+          positionX: 560,
+          positionY: 80,
+          approveNextStepId: step3Id,
+          rejectNextStepId: rejectedId,
+        }),
+        step("wfs-v1-3", 4, "rol-001", "Administrator", "usr-001", "Prabuddha Jayawardhana", {
+          positionX: 800,
+          positionY: 80,
+          approveNextStepId: completedId,
+          rejectNextStepId: rejectedId,
+        }),
+        terminalNode(completedId, 5, "Completed", "completed", 1040, 240),
+        terminalNode(rejectedId, 6, "Rejected", "rejected", 560, 360),
+      ],
+    },
+  ];
+}
+
+const SALES_SEED_DEFINITION: WorkflowDefinition = {
+  id: SALES_ORDER_WORKFLOW_ID,
+  name: "Sales Order",
+  description:
+    "Quotation through delivery. Approval levels are optional inside each stage. Published versions apply to new orders; running orders keep their version.",
+  module: "sales",
+  isActive: true,
+};
+
+function salesStage(
+  id: string,
+  order: number,
+  name: string,
+  stageKey: WorkflowStageKey,
+  approveNextStepId?: string,
+  approvalLevels: WorkflowApprovalLevel[] = [],
+): WorkflowStepDefinition {
+  return {
+    id,
+    stepOrder: order,
+    stepName: name,
+    approvalRoleId: "",
+    approvalRoleName: "",
+    approvalType: "sequential",
+    minApprovals: 1,
+    nodeType: "stage",
+    status: "active",
+    positionX: 280,
+    positionY: order * 160,
+    approveNextStepId,
+    stageKey,
+    approvalLevels,
+  };
+}
+
+function approvalLevel(
+  id: string,
+  sequence: number,
+  name: string,
+  roleId: string,
+): WorkflowApprovalLevel {
+  return {
+    id,
+    name,
+    sequence,
+    assignedRoleId: roleId,
+    assignedRoleName: name,
+    isActive: true,
+  };
+}
+
+function seedSalesVersions(createdAt: string): WorkflowVersion[] {
+  const quotation = "wfs-sales-quotation";
+  const salesOrder = "wfs-sales-order";
+  const estimation = "wfs-sales-estimation";
+  const costing = "wfs-sales-costing";
+  const production = "wfs-sales-production";
+  const delivery = "wfs-sales-delivery";
+  const completed = "wfs-sales-completed";
+
+  return [
+    {
+      id: "wfv-sales-1",
+      workflowDefinitionId: SALES_ORDER_WORKFLOW_ID,
+      versionNumber: 1,
+      status: "published",
+      isDefault: true,
+      createdAt,
+      publishedAt: createdAt,
+      steps: [
+        salesStage(quotation, 1, "Quotation", "quotation", salesOrder),
+        salesStage(salesOrder, 2, "Sales Order", "sales_order", estimation),
+        salesStage(estimation, 3, "Estimation", "estimation", costing),
+        salesStage(costing, 4, "Costing", "costing", production, [
+          approvalLevel("wal-costing-1", 1, "Production Manager", "rol-003"),
+          approvalLevel("wal-costing-2", 2, "Sales Manager", "rol-002"),
+          approvalLevel("wal-costing-3", 3, "Administrator", "rol-001"),
+        ]),
+        salesStage(production, 5, "Production", "production", delivery),
+        salesStage(delivery, 6, "Delivery", "delivery", completed),
+        salesStage(completed, 7, "Completed", "completed"),
       ],
     },
   ];
@@ -77,8 +231,8 @@ function seedVersions(createdAt: string): WorkflowVersion[] {
 export function getDefaultWorkflowCatalog(): WorkflowCatalog {
   const createdAt = "2025-01-01T00:00:00.000Z";
   return {
-    definitions: [clone(SEED_DEFINITION)],
-    versions: seedVersions(createdAt),
+    definitions: [clone(SALES_SEED_DEFINITION), clone(SEED_DEFINITION)],
+    versions: [...seedSalesVersions(createdAt), ...seedVersions(createdAt)],
     rules: [],
   };
 }
@@ -135,21 +289,62 @@ function asBoolean(value: unknown, fallback: boolean): boolean {
   return typeof value === "boolean" ? value : fallback;
 }
 
+function normalizeLevel(value: unknown, index: number): WorkflowApprovalLevel | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as Partial<WorkflowApprovalLevel>;
+  const name = asString(raw.name).trim();
+  if (!name) return null;
+  return {
+    id: asString(raw.id, createId("wal")),
+    name,
+    sequence: asNumber(raw.sequence, index + 1),
+    assignedRoleId: asString(raw.assignedRoleId),
+    assignedRoleName: asString(raw.assignedRoleName) || undefined,
+    assignedUserId: asString(raw.assignedUserId) || undefined,
+    assignedUserName: asString(raw.assignedUserName) || undefined,
+    description: asString(raw.description) || undefined,
+    isActive: asBoolean(raw.isActive, true),
+  };
+}
+
+function normalizeModule(value: unknown): WorkflowModule {
+  return value === "sales" ? "sales" : "costing";
+}
+
 function normalizeStep(value: unknown, index: number): WorkflowStepDefinition | null {
   if (!value || typeof value !== "object") return null;
   const raw = value as Partial<WorkflowStepDefinition>;
+  const nodeType = raw.nodeType ?? "approval";
   const approvalRoleName = asString(raw.approvalRoleName || raw.stepName, "").trim();
-  if (!approvalRoleName) return null;
+  if (nodeType === "approval" && !approvalRoleName) return null;
+  const stageKey = STAGE_KEYS.has(raw.stageKey as WorkflowStageKey)
+    ? (raw.stageKey as WorkflowStageKey)
+    : undefined;
+  const approvalLevels = Array.isArray(raw.approvalLevels)
+    ? raw.approvalLevels
+        .map((item, levelIndex) => normalizeLevel(item, levelIndex))
+        .filter((item): item is WorkflowApprovalLevel => Boolean(item))
+        .sort((left, right) => left.sequence - right.sequence)
+    : undefined;
   return {
     id: asString(raw.id, createId("wfs")),
     stepOrder: asNumber(raw.stepOrder, index + 1),
-    stepName: asString(raw.stepName, approvalRoleName) || approvalRoleName,
+    stepName: asString(raw.stepName, approvalRoleName || nodeType) || approvalRoleName || nodeType,
     approvalRoleId: asString(raw.approvalRoleId),
     approvalRoleName,
     assigneeUserId: asString(raw.assigneeUserId) || undefined,
     assigneeName: asString(raw.assigneeName) || undefined,
     approvalType: raw.approvalType === "any" || raw.approvalType === "all" ? raw.approvalType : "sequential",
     minApprovals: Math.max(1, asNumber(raw.minApprovals, 1)),
+    nodeType,
+    description: asString(raw.description) || undefined,
+    status: raw.status === "inactive" ? "inactive" : "active",
+    positionX: raw.positionX == null ? undefined : asNumber(raw.positionX, 0),
+    positionY: raw.positionY == null ? undefined : asNumber(raw.positionY, 0),
+    approveNextStepId: asString(raw.approveNextStepId) || undefined,
+    rejectNextStepId: asString(raw.rejectNextStepId) || undefined,
+    stageKey,
+    approvalLevels,
   };
 }
 
@@ -161,10 +356,15 @@ function normalizeCatalog(parsed: Partial<WorkflowCatalog>): WorkflowCatalog {
           id: asString(item.id, COSTING_APPROVAL_WORKFLOW_ID),
           name: asString(item.name, SEED_DEFINITION.name),
           description: asString(item.description, SEED_DEFINITION.description),
-          module: "costing" as const,
+          module: normalizeModule(item.module),
           isActive: asBoolean(item.isActive, true),
         }))
       : defaults.definitions;
+
+  const hasSales = definitions.some((item) => item.module === "sales");
+  const mergedDefinitions = hasSales
+    ? definitions
+    : [...defaults.definitions.filter((item) => item.module === "sales"), ...definitions];
 
   const versions = Array.isArray(parsed.versions)
     ? parsed.versions
@@ -202,15 +402,25 @@ function normalizeCatalog(parsed: Partial<WorkflowCatalog>): WorkflowCatalog {
 
   if (versions.length === 0) return defaults;
 
-  const hasDefault = versions.some((item) => item.isDefault && item.status === "published");
+  const salesDefinitionId =
+    mergedDefinitions.find((item) => item.module === "sales")?.id ?? SALES_ORDER_WORKFLOW_ID;
+  const hasSalesVersion = versions.some((item) => item.workflowDefinitionId === salesDefinitionId);
+  const mergedVersions = hasSalesVersion
+    ? versions
+    : [
+        ...defaults.versions.filter((item) => item.workflowDefinitionId === SALES_ORDER_WORKFLOW_ID),
+        ...versions,
+      ];
+
+  const hasDefault = mergedVersions.some((item) => item.isDefault && item.status === "published");
   if (!hasDefault) {
-    const latestPublished = [...versions]
+    const latestPublished = [...mergedVersions]
       .filter((item) => item.status === "published")
       .sort((left, right) => right.versionNumber - left.versionNumber)[0];
     if (latestPublished) latestPublished.isDefault = true;
   }
 
-  return { definitions, versions, rules: [] };
+  return { definitions: mergedDefinitions, versions: mergedVersions, rules: [] };
 }
 
 export function loadWorkflowCatalog(): WorkflowCatalog {
@@ -314,6 +524,10 @@ export function createDraftFromVersion(sourceVersionId: string): WorkflowVersion
       .filter((item) => item.workflowDefinitionId === source.workflowDefinitionId)
       .map((item) => item.versionNumber)) + 1;
 
+  const idMap = new Map(source.steps.map((item) => [item.id, createId("wfs")]));
+  const mapNext = (nextId?: string) =>
+    nextId && idMap.has(nextId) ? idMap.get(nextId) : undefined;
+
   const draft: WorkflowVersion = {
     id: existingDraft?.id ?? createId("wfv"),
     workflowDefinitionId: source.workflowDefinitionId,
@@ -323,8 +537,10 @@ export function createDraftFromVersion(sourceVersionId: string): WorkflowVersion
     createdAt: existingDraft?.createdAt ?? nowIso(),
     steps: source.steps.map((item, index) => ({
       ...item,
-      id: createId("wfs"),
+      id: idMap.get(item.id) ?? createId("wfs"),
       stepOrder: index + 1,
+      approveNextStepId: mapNext(item.approveNextStepId),
+      rejectNextStepId: mapNext(item.rejectNextStepId),
     })),
   };
 
@@ -338,11 +554,10 @@ export function saveDraftVersion(draft: WorkflowVersion): WorkflowVersion {
   if (draft.status !== "draft") {
     throw new Error("Only a draft version can be edited.");
   }
-  if (draft.steps.length === 0) {
+
+  const approvals = draft.steps.filter((item) => (item.nodeType ?? "approval") === "approval");
+  if (approvals.length === 0) {
     throw new Error("A workflow version needs at least one approval step.");
-  }
-  if (draft.steps.some((item) => !item.approvalRoleId || !item.approvalRoleName.trim())) {
-    throw new Error("Each step needs a role from role management.");
   }
 
   const catalog = loadWorkflowCatalog();
@@ -360,9 +575,11 @@ export function saveDraftVersion(draft: WorkflowVersion): WorkflowVersion {
       ...item,
       id: item.id || createId("wfs"),
       stepOrder: index + 1,
-      stepName: item.stepName || item.approvalRoleName,
+      stepName: item.stepName || item.approvalRoleName || item.nodeType,
       approvalType: item.approvalType || "sequential",
       minApprovals: item.minApprovals || 1,
+      nodeType: item.nodeType || "approval",
+      status: item.status || "active",
     })),
   };
 
@@ -474,6 +691,8 @@ export function createWorkflowStep(partial?: Partial<WorkflowStepDefinition>): W
     assigneeName: "",
     approvalType: "sequential",
     minApprovals: 1,
+    nodeType: "approval",
+    status: "active",
     ...partial,
   };
 }

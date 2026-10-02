@@ -1,25 +1,27 @@
 export type UnitOfMeasure = {
+  id: string;
   code: string;
   name: string;
+  status?: "active" | "inactive";
 };
 
 export const UNITS_OF_MEASURE_UPDATED_EVENT = "ats-units-of-measure-updated";
 const STORAGE_KEY = "ats.unitsOfMeasure";
 
 export const DEFAULT_UNITS_OF_MEASURE: UnitOfMeasure[] = [
-  { code: "pcs", name: "Pieces" },
-  { code: "set", name: "Set" },
-  { code: "kg", name: "Kilogram" },
-  { code: "g", name: "Gram" },
-  { code: "L", name: "Litre" },
-  { code: "ml", name: "Millilitre" },
-  { code: "m", name: "Metre" },
-  { code: "mm", name: "Millimetre" },
-  { code: "box", name: "Box" },
-  { code: "reel", name: "Reel" },
-  { code: "roll", name: "Roll" },
-  { code: "hrs", name: "Hours" },
-  { code: "job", name: "Job" },
+  { id: "uom-pcs", code: "pcs", name: "Pieces", status: "active" },
+  { id: "uom-set", code: "set", name: "Set", status: "active" },
+  { id: "uom-kg", code: "kg", name: "Kilogram", status: "active" },
+  { id: "uom-g", code: "g", name: "Gram", status: "active" },
+  { id: "uom-L", code: "L", name: "Litre", status: "active" },
+  { id: "uom-ml", code: "ml", name: "Millilitre", status: "active" },
+  { id: "uom-m", code: "m", name: "Metre", status: "active" },
+  { id: "uom-mm", code: "mm", name: "Millimetre", status: "active" },
+  { id: "uom-box", code: "box", name: "Box", status: "active" },
+  { id: "uom-reel", code: "reel", name: "Reel", status: "active" },
+  { id: "uom-roll", code: "roll", name: "Roll", status: "active" },
+  { id: "uom-hrs", code: "hrs", name: "Hours", status: "active" },
+  { id: "uom-job", code: "job", name: "Job", status: "active" },
 ];
 
 export function formatUnitLabel(unit: Pick<UnitOfMeasure, "code" | "name">): string {
@@ -46,8 +48,10 @@ function loadCustomUnits(): UnitOfMeasure[] {
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) return [];
     return parsed.filter(isUnit).map((unit) => ({
+      id: unit.id?.trim() || `uom-${unit.code.trim().toLowerCase()}`,
       code: unit.code.trim(),
       name: unit.name.trim(),
+      status: unit.status ?? "active",
     }));
   } catch {
     return [];
@@ -89,7 +93,12 @@ export function addUnitOfMeasure(input: UnitOfMeasure): UnitOfMeasure {
   const existing = findUnitOfMeasure(code);
   if (existing) return existing;
 
-  const next: UnitOfMeasure = { code, name };
+  const next: UnitOfMeasure = {
+    id: `uom-${code.toLowerCase()}`,
+    code,
+    name,
+    status: "active",
+  };
   saveCustomUnits([...loadCustomUnits(), next]);
   return next;
 }

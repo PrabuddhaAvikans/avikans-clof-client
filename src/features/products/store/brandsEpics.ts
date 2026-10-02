@@ -1,47 +1,54 @@
 import { combineEpics } from "redux-observable";
-import { createAsyncEpic } from "@/app/store/async/createAsyncEpic";
-import { brandsActions } from "@/features/products/store/brandsSlice";
-import { brandService } from "@/services";
+import { createApiEpic } from "@/app/store/async/createApiEpic";
+import { brandsActions as actions } from "@/features/products/store/brandsSlice";
+import { buildQuery, http } from "@/services/apiClient";
+import { asRecord, mapPaginatedResponse } from "@/services/mappers/common";
+import { mapBrand } from "@/services/mappers/brandMappers";
 
-const fetchListEpic = createAsyncEpic({
-  request: brandsActions.fetchListRequest,
-  success: brandsActions.fetchListSuccess,
-  failure: brandsActions.fetchListFailure,
-  handler: (filters) => brandService.list(filters),
+const fetchListEpic = createApiEpic({
+  request: actions.fetchListRequest,
+  success: actions.fetchListSuccess,
+  failure: actions.fetchListFailure,
+  execute: async (filters) =>
+    mapPaginatedResponse(
+      await http.get(`/api/brands${buildQuery(filters)}`),
+      mapBrand,
+    ),
 });
 
-const fetchDetailEpic = createAsyncEpic({
-  request: brandsActions.fetchDetailRequest,
-  success: brandsActions.fetchDetailSuccess,
-  failure: brandsActions.fetchDetailFailure,
-  handler: (id) => brandService.getById(id),
+const fetchDetailEpic = createApiEpic({
+  request: actions.fetchDetailRequest,
+  success: actions.fetchDetailSuccess,
+  failure: actions.fetchDetailFailure,
+  execute: async (id) => mapBrand(asRecord(await http.get(`/api/brands/${id}`))),
 });
 
-const createEpic = createAsyncEpic({
-  request: brandsActions.createRequest,
-  success: brandsActions.createSuccess,
-  failure: brandsActions.createFailure,
-  handler: (data) => brandService.create(data),
-  mode: "merge",
+const createEpic = createApiEpic({
+  request: actions.createRequest,
+  success: actions.createSuccess,
+  failure: actions.createFailure,
+  concurrency: "merge",
+  execute: async (data) => mapBrand(asRecord(await http.post("/api/brands", data))),
 });
 
-const updateEpic = createAsyncEpic({
-  request: brandsActions.updateRequest,
-  success: brandsActions.updateSuccess,
-  failure: brandsActions.updateFailure,
-  handler: ({ id, data }) => brandService.update(id, data),
-  mode: "merge",
+const updateEpic = createApiEpic({
+  request: actions.updateRequest,
+  success: actions.updateSuccess,
+  failure: actions.updateFailure,
+  concurrency: "merge",
+  execute: async ({ id, data }) =>
+    mapBrand(asRecord(await http.put(`/api/brands/${id}`, data))),
 });
 
-const deleteEpic = createAsyncEpic({
-  request: brandsActions.deleteRequest,
-  success: brandsActions.deleteSuccess,
-  failure: brandsActions.deleteFailure,
-  handler: async (id) => {
-    await brandService.delete(id);
+const deleteEpic = createApiEpic({
+  request: actions.deleteRequest,
+  success: actions.deleteSuccess,
+  failure: actions.deleteFailure,
+  concurrency: "merge",
+  execute: async (id) => {
+    await http.delete(`/api/brands/${id}`);
     return id;
   },
-  mode: "merge",
 });
 
 export const brandsEpic = combineEpics(

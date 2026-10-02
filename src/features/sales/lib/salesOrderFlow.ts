@@ -46,7 +46,7 @@ export function canConfirmSalesOrder(
 ): boolean {
   if (!order) return false;
   if (!["draft", "pending_review", "submitted"].includes(order.status)) return false;
-  return isCostingApproved(costing);
+  return isCostingApproved(costing) && isCoatingSubmitted(costing);
 }
 
 export function getConfirmBlockReason(
@@ -66,6 +66,22 @@ export function getConfirmBlockReason(
     return "Costing must be approved before confirming this order.";
   }
   return null;
+}
+
+export function canCancelSalesOrder(order: SalesOrder | null | undefined): boolean {
+  if (!order) return false;
+  return !["cancelled", "completed", "delivered", "partially_delivered"].includes(order.status);
+}
+
+export function canManufactureFromSalesOrder(order: SalesOrder | null | undefined): boolean {
+  if (!order) return false;
+  return ["confirmed", "in_manufacturing", "ready_for_delivery", "partially_delivered"].includes(
+    order.status,
+  );
+}
+
+export function canDeliverFromSalesOrder(order: SalesOrder | null | undefined): boolean {
+  return canManufactureFromSalesOrder(order);
 }
 
 function normalizeFulfillmentStatus(status: SalesOrderStatusValue): SalesOrderStatusValue {

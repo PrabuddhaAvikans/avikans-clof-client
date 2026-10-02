@@ -197,3 +197,54 @@ html [data-sonner-toast]:has(.app-toast) [data-title] {
   display: block;
   width: 100%;
 }
+
+.order-flow-ticker {
+  position: relative;
+  overflow: hidden;
+  height: 1.35rem;
+  border-radius: var(--radius-md);
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.35rem;
+  white-space: nowrap;
+}
+
+.order-flow-ticker__track {
+  display: inline-flex;
+  align-items: center;
+  gap: 2.5rem;
+  min-width: 100%;
+  padding-inline: 0.5rem;
+}
+
+.order-flow-ticker__track--scroll {
+  animation: order-flow-ticker-scroll 18s linear infinite;
+}
+
+.order-flow-ticker__track--static {
+  animation: none;
+}
+
+.order-flow-ticker__text {
+  display: inline-block;
+}
+
+.order-flow-ticker:hover .order-flow-ticker__track--scroll {
+  animation-play-state: paused;
+}
+
+@keyframes order-flow-ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .order-flow-ticker__track--scroll {
+    animation: none;
+  }
+}

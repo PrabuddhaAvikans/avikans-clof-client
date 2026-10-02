@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Building2, Calculator, Factory, Globe, RotateCcw, Save } from "lucide-react";
 import { toast } from "@/components/feedback/toast";
 import { ROUTES } from "@/app/config/routes";
@@ -30,6 +30,10 @@ import {
   type SystemSettings,
 } from "@/lib/systemSettings";
 import { cn } from "@/lib/utils";
+import {
+  useSystemSettingsQuery,
+  useUpdateSystemSettings,
+} from "@/features/admin/hooks/useSystemSettingsApi";
 
 const COUNTRY_SETTING_OPTIONS = Object.keys(COUNTRY_CONFIG).map((country) => ({
   value: country,
@@ -92,11 +96,24 @@ function SectionCard({
 export function SystemSettingsPage() {
   const { hasPermission } = usePermissions();
   const canEdit = hasPermission("settings:edit");
+  const { data: remoteSettings } = useSystemSettingsQuery();
+  const updateSettings = useUpdateSystemSettings();
 
   const [saved, setSaved] = useState<SystemSettings>(loadSystemSettings);
   const [draft, setDraft] = useState<SystemSettings>(saved);
   const [section, setSection] = useState<SettingsSection>("company");
   const [, setCostingRates] = useState<CostingRates>(loadCostingRates);
+
+  useEffect(() => {
+    if (!remoteSettings) return;
+    setSaved(remoteSettings);
+    setDraft(remoteSettings);
+    try {
+      saveSystemSettings(remoteSettings);
+    } catch {
+      // Keep API values in page state even if local cache write fails.
+    }
+  }, [remoteSettings]);
 
   const countryConfig = getCountryConfig(draft.country);
   const dirty = !settingsEqual(draft, saved);
@@ -119,13 +136,21 @@ export function SystemSettingsPage() {
       setSection("company");
       return;
     }
-    try {
-      saveSystemSettings(draft);
-      setSaved(draft);
-      toast.success("System settings saved");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not save settings");
-    }
+    void updateSettings
+      .mutateAsync(draft)
+      .then((settings) => {
+        try {
+          saveSystemSettings(settings);
+        } catch {
+          // API save succeeded; local cache is best-effort.
+        }
+        setSaved(settings);
+        setDraft(settings);
+        toast.success("System settings saved");
+      })
+      .catch((error: unknown) => {
+        toast.error(error instanceof Error ? error.message : "Could not save settings");
+      });
   };
 
   const handleReset = () => {
@@ -163,7 +188,8 @@ export function SystemSettingsPage() {
               <Button
                 variant="primary"
                 leftIcon={<Save className="h-4 w-4" />}
-                disabled={!dirty}
+                disabled={!dirty || updateSettings.isPending}
+                loading={updateSettings.isPending}
                 onClick={handleSave}
               >
                 Save Settings

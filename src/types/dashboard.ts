@@ -46,6 +46,52 @@ export interface DashboardNotificationPreview {
   actionUrl?: string;
 }
 
+export type OrderFlowSeverity =
+  | "none"
+  | "info"
+  | "pending"
+  | "warning"
+  | "critical"
+  | "success";
+
+export type OrderFlowStageKey =
+  | "quotation"
+  | "sales_order"
+  | "estimation"
+  | "costing"
+  | "production"
+  | "delivery"
+  | "completed";
+
+export interface OrderFlowStat {
+  key: string;
+  label: string;
+  count: number;
+  severity: OrderFlowSeverity;
+}
+
+export interface OrderFlowStage {
+  stageKey: OrderFlowStageKey;
+  title: string;
+  summaryText: string;
+  total: number;
+  attentionCount: number;
+  attentionSeverity: OrderFlowSeverity;
+  stats: OrderFlowStat[];
+  messages: string[];
+}
+
+export interface OrderFlowOverview {
+  generatedAt: string;
+  quotation: OrderFlowStage;
+  salesOrder: OrderFlowStage;
+  estimation: OrderFlowStage;
+  costing: OrderFlowStage;
+  production: OrderFlowStage;
+  delivery: OrderFlowStage;
+  completed: OrderFlowStage;
+}
+
 export interface DashboardSummary {
   generatedAt: string;
   periodLabel: string;

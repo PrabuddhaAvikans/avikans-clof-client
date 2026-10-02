@@ -1,9 +1,10 @@
 import { useMemo } from "react";
-import { ArrowRightLeft, Check } from "lucide-react";
+import { ArrowRightLeft, Check, MessageSquare } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ROUTES } from "@/app/config/routes";
 import { Button } from "@/components/ui/Button";
 import { Stepper, type StepItem, type StepStatus } from "@/components/ui/Stepper";
+import { canConvertQuotation } from "@/features/sales/lib/quotationLifecycle";
 import { cn } from "@/lib/utils";
 import { workspacePanelBody, workspacePanelEmpty, workspacePanelShell } from "@/lib/panelLayout";
 import type { Quotation } from "@/types/quotation";
@@ -12,7 +13,9 @@ import type { QuotationStatusValue } from "@/types/status";
 const WORKFLOW_ORDER: QuotationStatusValue[] = [
   "draft",
   "ready_to_send",
-  "viewed",
+  "sent",
+  "customer_feedback",
+  "revised",
   "accepted",
   "converted",
 ];
@@ -20,31 +23,36 @@ const WORKFLOW_ORDER: QuotationStatusValue[] = [
 const WORKFLOW_LABELS: Record<string, string> = {
   draft: "Draft",
   ready_to_send: "Submitted",
-  viewed: "Under Review",
+  sent: "Sent",
+  customer_feedback: "Customer Feedback",
+  revised: "Revised",
   accepted: "Approved",
   converted: "Converted to Order",
+  revision_required: "Revision Required",
+  viewed: "Customer Feedback",
+  rejected: "Rejected",
 };
 
 function normalizeStatus(status: QuotationStatusValue): QuotationStatusValue {
-  if (status === "sent") return "ready_to_send";
-  if (status === "expired") return "rejected";
+  if (status === "viewed" || status === "revision_required") return "customer_feedback";
   return status;
 }
 
 function buildWorkflowSteps(status: QuotationStatusValue): StepItem[] {
-  const normalized = normalizeStatus(status);
-
-  if (normalized === "rejected") {
+  if (status === "rejected") {
     return [
       { id: "draft", label: "Draft", status: "completed" },
       { id: "ready_to_send", label: "Submitted", status: "completed" },
-      { id: "viewed", label: "Under Review", status: "completed" },
+      { id: "sent", label: "Sent", status: "completed" },
       { id: "rejected", label: "Rejected", status: "error" },
       { id: "converted", label: "Converted to Order", status: "pending" },
     ];
   }
 
+  const normalized = normalizeStatus(status);
   const currentIndex = WORKFLOW_ORDER.indexOf(normalized);
+  const labelOverride =
+    status === "revision_required" ? WORKFLOW_LABELS.revision_required : undefined;
 
   return WORKFLOW_ORDER.map((id, index) => {
     let stepStatus: StepStatus = "pending";
@@ -52,7 +60,10 @@ function buildWorkflowSteps(status: QuotationStatusValue): StepItem[] {
     else if (currentIndex === index) stepStatus = "current";
     return {
       id,
-      label: WORKFLOW_LABELS[id],
+      label:
+        currentIndex === index && labelOverride
+          ? labelOverride
+          : WORKFLOW_LABELS[id],
       status: stepStatus,
     };
   });
@@ -76,6 +87,7 @@ export type QuotationWorkflowPanelProps = {
 export function QuotationWorkflowPanel({
   quotation,
   onConvert,
+  onOpenContacts,
   isConverting,
   className,
 }: QuotationWorkflowPanelProps) {
@@ -92,26 +104,45 @@ export function QuotationWorkflowPanel({
     );
   }
 
-  const canConvert =
-    quotation.status === "accepted" || quotation.status === "sent";
+  const canConvert = canConvertQuotation(quotation.status);
 
   return (
     <div className={cn(workspacePanelShell, className)}>
       <div className="border-b border-border px-4 py-3">
         <h2 className="text-sm font-semibold text-foreground">Quotation Workflow</h2>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          Quotation → Sales Order → Product Estimation (auto BOM) → Approval → Confirm
+          Quotation → Customer Feedback → Revision → Approval → Sales Order
         </p>
       </div>
 
       <div className={workspacePanelBody}>
         <Stepper steps={steps} orientation="vertical" />
 
+        {quotation.status === "rejected" && quotation.rejectionReason && (
+          <section className="rounded-md border border-destructive/30 bg-destructive/5 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-destructive">
+              Rejection reason
+            </p>
+            <p className="mt-1 text-sm text-foreground">{quotation.rejectionReason}</p>
+          </section>
+        )}
+
         <section>
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Next in flow
           </h3>
           <div className="space-y-1.5">
+            {onOpenContacts && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start"
+                leftIcon={<MessageSquare className="h-4 w-4" />}
+                onClick={onOpenContacts}
+              >
+                Communication Log
+              </Button>
+            )}
             {canConvert && (
               <Button
                 variant="primary"
@@ -133,13 +164,16 @@ export function QuotationWorkflowPanel({
             )}
             {!canConvert && quotation.status !== "converted" && (
               <p className="text-xs text-muted-foreground">
-                Accept this quotation before converting it to a sales order.
+                Approve this quotation before converting it to a sales order, or revise it
+                after customer feedback.
               </p>
             )}
           </div>
         </section>
 
-        {(quotation.status === "accepted" || quotation.status === "converted") && (
+        {(quotation.status === "accepted" ||
+          quotation.status === "revised" ||
+          quotation.status === "converted") && (
           <section className="rounded-md border border-border bg-muted/30 p-3">
             <div className="flex items-start gap-2">
               <Check className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Clock3, ExternalLink } from "lucide-react";
 import { ROUTES } from "@/app/config/routes";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { useCurrentDayClose } from "@/features/period-close/hooks/usePeriodClose";
+import { useCurrentDayClose } from "@/features/end-of-day-management/hooks/useEndOfDayManagement";
 import { formatWorkedDuration } from "@/lib/employee-work";
 import { ensureTaskUnits, workerProgressFromUnits } from "@/lib/taskUnits";
 import { cn } from "@/lib/utils";
@@ -11,7 +11,7 @@ import { EmployeeDayStatus } from "@/types/employee-work";
 import type { ManufacturingJob } from "@/types/manufacturing";
 
 /**
- * Links this production job to Employee Day Close hours.
+ * Links this production job to Employee Day-End Closing hours.
  * Job progress % and daily worked hours are separate concepts.
  */
 export function JobDayCloseLinkPanel({
@@ -67,16 +67,16 @@ export function JobDayCloseLinkPanel({
             <h3 className="text-sm font-semibold">Employee day hours</h3>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            Worked time for Day Close ({formatWorkedDuration(requiredMinutes)} required). Separate
+            Worked time for Day-End Closing ({formatWorkedDuration(requiredMinutes)} required). Separate
             from task progress — closing this job does not close the employee day.
             {businessDate ? ` · ${businessDate}` : ""}
           </p>
         </div>
         <Link
-          to={ROUTES.periodClose.day}
+          to={ROUTES.endOfDayManagement.day}
           className="inline-flex items-center gap-1.5 text-xs font-medium underline-offset-2 hover:underline"
         >
-          Open Day Close
+          Open Day-End Closing
           <ExternalLink className="h-3 w-3" aria-hidden />
         </Link>
       </div>

@@ -15,10 +15,9 @@ import { IconButton } from "@/components/ui/IconButton";
 import { SearchBar } from "@/components/ui/SearchBar";
 import { Select } from "@/components/ui/Select";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { useDeliveries } from "@/features/delivery/hooks/useDeliveries";
+import { useDeleteDelivery, useDeliveries } from "@/features/delivery/hooks/useDeliveries";
 import { statusLabel, statusVariant } from "@/features/shared/utils/statusBadge";
 import { formatDate } from "@/lib/format";
-import { deliveryService } from "@/services";
 import type { Delivery } from "@/types/delivery";
 import {
   DeliveryStatus,
@@ -43,7 +42,7 @@ export function DeliveryListPage() {
   const [status, setStatus] = useState("");
   const [priority, setPriority] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Delivery | null>(null);
-  const [deleting, setDeleting] = useState(false);
+  const deleteDelivery = useDeleteDelivery();
 
   const { data, isLoading, error, refetch } = useDeliveries({
     page: 1,
@@ -55,16 +54,13 @@ export function DeliveryListPage() {
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    setDeleting(true);
     try {
-      await deliveryService.delete(deleteTarget.id);
+      await deleteDelivery.mutateAsync(deleteTarget.id);
       toast.success(`Delivery ${deleteTarget.deliveryNumber} deleted`);
       setDeleteTarget(null);
       void refetch();
     } catch {
       toast.error("Failed to delete delivery");
-    } finally {
-      setDeleting(false);
     }
   };
 
@@ -235,7 +231,7 @@ export function DeliveryListPage() {
         description={`Delete ${deleteTarget?.deliveryNumber}? This cannot be undone.`}
         confirmLabel="Delete"
         variant="danger"
-        loading={deleting}
+        loading={deleteDelivery.isPending}
       />
     </PageContainer>
   );

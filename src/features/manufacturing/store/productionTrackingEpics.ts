@@ -1,63 +1,106 @@
 import { combineEpics } from "redux-observable";
-import { createAsyncEpic } from "@/app/store/async/createAsyncEpic";
+import { createApiEpic } from "@/app/store/async/createApiEpic";
 import { manufacturingActions } from "@/features/manufacturing/store/manufacturingSlice";
-import { productionTrackingActions } from "@/features/manufacturing/store/productionTrackingSlice";
-import { productionTrackingService } from "@/services";
+import { productionTrackingActions as actions } from "@/features/manufacturing/store/productionTrackingSlice";
+import { buildQuery, http } from "@/services/apiClient";
+import { asRecord, mapPaginatedResponse } from "@/services/mappers/common";
+import {
+  mapProductionJob,
+  mapSnapshot,
+} from "@/services/mappers/productionTrackingMappers";
 
-const fetchSnapshotEpic = createAsyncEpic({
-  request: productionTrackingActions.fetchSnapshotRequest,
-  success: productionTrackingActions.fetchSnapshotSuccess,
-  failure: productionTrackingActions.fetchSnapshotFailure,
-  handler: () => productionTrackingService.getSnapshot(),
+const fetchSnapshotEpic = createApiEpic({
+  request: actions.fetchSnapshotRequest,
+  success: actions.fetchSnapshotSuccess,
+  failure: actions.fetchSnapshotFailure,
+  execute: async () =>
+    mapSnapshot(
+      asRecord(await http.get("/api/manufacturing/production-tracking/snapshot")),
+    ),
 });
 
-const fetchListEpic = createAsyncEpic({
-  request: productionTrackingActions.fetchListRequest,
-  success: productionTrackingActions.fetchListSuccess,
-  failure: productionTrackingActions.fetchListFailure,
-  handler: (filters) => productionTrackingService.listJobs(filters),
+const fetchListEpic = createApiEpic({
+  request: actions.fetchListRequest,
+  success: actions.fetchListSuccess,
+  failure: actions.fetchListFailure,
+  execute: async (filters) =>
+    mapPaginatedResponse(
+      await http.get(
+        `/api/manufacturing/production-tracking/jobs${buildQuery(filters)}`,
+      ),
+      mapProductionJob,
+    ),
 });
 
-const fetchDetailEpic = createAsyncEpic({
-  request: productionTrackingActions.fetchDetailRequest,
-  success: productionTrackingActions.fetchDetailSuccess,
-  failure: productionTrackingActions.fetchDetailFailure,
-  handler: (id) => productionTrackingService.getJobById(id),
+const fetchDetailEpic = createApiEpic({
+  request: actions.fetchDetailRequest,
+  success: actions.fetchDetailSuccess,
+  failure: actions.fetchDetailFailure,
+  execute: async (id) =>
+    mapProductionJob(
+      asRecord(await http.get(`/api/manufacturing/production-tracking/jobs/${id}`)),
+    ),
 });
 
-const startEpic = createAsyncEpic({
-  request: productionTrackingActions.startRequest,
-  success: productionTrackingActions.startSuccess,
-  failure: productionTrackingActions.startFailure,
-  handler: (ids) => productionTrackingService.startProduction(ids),
-  mode: "merge",
+const startEpic = createApiEpic({
+  request: actions.startRequest,
+  success: actions.startSuccess,
+  failure: actions.startFailure,
+  concurrency: "merge",
+  execute: async (ids) => {
+    await http.post("/api/manufacturing/production-tracking/start", { ids });
+    return undefined;
+  },
   onSuccess: () => [manufacturingActions.invalidateAll()],
 });
 
-const updateStageEpic = createAsyncEpic({
-  request: productionTrackingActions.updateStageRequest,
-  success: productionTrackingActions.updateStageSuccess,
-  failure: productionTrackingActions.updateStageFailure,
-  handler: ({ id, comment }) => productionTrackingService.updateStage(id, comment),
-  mode: "merge",
+const updateStageEpic = createApiEpic({
+  request: actions.updateStageRequest,
+  success: actions.updateStageSuccess,
+  failure: actions.updateStageFailure,
+  concurrency: "merge",
+  execute: async ({ id, comment }) =>
+    mapProductionJob(
+      asRecord(
+        await http.post(
+          `/api/manufacturing/production-tracking/jobs/${id}/update-stage`,
+          { comment },
+        ),
+      ),
+    ),
   onSuccess: () => [manufacturingActions.invalidateAll()],
 });
 
-const holdEpic = createAsyncEpic({
-  request: productionTrackingActions.holdRequest,
-  success: productionTrackingActions.holdSuccess,
-  failure: productionTrackingActions.holdFailure,
-  handler: ({ id, reason }) => productionTrackingService.holdJob(id, reason),
-  mode: "merge",
+const holdEpic = createApiEpic({
+  request: actions.holdRequest,
+  success: actions.holdSuccess,
+  failure: actions.holdFailure,
+  concurrency: "merge",
+  execute: async ({ id, reason }) =>
+    mapProductionJob(
+      asRecord(
+        await http.post(
+          `/api/manufacturing/production-tracking/jobs/${id}/hold`,
+          { reason },
+        ),
+      ),
+    ),
   onSuccess: () => [manufacturingActions.invalidateAll()],
 });
 
-const releaseToQcEpic = createAsyncEpic({
-  request: productionTrackingActions.releaseToQcRequest,
-  success: productionTrackingActions.releaseToQcSuccess,
-  failure: productionTrackingActions.releaseToQcFailure,
-  handler: (id) => productionTrackingService.releaseToQc(id),
-  mode: "merge",
+const releaseToQcEpic = createApiEpic({
+  request: actions.releaseToQcRequest,
+  success: actions.releaseToQcSuccess,
+  failure: actions.releaseToQcFailure,
+  concurrency: "merge",
+  execute: async (id) =>
+    mapProductionJob(
+      asRecord(
+        await http.post(
+          `/api/manufacturing/production-tracking/jobs/${id}/release-to-qc`,
+        ),
+      ),
+    ),
   onSuccess: () => [manufacturingActions.invalidateAll()],
 });
 

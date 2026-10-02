@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Plus, Trash2 } from "lucide-react";
+import { toast } from "@/components/feedback/toast";
 import { ROUTES } from "@/app/config/routes";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/feedback/PageHeader";
@@ -8,16 +9,18 @@ import { PageContent } from "@/components/feedback/PageStates";
 import { DataTable } from "@/components/tables/DataTable";
 import { Button, ConfirmationDialog, IconButton, StatusBadge } from "@/components/ui";
 import { AddUnitOfMeasureModal } from "@/features/inventory/components/AddUnitOfMeasureModal";
+import { useDeleteUnitOfMeasure } from "@/features/inventory/hooks/useUnitsOfMeasureApi";
 import { useUnitsOfMeasure } from "@/hooks/useUnitsOfMeasure";
 import {
   formatUnitLabel,
   isDefaultUnit,
-  removeCustomUnitOfMeasure,
+  UNITS_OF_MEASURE_UPDATED_EVENT,
   type UnitOfMeasure,
 } from "@/lib/unitsOfMeasure";
 
 export function UnitsOfMeasurePage() {
   const units = useUnitsOfMeasure();
+  const deleteUnit = useDeleteUnitOfMeasure();
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<UnitOfMeasure | null>(null);
 
@@ -65,6 +68,18 @@ export function UnitsOfMeasurePage() {
     [],
   );
 
+  const handleDelete = async () => {
+    if (!deleteTarget?.id) return;
+    try {
+      await deleteUnit.mutateAsync(deleteTarget.id);
+      window.dispatchEvent(new Event(UNITS_OF_MEASURE_UPDATED_EVENT));
+      setDeleteTarget(null);
+      toast.success(`Deleted ${deleteTarget.code}.`);
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Could not delete unit of measure.");
+    }
+  };
+
   return (
     <PageContainer maxWidth="wide">
       <PageHeader
@@ -96,7 +111,7 @@ export function UnitsOfMeasurePage() {
           data={units}
           columns={columns}
           pageSize={15}
-          getRowId={(row) => row.code}
+          getRowId={(row) => row.id || row.code}
           forceTable
           density="compact"
         />
@@ -112,9 +127,7 @@ export function UnitsOfMeasurePage() {
         open={Boolean(deleteTarget)}
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => {
-          if (!deleteTarget) return;
-          removeCustomUnitOfMeasure(deleteTarget.code);
-          setDeleteTarget(null);
+          void handleDelete();
         }}
         title="Delete Unit of Measure"
         description={
@@ -124,6 +137,7 @@ export function UnitsOfMeasurePage() {
         }
         confirmLabel="Delete"
         variant="danger"
+        loading={deleteUnit.isPending}
       />
     </PageContainer>
   );

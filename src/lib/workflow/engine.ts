@@ -12,6 +12,8 @@ import {
   getWorkflowVersions,
   loadWorkflowCatalog,
 } from "@/lib/workflow/catalog";
+import { approvalStepsInOrder } from "@/lib/workflow/graphPath";
+import { activeApprovalLevels, costingStage, resolveCostingDefinitionId } from "@/lib/workflow/stages";
 
 const INSTANCE_STORAGE_KEY = "ats.workflowInstances";
 const INSTANCE_UPDATED_EVENT = "ats-workflow-instances-updated";
@@ -115,28 +117,44 @@ function snapshotSteps(
   version: WorkflowVersion,
   options: { startFirstStep: boolean; allApproved: boolean },
 ): WorkflowInstanceStep[] {
-  return version.steps
-    .slice()
-    .sort((left, right) => left.stepOrder - right.stepOrder)
-    .map((step, index) => {
-      let status: WorkflowInstanceStep["status"] = "waiting";
-      if (options.allApproved) status = "approved";
-      else if (options.startFirstStep && index === 0) status = "pending";
-
-      return {
-        id: createId("wis"),
-        stepDefinitionId: step.id,
-        stepOrder: step.stepOrder || index + 1,
+  const stage = costingStage(version);
+  const source = stage
+    ? activeApprovalLevels(stage).map((level) => ({
+        id: level.id,
+        stepName: level.name,
+        approvalRoleId: level.assignedRoleId,
+        approvalRoleName: level.assignedRoleName || level.name,
+        assigneeUserId: level.assignedUserId,
+        assigneeName: level.assignedUserName,
+      }))
+    : approvalStepsInOrder(version.steps).map((step) => ({
+        id: step.id,
         stepName: step.stepName || step.approvalRoleName,
-        roleId: step.approvalRoleId,
-        roleName: step.approvalRoleName,
+        approvalRoleId: step.approvalRoleId,
+        approvalRoleName: step.approvalRoleName,
         assigneeUserId: step.assigneeUserId,
-        assigneeName: step.assigneeName?.trim() || "Unassigned",
-        status,
-        startedAt: status === "pending" ? nowIso() : undefined,
-        approvedAt: status === "approved" ? nowIso() : undefined,
-      };
-    });
+        assigneeName: step.assigneeName,
+      }));
+
+  return source.map((step, index) => {
+    let status: WorkflowInstanceStep["status"] = "waiting";
+    if (options.allApproved) status = "approved";
+    else if (options.startFirstStep && index === 0) status = "pending";
+
+    return {
+      id: createId("wis"),
+      stepDefinitionId: step.id,
+      stepOrder: index + 1,
+      stepName: step.stepName,
+      roleId: step.approvalRoleId,
+      roleName: step.approvalRoleName,
+      assigneeUserId: step.assigneeUserId,
+      assigneeName: step.assigneeName?.trim() || "Unassigned",
+      status,
+      startedAt: status === "pending" ? nowIso() : undefined,
+      approvedAt: status === "approved" ? nowIso() : undefined,
+    };
+  });
 }
 
 export function startWorkflowInstance(options: {
@@ -152,12 +170,13 @@ export function startWorkflowInstance(options: {
     return existing;
   }
 
-  const definitionId = options.definitionId ?? COSTING_APPROVAL_WORKFLOW_ID;
+  const definitionId = options.definitionId ?? resolveCostingDefinitionId();
   const definition = getWorkflowDefinition(definitionId);
   const version = selectWorkflowVersion(definitionId, options.context);
   const startFirstStep = options.startFirstStep ?? true;
   const allApproved = options.allApproved ?? false;
   const steps = snapshotSteps(version, { startFirstStep, allApproved });
+  const noApprovals = steps.length === 0;
   const started = allApproved || startFirstStep;
 
   const instance: WorkflowInstance = {
@@ -168,10 +187,10 @@ export function startWorkflowInstance(options: {
     workflowDefinitionName: definition?.name ?? "Workflow",
     workflowVersionId: version.id,
     workflowVersionNumber: version.versionNumber,
-    status: allApproved ? "approved" : started ? "in_progress" : "not_started",
-    currentStepOrder: allApproved ? steps.length : startFirstStep ? 1 : 0,
+    status: allApproved || (started && noApprovals) ? "approved" : started ? "in_progress" : "not_started",
+    currentStepOrder: allApproved || (started && noApprovals) ? steps.length : startFirstStep ? 1 : 0,
     startedAt: nowIso(),
-    completedAt: allApproved ? nowIso() : undefined,
+    completedAt: allApproved || (started && noApprovals) ? nowIso() : undefined,
     steps,
   };
 

@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { expireSession, isUnauthorizedMessage } from '@/services/apiClient';
 import { Button } from './Button';
 
 export type ErrorStateProps = {
@@ -17,6 +19,14 @@ export function ErrorState({
   retryLabel = 'Try again',
   className,
 }: ErrorStateProps) {
+  const unauthorized = isUnauthorizedMessage(message);
+
+  useEffect(() => {
+    if (unauthorized) expireSession();
+  }, [unauthorized]);
+
+  if (unauthorized) return null;
+
   return (
     <div
       className={cn(
