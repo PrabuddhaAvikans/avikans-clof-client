@@ -226,7 +226,8 @@ async function logoForPdf(logoUrl?: string): Promise<PdfImage | null> {
 export async function downloadCommercialDocument(document: CommercialDocument): Promise<void> {
   const image = await logoForPdf(document.logoUrl);
   const pdf = buildCommercialPdf(document, image);
-  const blob = new Blob([pdf], { type: "application/pdf" });
+  const pdfBytes = new Uint8Array(pdf);
+  const blob = new Blob([pdfBytes], { type: "application/pdf" });
   downloadBlob(blob, `${document.number}.pdf`);
 }
 

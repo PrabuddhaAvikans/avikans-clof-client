@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
+  AlertTriangle,
   CalendarDays,
   CheckCircle2,
   Factory,
@@ -18,6 +19,7 @@ import { PageContent } from "@/components/feedback/PageStates";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/Button";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SummaryCard } from "@/components/ui/SummaryCard";
 import { Tabs, TabList, Tab, TabPanel } from "@/components/ui/Tabs";
 import { PeriodStatusBadge } from "@/features/end-of-day-management/components/PeriodStatusBadge";
@@ -33,10 +35,6 @@ import {
 import { formatMonthLabel } from "@/features/end-of-day-management/lib/periodLabels";
 import { usePermissions } from "@/hooks/usePermissions";
 import { formatCurrency, formatDateTime, formatNumber, formatPercent } from "@/lib/format";
-import {
-  workspacePanelBody,
-  workspacePanelShell,
-} from "@/lib/panelLayout";
 import { PeriodStatus } from "@/types/end-of-day-management";
 
 export function MonthlyCloseWorkspacePage() {
@@ -130,7 +128,7 @@ export function MonthlyCloseWorkspacePage() {
     <PageContainer maxWidth="wide">
       <PageHeader
         title="Month-End Closing"
-        description="Lock the month after required day closures. WIP comes from live Manufacturing — open production continues into the next month."
+        description="Lock the month after required day closures. Open production continues into the next month."
         breadcrumbs={[
           { label: "End-of-Day Management" },
           { label: "Month-End Closing" },
@@ -161,7 +159,7 @@ export function MonthlyCloseWorkspacePage() {
                 onClick={() => void handleValidate()}
                 loading={runValidation.isPending}
               >
-                Run validation
+                Validate
               </Button>
             )}
             {period && isOpenLike && canClose && (
@@ -181,7 +179,7 @@ export function MonthlyCloseWorkspacePage() {
                 leftIcon={<RotateCcw className="h-4 w-4" />}
                 onClick={() => setReopenOpen(true)}
               >
-                Reopen month
+                Reopen
               </Button>
             )}
           </>
@@ -196,31 +194,22 @@ export function MonthlyCloseWorkspacePage() {
       >
         {!workspace || !period ? null : (
           <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-xs">
-              <div>
-                <p className="text-xs text-muted-foreground">Accounting period</p>
-                <p className="text-lg font-semibold tracking-tight">{monthLabel}</p>
-              </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-semibold text-foreground">{monthLabel}</span>
               <PeriodStatusBadge status={period.status} />
               {blockingCount > 0 ? (
-                <span className="rounded-md border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-800">
-                  {blockingCount} blocking issue{blockingCount === 1 ? "" : "s"}
-                </span>
+                <StatusBadge variant="danger" size="sm" dot>
+                  {blockingCount} blocker{blockingCount === 1 ? "" : "s"}
+                </StatusBadge>
               ) : isOpenLike && workspace?.canClose ? (
-                <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800">
+                <StatusBadge variant="success" size="sm" dot>
                   Ready to close
-                </span>
+                </StatusBadge>
               ) : null}
-              <div className="ml-auto flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+              <div className="ml-auto flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                 <span>
                   Days closed {workspace.closedDayCount} · Remaining {workspace.openDayCount}
                 </span>
-                <span>Opened by {period.startedByName}</span>
-                {period.closedByName && period.closedAt && (
-                  <span>
-                    Closed by {period.closedByName} · {formatDateTime(period.closedAt)}
-                  </span>
-                )}
                 <Link
                   to={ROUTES.endOfDayManagement.day}
                   className="font-medium text-foreground underline-offset-2 hover:underline"
@@ -230,7 +219,25 @@ export function MonthlyCloseWorkspacePage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+            {(blockingCount > 0 || (workspace.openDayCount ?? 0) > 0) && isOpenLike && (
+              <div className="flex flex-wrap gap-2">
+                {blockingCount > 0 && (
+                  <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                    <ShieldAlert className="h-4 w-4 shrink-0" />
+                    {blockingCount} issue{blockingCount === 1 ? "" : "s"} must be cleared before close
+                  </div>
+                )}
+                {(workspace.openDayCount ?? 0) > 0 && (
+                  <div className="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-sm text-warning">
+                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                    {workspace.openDayCount} business day
+                    {workspace.openDayCount === 1 ? "" : "s"} still open
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
               <SummaryCard
                 title="Sales"
                 value={summary ? formatCurrency(summary.salesTotal) : "—"}
@@ -268,162 +275,123 @@ export function MonthlyCloseWorkspacePage() {
               />
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-2">
-              <section className="rounded-lg border border-border bg-card p-4 shadow-xs">
-                <h3 className="text-sm font-semibold">Monthly financial summary</h3>
-                {summary ? (
-                  <dl className="mt-3 space-y-2 text-sm">
-                    <Row label="Sales" value={formatCurrency(summary.salesTotal)} />
-                    <Row label="Purchases" value={formatCurrency(summary.purchaseTotal)} />
-                    <Row label="Payments" value={formatCurrency(summary.paymentTotal)} />
-                    <Row label="Credit notes" value={formatCurrency(summary.creditNotes)} />
-                    <Row label="Expenses" value={formatCurrency(summary.expenseTotal)} />
-                    <Row
-                      label="Gross profit"
-                      value={formatCurrency(summary.grossProfit)}
-                      strong
-                    />
-                    <Row
-                      label="Net margin"
-                      value={formatCurrency(summary.netMargin)}
-                      strong
-                    />
-                  </dl>
-                ) : (
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Summaries are generated at Month-End Closing from transaction references.
-                  </p>
-                )}
-              </section>
-              <section className="rounded-lg border border-border bg-card p-4 shadow-xs">
-                <h3 className="text-sm font-semibold">Closing rules</h3>
-                <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm text-muted-foreground">
-                  <li>All required business days must normally be closed first.</li>
-                  <li>In-progress production is a warning, never a block.</li>
-                  <li>Corrections after close should use adjustments in the open period.</li>
-                  <li>Closed months reject new transactions with that business date.</li>
-                </ul>
-              </section>
-            </div>
+            <Tabs value={tab} onChange={setTab}>
+              <TabList>
+                <Tab value="validation">
+                  Validation{blockingCount > 0 ? ` (${blockingCount})` : ""}
+                </Tab>
+                <Tab value="days">Day closures</Tab>
+                <Tab value="production">WIP / Production</Tab>
+              </TabList>
 
-            <div className={workspacePanelShell}>
-              <Tabs value={tab} onChange={setTab} className="flex min-h-0 flex-1 flex-col">
-                <div className="border-b border-border px-2">
-                  <TabList className="border-b-0">
-                    <Tab value="validation">
-                      Validation{blockingCount > 0 ? ` (${blockingCount})` : ""}
-                    </Tab>
-                    <Tab value="days">Day closures</Tab>
-                    <Tab value="production">WIP / Production</Tab>
-                  </TabList>
+              <TabPanel value="validation" className="pt-4">
+                <ValidationIssueList
+                  issues={validations}
+                  emptyMessage="No monthly validation issues. Month is ready to close."
+                />
+              </TabPanel>
+
+              <TabPanel value="days" className="pt-4">
+                <div className="overflow-x-auto rounded-lg border border-border bg-card shadow-xs">
+                  <table className="min-w-full text-left text-sm">
+                    <thead className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2.5 font-medium">Business date</th>
+                        <th className="px-3 py-2.5 font-medium">Status</th>
+                        <th className="px-3 py-2.5 font-medium">Closed by</th>
+                        <th className="px-3 py-2.5 font-medium">Closed at</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {dayPeriods
+                        .slice()
+                        .sort((a, b) => a.businessDate.localeCompare(b.businessDate))
+                        .map((day) => (
+                          <tr key={day.id}>
+                            <td className="px-3 py-2.5">
+                              <Link
+                                to={ROUTES.endOfDayManagement.dayDetail(day.id)}
+                                className="font-medium tabular-nums underline-offset-2 hover:underline"
+                              >
+                                {day.businessDate}
+                              </Link>
+                            </td>
+                            <td className="px-3 py-2.5">
+                              <PeriodStatusBadge status={day.status} />
+                            </td>
+                            <td className="px-3 py-2.5">{day.closedByName ?? "—"}</td>
+                            <td className="px-3 py-2.5 text-muted-foreground">
+                              {day.closedAt ? formatDateTime(day.closedAt) : "—"}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
                 </div>
+              </TabPanel>
 
-                <TabPanel value="validation" className={workspacePanelBody}>
-                  <ValidationIssueList
-                    issues={validations}
-                    emptyMessage="No monthly validation issues. Month is ready to close."
-                  />
-                </TabPanel>
-
-                <TabPanel value="days" className={workspacePanelBody}>
-                  <div className="overflow-x-auto rounded-lg border border-border">
-                    <table className="min-w-full text-left text-sm">
-                      <thead className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
-                        <tr>
-                          <th className="px-3 py-2 font-medium">Business date</th>
-                          <th className="px-3 py-2 font-medium">Status</th>
-                          <th className="px-3 py-2 font-medium">Closed by</th>
-                          <th className="px-3 py-2 font-medium">Closed at</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border">
-                        {dayPeriods
-                          .slice()
-                          .sort((a, b) => a.businessDate.localeCompare(b.businessDate))
-                          .map((day) => (
-                            <tr key={day.id}>
-                              <td className="px-3 py-2">
+              <TabPanel value="production" className="pt-4">
+                {productionSnapshots.length === 0 ? (
+                  <p className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
+                    No open manufacturing WIP to snapshot.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {isOpenLike && (
+                      <p className="text-sm text-muted-foreground">
+                        Live WIP from Manufacturing. Month-End Closing stores this without forcing
+                        jobs to complete.
+                      </p>
+                    )}
+                    <div className="overflow-x-auto rounded-lg border border-border bg-card shadow-xs">
+                      <table className="min-w-full text-left text-sm">
+                        <thead className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
+                          <tr>
+                            <th className="px-3 py-2.5 font-medium">Job</th>
+                            <th className="px-3 py-2.5 font-medium">Operation</th>
+                            <th className="px-3 py-2.5 font-medium">Progress</th>
+                            <th className="px-3 py-2.5 font-medium">WIP qty</th>
+                            <th className="px-3 py-2.5 font-medium">Material</th>
+                            <th className="px-3 py-2.5 font-medium">Labour hrs</th>
+                            <th className="px-3 py-2.5 font-medium">WIP cost</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {productionSnapshots.map((snap) => (
+                            <tr key={snap.id}>
+                              <td className="px-3 py-2.5">
                                 <Link
-                                  to={ROUTES.endOfDayManagement.dayDetail(day.id)}
+                                  to={ROUTES.manufacturing.jobDetail(snap.productionOrderId)}
                                   className="font-medium tabular-nums underline-offset-2 hover:underline"
                                 >
-                                  {day.businessDate}
+                                  {snap.productionOrderNumber}
                                 </Link>
                               </td>
-                              <td className="px-3 py-2">
-                                <PeriodStatusBadge status={day.status} />
+                              <td className="px-3 py-2.5">{snap.operationName}</td>
+                              <td className="px-3 py-2.5 tabular-nums">
+                                {formatPercent(snap.progressPercentage)}
                               </td>
-                              <td className="px-3 py-2">{day.closedByName ?? "—"}</td>
-                              <td className="px-3 py-2 text-muted-foreground">
-                                {day.closedAt ? formatDateTime(day.closedAt) : "—"}
+                              <td className="px-3 py-2.5 tabular-nums">
+                                {snap.workInProgressQty}
+                              </td>
+                              <td className="px-3 py-2.5 tabular-nums">
+                                {formatNumber(snap.materialConsumed)}
+                              </td>
+                              <td className="px-3 py-2.5 tabular-nums">
+                                {formatNumber(snap.laborHours)}
+                              </td>
+                              <td className="px-3 py-2.5 font-medium tabular-nums">
+                                {formatCurrency(snap.wipCost)}
                               </td>
                             </tr>
                           ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </TabPanel>
-
-                <TabPanel value="production" className={workspacePanelBody}>
-                  {productionSnapshots.length === 0 ? (
-                    <EmptySnap message="No open manufacturing WIP to snapshot. Active Production jobs appear here at month end." />
-                  ) : (
-                    <div className="space-y-3">
-                      {isOpenLike && (
-                        <p className="text-sm text-muted-foreground">
-                          Live WIP from Manufacturing. Month-End Closing stores this without forcing
-                          jobs to complete. WIP cost uses cost-to-date (materials + labour).
-                        </p>
-                      )}
-                      <div className="overflow-x-auto rounded-lg border border-border">
-                        <table className="min-w-full text-left text-sm">
-                          <thead className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
-                            <tr>
-                              <th className="px-3 py-2 font-medium">Job</th>
-                              <th className="px-3 py-2 font-medium">Operation</th>
-                              <th className="px-3 py-2 font-medium">Progress</th>
-                              <th className="px-3 py-2 font-medium">WIP qty</th>
-                              <th className="px-3 py-2 font-medium">Material</th>
-                              <th className="px-3 py-2 font-medium">Labour hrs</th>
-                              <th className="px-3 py-2 font-medium">WIP cost</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-border">
-                            {productionSnapshots.map((snap) => (
-                              <tr key={snap.id}>
-                                <td className="px-3 py-2">
-                                  <Link
-                                    to={ROUTES.manufacturing.jobDetail(snap.productionOrderId)}
-                                    className="font-medium tabular-nums underline-offset-2 hover:underline"
-                                  >
-                                    {snap.productionOrderNumber}
-                                  </Link>
-                                </td>
-                                <td className="px-3 py-2">{snap.operationName}</td>
-                                <td className="px-3 py-2 tabular-nums">
-                                  {formatPercent(snap.progressPercentage)}
-                                </td>
-                                <td className="px-3 py-2 tabular-nums">{snap.workInProgressQty}</td>
-                                <td className="px-3 py-2 tabular-nums">
-                                  {formatNumber(snap.materialConsumed)}
-                                </td>
-                                <td className="px-3 py-2 tabular-nums">
-                                  {formatNumber(snap.laborHours)}
-                                </td>
-                                <td className="px-3 py-2 font-medium tabular-nums">
-                                  {formatCurrency(snap.wipCost)}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                        </tbody>
+                      </table>
                     </div>
-                  )}
-                </TabPanel>
-
-              </Tabs>
-            </div>
+                  </div>
+                )}
+              </TabPanel>
+            </Tabs>
           </div>
         )}
       </PageContent>
@@ -433,17 +401,17 @@ export function MonthlyCloseWorkspacePage() {
         onClose={() => setConfirmCloseOpen(false)}
         onConfirm={() => void handleClose()}
         title={`Close ${monthLabel}?`}
-        description="Locks the month for normal posting, stores month-end snapshots, and opens the next month. Production progress continues; corrections should use adjustments."
+        description="Locks the month for normal posting, stores month-end snapshots, and opens the next month. Production progress continues."
         confirmLabel="Close month"
         loading={closeMonth.isPending}
       >
         {blockingCount > 0 ? (
-          <p className="mt-3 flex items-center gap-2 text-sm text-red-700">
+          <p className="mt-3 flex items-center gap-2 text-sm text-destructive">
             <ShieldAlert className="h-4 w-4" />
             {blockingCount} blocking issue(s) must be fixed first.
           </p>
         ) : (
-          <p className="mt-3 flex items-center gap-2 text-sm text-emerald-700">
+          <p className="mt-3 flex items-center gap-2 text-sm text-success">
             <CheckCircle2 className="h-4 w-4" />
             No blocking validation issues.
           </p>
@@ -456,37 +424,12 @@ export function MonthlyCloseWorkspacePage() {
         onConfirm={(reason) => void handleReopen(reason)}
         loading={reopenMonth.isPending}
         title={`Reopen ${monthLabel}?`}
-        description="Exceptional authorized reopen. Prefer posting adjustments in the current open period. Day reopen may still be required for dated corrections."
+        description="Exceptional authorized reopen. Prefer posting adjustments in the current open period."
         originalClosedBy={period?.originalClosedByName}
         originalClosedAt={
           period?.originalClosedAt ? formatDateTime(period.originalClosedAt) : undefined
         }
       />
     </PageContainer>
-  );
-}
-
-function Row({
-  label,
-  value,
-  strong,
-}: {
-  label: string;
-  value: string;
-  strong?: boolean;
-}) {
-  return (
-    <div className="flex items-baseline justify-between gap-3">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className={strong ? "font-semibold tabular-nums" : "tabular-nums"}>{value}</dd>
-    </div>
-  );
-}
-
-function EmptySnap({ message }: { message: string }) {
-  return (
-    <p className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-      {message}
-    </p>
   );
 }

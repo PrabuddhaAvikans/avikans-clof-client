@@ -21,6 +21,7 @@ function toAuthUser(
     firstName: user.firstName,
     lastName: user.lastName,
     displayName: user.displayName,
+    avatarFileKey: user.avatarFileKey,
     role: user.roleName,
     permissions: resolveEffectivePermissions(user, roles, roleGroups),
   };

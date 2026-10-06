@@ -12,7 +12,7 @@ export function mapUser(raw: Record<string, unknown>): User {
     lastName: String(raw.lastName),
     displayName: String(raw.displayName ?? `${raw.firstName} ${raw.lastName}`),
     phone: raw.phone as string | undefined,
-    avatarUrl: raw.avatarUrl as string | undefined,
+    avatarFileKey: (raw.avatarFileKey as string | undefined) ?? undefined,
     roleId: String(raw.roleId),
     roleName: String(raw.roleName ?? ""),
     roleGroupIds: ((raw.roleGroupIds as string[]) ?? []).map(String),

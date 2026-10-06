@@ -19,10 +19,11 @@ import { Button } from "@/components/ui/Button";
 import { SummaryCard } from "@/components/ui/SummaryCard";
 import { Tabs, TabList, Tab, TabPanel } from "@/components/ui/Tabs";
 import { EntityStatusBadge } from "@/features/shared/components/EntityStatusBadge";
+import { useAuditLogs } from "@/features/admin/hooks/useAuditLogs";
 import { useCustomer } from "@/features/customers/hooks/useCustomers";
 import { useQuotations } from "@/features/sales/hooks/useQuotations";
 import { useSalesOrders } from "@/features/sales/hooks/useSalesOrders";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { ActivityLog } from "@/components/ui/ActivityLog";
 import { NotesPanel } from "@/components/ui/NotesPanel";
 import { AttachmentPanel } from "@/components/ui/AttachmentPanel";
@@ -42,6 +43,17 @@ export function CustomerDetailPage() {
   const { data: customer, isLoading, error } = useCustomer(id);
   const { data: quotations } = useQuotations({ page: 1, pageSize: 50, customerId: id });
   const { data: orders } = useSalesOrders({ page: 1, pageSize: 50, customerId: id });
+  const { data: activityLogs, isLoading: activityLoading } = useAuditLogs(
+    {
+      page: 1,
+      pageSize: 50,
+      entity: "Customer",
+      entityId: id,
+      sortBy: "timestamp",
+      sortDirection: "desc",
+    },
+    { enabled: Boolean(id) },
+  );
 
   const primaryContact =
     customer?.contactPersons.find((c) => c.isPrimary) ?? customer?.contactPersons[0];
@@ -103,22 +115,13 @@ export function CustomerDetailPage() {
     [],
   );
 
-  const activityEntries = customer
-    ? [
-        {
-          id: "1",
-          user: "System",
-          action: "Customer profile updated",
-          timestamp: customer.updatedAt,
-        },
-        {
-          id: "2",
-          user: "System",
-          action: "Customer account created",
-          timestamp: customer.createdAt,
-        },
-      ]
-    : [];
+  const activityEntries =
+    activityLogs?.items.map((entry) => ({
+      id: entry.id,
+      user: entry.userName,
+      action: entry.details || `${entry.action} ${entry.entity}`,
+      timestamp: formatDateTime(entry.timestamp),
+    })) ?? [];
 
   return (
     <PageContainer maxWidth="wide">
@@ -331,7 +334,16 @@ export function CustomerDetailPage() {
               </TabPanel>
 
               <TabPanel value="activity">
-                <ActivityLog entries={activityEntries} />
+                {activityLoading ? (
+                  <p className="py-6 text-center text-sm text-muted-foreground">
+                    Loading activity…
+                  </p>
+                ) : (
+                  <ActivityLog
+                    entries={activityEntries}
+                    emptyMessage="No activity recorded for this customer yet."
+                  />
+                )}
               </TabPanel>
             </Tabs>
           </>

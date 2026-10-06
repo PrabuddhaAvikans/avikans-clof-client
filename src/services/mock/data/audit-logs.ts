@@ -7,6 +7,37 @@ const WAREHOUSE_IP = "192.168.1.40";
 
 export const initialAuditLogs: AuditLogEntry[] = [
   {
+    id: "aud-cust-001",
+    timestamp: "2026-09-12T08:15:00Z",
+    userId: "usr-002",
+    userName: "Chamari Perera",
+    action: "updated",
+    entity: "Customer",
+    entityId: "cus-001",
+    entityLabel: "Colombo Grand Hotel",
+    details: "Updated contact person for Colombo Grand Hotel",
+    severity: "info",
+    ipAddress: OFFICE_IP,
+    userAgent: CHROME_WIN,
+    changes: [
+      { field: "contactPhone", from: "+94 77 111 1111", to: "+94 77 123 4567" },
+    ],
+  },
+  {
+    id: "aud-cust-002",
+    timestamp: "2024-02-01T08:00:00Z",
+    userId: "usr-001",
+    userName: "Prabuddha Jayawardhana",
+    action: "created",
+    entity: "Customer",
+    entityId: "cus-001",
+    entityLabel: "Colombo Grand Hotel",
+    details: "Registered customer Colombo Grand Hotel",
+    severity: "info",
+    ipAddress: OFFICE_IP,
+    userAgent: CHROME_WIN,
+  },
+  {
     id: "aud-020",
     timestamp: "2026-09-11T05:42:00Z",
     userId: "usr-001",

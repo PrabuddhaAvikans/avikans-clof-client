@@ -45,6 +45,7 @@ export function useRefreshSessionPermissions() {
       firstName: profile.firstName,
       lastName: profile.lastName,
       displayName: profile.displayName,
+      avatarFileKey: profile.avatarFileKey,
       role: profile.roleName,
       permissions: assignment.effectivePermissions,
     });

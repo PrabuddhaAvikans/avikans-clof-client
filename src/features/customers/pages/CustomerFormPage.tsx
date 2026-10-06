@@ -349,8 +349,30 @@ export function CustomerFormPage() {
           onSubmit={handleSubmit}
           enableReinitialize
         >
-          {(formik) => (
-            <>
+          {(formik) => {
+            const previewProps = {
+              customerId: id,
+              createQuotationPending: busy && pendingAction === "estimate",
+              onCreateQuotation: () => {
+                if (isEdit && id) {
+                  navigate(`${ROUTES.quotations.new}?customerId=${id}`);
+                  return;
+                }
+                setPendingAction("estimate");
+                void formik.submitForm();
+              },
+              onManageAddresses: () => {
+                setTab("overview");
+                window.setTimeout(() => {
+                  document
+                    .getElementById("customer-addresses")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }, 50);
+              },
+            };
+
+            return (
+              <>
               <ContactSyncEffect />
 
               <PageHeader
@@ -433,7 +455,7 @@ export function CustomerFormPage() {
                       <TaxCreditSection />
                     </div>
                     <div className="xl:col-span-3 xl:sticky xl:top-[72px] xl:self-start">
-                      <CustomerFormPreview />
+                      <CustomerFormPreview {...previewProps} />
                     </div>
                   </div>
                 </TabPanel>
@@ -443,7 +465,7 @@ export function CustomerFormPage() {
                     <div className="lg:col-span-2">
                       <ContactPersonSection />
                     </div>
-                    <CustomerFormPreview />
+                    <CustomerFormPreview {...previewProps} />
                   </div>
                 </TabPanel>
 
@@ -452,7 +474,7 @@ export function CustomerFormPage() {
                     <div className="lg:col-span-2">
                       <CustomerAddressManager />
                     </div>
-                    <CustomerFormPreview />
+                    <CustomerFormPreview {...previewProps} />
                   </div>
                 </TabPanel>
 
@@ -461,7 +483,7 @@ export function CustomerFormPage() {
                     <div className="lg:col-span-2">
                       <TaxCreditSection />
                     </div>
-                    <CustomerFormPreview />
+                    <CustomerFormPreview {...previewProps} />
                   </div>
                 </TabPanel>
 
@@ -470,12 +492,13 @@ export function CustomerFormPage() {
                     <div className="lg:col-span-2">
                       <NotesSection />
                     </div>
-                    <CustomerFormPreview />
+                    <CustomerFormPreview {...previewProps} />
                   </div>
                 </TabPanel>
               </Tabs>
-            </>
-          )}
+              </>
+            );
+          }}
         </FormikForm>
       </PageContent>
     </PageContainer>

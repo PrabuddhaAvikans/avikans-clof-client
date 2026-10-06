@@ -41,7 +41,15 @@ const updateEpic = createApiEpic({
   failure: actions.updateFailure,
   concurrency: "merge",
   execute: async ({ id, data }) =>
-    mapUnit(asRecord(await http.put(`/api/units-of-measure/${id}`, data))),
+    mapUnit(
+      asRecord(
+        await http.put(`/api/units-of-measure/${id}`, {
+          code: data.code,
+          name: data.name,
+          status: data.status,
+        }),
+      ),
+    ),
 });
 
 const deleteEpic = createApiEpic({

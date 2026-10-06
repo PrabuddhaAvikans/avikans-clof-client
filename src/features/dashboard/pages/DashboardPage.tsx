@@ -1,3 +1,4 @@
+import { useDispatch } from "react-redux";
 import { RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/feedback/PageHeader";
 import { PageContent } from "@/components/feedback/PageStates";
@@ -21,12 +22,14 @@ import {
   useDashboardSummary,
   useOrderFlowOverview,
 } from "@/features/dashboard/hooks/useDashboard";
+import { endOfDayManagementActions } from "@/features/end-of-day-management/store/endOfDayManagementSlice";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useBreakpoints } from "@/hooks/useMediaQuery";
 import { formatNumber } from "@/lib/format";
 import { CostingRequestStatus, ManufacturingJobStatus } from "@/types/status";
 
 export function DashboardPage() {
+  const dispatch = useDispatch();
   const { data, isLoading, isError, refetch } = useDashboardSummary();
   const { refetch: refetchOrderFlow } = useOrderFlowOverview();
   const { hasPermission } = usePermissions();
@@ -37,10 +40,14 @@ export function DashboardPage() {
   const canViewSales = hasPermission("quotations:view") || hasPermission("sales_orders:view");
   const canViewProduction = hasPermission("manufacturing:view");
   const canViewDelivery = hasPermission("delivery:view");
+  const canViewDayClose = hasPermission("period_close:view");
 
   const refreshAll = () => {
     void refetch();
     void refetchOrderFlow();
+    if (canViewDayClose) {
+      dispatch(endOfDayManagementActions.invalidateAll());
+    }
   };
 
   return (

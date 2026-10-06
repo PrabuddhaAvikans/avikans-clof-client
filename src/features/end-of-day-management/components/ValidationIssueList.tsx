@@ -28,7 +28,7 @@ export function ValidationIssueList({
     return (
       <div
         className={cn(
-          "flex items-start gap-3 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800",
+          "flex items-start gap-3 rounded-lg border border-success/30 bg-success/5 px-4 py-3 text-sm text-success",
           className,
         )}
       >
@@ -42,23 +42,25 @@ export function ValidationIssueList({
     <div className={cn("space-y-4", className)}>
       {blocking.length > 0 && (
         <section className="space-y-2">
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-red-700">
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-destructive">
             Blocking ({blocking.length})
           </h4>
           <ul className="space-y-2">
             {blocking.map((issue) => (
               <li
                 key={issue.id}
-                className="flex items-start gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-900"
+                className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-sm text-foreground"
               >
-                <Ban className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                <Ban className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden />
                 <div className="min-w-0">
                   <p>{issue.message}</p>
-                  <p className="mt-1 text-xs text-red-700/80">
-                    {[issue.validationType, issue.validationCode, issue.entityId]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
+                  {(issue.validationType || issue.validationCode || issue.entityId) && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {[issue.validationType, issue.validationCode, issue.entityId]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  )}
                 </div>
               </li>
             ))}
@@ -68,23 +70,25 @@ export function ValidationIssueList({
 
       {warnings.length > 0 && (
         <section className="space-y-2">
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-warning">
             Warnings ({warnings.length})
           </h4>
           <ul className="space-y-2">
             {warnings.map((issue) => (
               <li
                 key={issue.id}
-                className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950"
+                className="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2.5 text-sm text-foreground"
               >
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden />
                 <div className="min-w-0">
                   <p>{issue.message}</p>
-                  <p className="mt-1 text-xs text-amber-800/80">
-                    {[issue.validationType, issue.validationCode]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
+                  {(issue.validationType || issue.validationCode) && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {[issue.validationType, issue.validationCode]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  )}
                 </div>
               </li>
             ))}

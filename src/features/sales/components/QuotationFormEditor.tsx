@@ -261,7 +261,7 @@ export function QuotationFormEditor({
         open={productModalOpen}
         onClose={() => setProductModalOpen(false)}
         customerId={formik.values.customerId}
-        customerName={formik.values.customerName}
+        customerName={formik.values.customerName ?? undefined}
         onSelect={(product: Product) => {
           setSelectedProduct(product);
           setEditingLineIndex(null);

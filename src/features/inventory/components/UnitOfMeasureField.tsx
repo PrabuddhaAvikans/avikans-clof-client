@@ -3,7 +3,7 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { FormField } from "@/components/ui/FormField";
 import { SearchableSelect } from "@/components/ui/SearchableSelect";
-import { AddUnitOfMeasureModal } from "@/features/inventory/components/AddUnitOfMeasureModal";
+import { UnitOfMeasureFormModal } from "@/features/inventory/components/UnitOfMeasureFormModal";
 import { useFormikFieldState } from "@/components/forms/useFormikFieldState";
 import { useUnitsOfMeasure } from "@/hooks/useUnitsOfMeasure";
 import { formatUnitLabel, toUnitFieldOptions } from "@/lib/unitsOfMeasure";
@@ -80,11 +80,11 @@ export function UnitOfMeasureField({
         </div>
       </FormField>
 
-      <AddUnitOfMeasureModal
+      <UnitOfMeasureFormModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         defaultCode={defaultCode}
-        onCreated={selectUnit}
+        onSaved={selectUnit}
       />
     </>
   );

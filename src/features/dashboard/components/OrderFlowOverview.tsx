@@ -1,11 +1,13 @@
 import { ArrowDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ROUTES } from "@/app/config/routes";
+import { DashboardDayCloseAlert } from "@/features/dashboard/components/DashboardDayCloseAlert";
 import {
   OrderFlowStageCard,
   OrderFlowStageCardSkeleton,
 } from "@/features/dashboard/components/OrderFlowStageCard";
 import { useOrderFlowOverview } from "@/features/dashboard/hooks/useDashboard";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useBreakpoints } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
 import type { OrderFlowOverview, OrderFlowStage, OrderFlowStageKey } from "@/types/dashboard";
@@ -105,7 +107,13 @@ function StageRow({
   );
 }
 
-function DesktopFlow({ data }: { data: OrderFlowOverview }) {
+function DesktopFlow({
+  data,
+  showDayClose,
+}: {
+  data: OrderFlowOverview;
+  showDayClose: boolean;
+}) {
   const top = [data.quotation, data.salesOrder, data.estimation, data.costing];
   const bottom = [data.production, data.delivery, data.completed];
 
@@ -117,13 +125,28 @@ function DesktopFlow({ data }: { data: OrderFlowOverview }) {
         <div className="min-w-0 flex-[3]">
           <StageRow stages={bottom} />
         </div>
-        <div className="min-w-0 flex-1" aria-hidden />
+        {showDayClose ? (
+          <>
+            <HorizontalConnector className="self-center" />
+            <div className="min-w-0 flex-1">
+              <DashboardDayCloseAlert />
+            </div>
+          </>
+        ) : (
+          <div className="min-w-0 flex-1" aria-hidden />
+        )}
       </div>
     </div>
   );
 }
 
-function TabletFlow({ data }: { data: OrderFlowOverview }) {
+function TabletFlow({
+  data,
+  showDayClose,
+}: {
+  data: OrderFlowOverview;
+  showDayClose: boolean;
+}) {
   const stages = stageList(data);
   const rows = [
     stages.slice(0, 3),
@@ -139,17 +162,29 @@ function TabletFlow({ data }: { data: OrderFlowOverview }) {
           {rowIndex < rows.length - 1 ? <VerticalConnector /> : null}
         </div>
       ))}
+      {showDayClose ? (
+        <>
+          <VerticalConnector />
+          <DashboardDayCloseAlert />
+        </>
+      ) : null}
     </div>
   );
 }
 
-function MobileFlow({ data }: { data: OrderFlowOverview }) {
+function MobileFlow({
+  data,
+  showDayClose,
+}: {
+  data: OrderFlowOverview;
+  showDayClose: boolean;
+}) {
   const stages = stageList(data);
 
   return (
     <ol className="relative m-0 list-none space-y-0 p-0 pl-1">
       {stages.map((stage, index) => {
-        const isLast = index === stages.length - 1;
+        const isLast = index === stages.length - 1 && !showDayClose;
         return (
           <li key={stage.stageKey} className="relative flex gap-3">
             <div className="flex w-4 shrink-0 flex-col items-center" aria-hidden>
@@ -173,6 +208,16 @@ function MobileFlow({ data }: { data: OrderFlowOverview }) {
           </li>
         );
       })}
+      {showDayClose ? (
+        <li className="relative flex gap-3">
+          <div className="flex w-4 shrink-0 flex-col items-center" aria-hidden>
+            <span className="mt-4 h-2.5 w-2.5 shrink-0 rounded-full border-2 border-foreground/70 bg-card" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <DashboardDayCloseAlert />
+          </div>
+        </li>
+      ) : null}
     </ol>
   );
 }
@@ -217,6 +262,8 @@ function OrderFlowSkeleton({ mode }: { mode: "mobile" | "tablet" | "desktop" }) 
 export function OrderFlowOverview() {
   const { data, isLoading, isError, refetch } = useOrderFlowOverview();
   const { isMobile, isTablet, isDesktop } = useBreakpoints();
+  const { hasPermission } = usePermissions();
+  const showDayClose = hasPermission("period_close:view");
 
   return (
     <section className="rounded-xl border border-border bg-card p-3 sm:p-4">
@@ -249,9 +296,15 @@ export function OrderFlowOverview() {
         </div>
       ) : null}
 
-      {data && isDesktop ? <DesktopFlow data={data} /> : null}
-      {data && isTablet ? <TabletFlow data={data} /> : null}
-      {data && isMobile ? <MobileFlow data={data} /> : null}
+      {data && isDesktop ? (
+        <DesktopFlow data={data} showDayClose={showDayClose} />
+      ) : null}
+      {data && isTablet ? (
+        <TabletFlow data={data} showDayClose={showDayClose} />
+      ) : null}
+      {data && isMobile ? (
+        <MobileFlow data={data} showDayClose={showDayClose} />
+      ) : null}
     </section>
   );
 }

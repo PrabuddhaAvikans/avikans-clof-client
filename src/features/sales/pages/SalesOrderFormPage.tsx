@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useFormikContext, type FormikProps } from "formik";
+import { useFormikContext, type FormikProps, type FormikTouched } from "formik";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Calculator, Save } from "lucide-react";
 import { toast } from "@/components/feedback/toast";
@@ -184,15 +184,15 @@ function toSalesOrderPayload(
         productId: line.productId,
         productSku: line.productSku,
         productName: line.productName,
-        description: line.description,
-        productVersionId: line.productVersionId,
-        productVersionLabel: line.productVersionLabel,
+        description: line.description ?? undefined,
+        productVersionId: line.productVersionId ?? undefined,
+        productVersionLabel: line.productVersionLabel ?? undefined,
         quantity: line.quantity,
         unitPrice: line.unitPrice,
         discountPercent: line.discountPercent,
         taxPercent: line.taxPercent,
         isCustomized: Boolean(line.isCustomized && line.customization),
-        requiresManufacturing: line.requiresManufacturing,
+        requiresManufacturing: line.requiresManufacturing ?? undefined,
       };
       if (line.customization != null) {
         item.customization = line.customization as QuotationProductCustomization;
@@ -201,7 +201,7 @@ function toSalesOrderPayload(
     }),
     priority: values.priority,
     requestedDeliveryDate: values.requestedDeliveryDate || undefined,
-    notes: values.notes,
+    notes: values.notes ?? undefined,
     discountAmount: values.discountAmount ?? 0,
   };
 }
@@ -357,7 +357,7 @@ export function SalesOrderFormPage() {
             postalCode: true,
             country: true,
           },
-        },
+        } as unknown as FormikTouched<SalesOrderFormValues>,
         true,
       );
       toast.error(message);
@@ -561,7 +561,7 @@ export function SalesOrderFormPage() {
                 open={productModalOpen}
                 onClose={() => setProductModalOpen(false)}
                 customerId={formik.values.customerId}
-                customerName={formik.values.customerName}
+                customerName={formik.values.customerName ?? undefined}
                 showManufacturing
                 onSelect={(product: Product) => {
                   setSelectedProduct(product);

@@ -21,6 +21,7 @@ export interface AuthUser {
   firstName: string;
   lastName: string;
   displayName: string;
+  avatarFileKey?: string;
   role: string;
   permissions: Permission[];
 }

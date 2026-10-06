@@ -216,7 +216,7 @@ export function CostingDetailPanel({
                   <button
                     type="button"
                     className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-md text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    onClick={() => openAttachment(attachment)}
+                    onClick={() => void openAttachment(attachment)}
                     title={`Open ${attachment.name}`}
                   >
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-card text-muted-foreground">
@@ -237,7 +237,7 @@ export function CostingDetailPanel({
                       size="sm"
                       icon={<Download className="h-4 w-4" />}
                       aria-label={`Download ${attachment.name}`}
-                      onClick={() => downloadAttachment(attachment)}
+                      onClick={() => void downloadAttachment(attachment)}
                     />
                   </div>
                 </div>

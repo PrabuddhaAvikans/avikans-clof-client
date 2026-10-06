@@ -298,16 +298,16 @@ export function BulkCompleteTasksDialog({
       notes: notes.trim() || undefined,
       tasks: selected.map((task) => {
         const workers = drafts[task.id]?.workers ?? [];
-        const contributors: TaskContributorInput[] = workers
-          .map((worker) => {
-            const user = users.find((item) => item.id === worker.userId);
-            if (!user) return null;
-            const qty = Math.floor(parseNumber(worker.qty) ?? 0);
-            if (qty <= 0) return null;
-            const hours = parseNumber(worker.hours) ?? 0;
-            const ot = parseNumber(worker.ot) ?? 0;
-            const dot = parseNumber(worker.dot) ?? 0;
-            return {
+        const contributors: TaskContributorInput[] = workers.flatMap((worker) => {
+          const user = users.find((item) => item.id === worker.userId);
+          if (!user) return [];
+          const qty = Math.floor(parseNumber(worker.qty) ?? 0);
+          if (qty <= 0) return [];
+          const hours = parseNumber(worker.hours) ?? 0;
+          const ot = parseNumber(worker.ot) ?? 0;
+          const dot = parseNumber(worker.dot) ?? 0;
+          return [
+            {
               userId: user.id,
               userName: user.name,
               contributionPercent: CONTRIBUTION_TOTAL,
@@ -317,9 +317,9 @@ export function BulkCompleteTasksDialog({
               normalOvertimeHours: ot || undefined,
               doubleOvertimeHours: dot || undefined,
               overtimeHours: ot + dot > 0 ? ot + dot : undefined,
-            } satisfies TaskContributorInput;
-          })
-          .filter((person): person is TaskContributorInput => Boolean(person));
+            } satisfies TaskContributorInput,
+          ];
+        });
 
         const completedQuantity = contributors.reduce(
           (sum, person) => sum + (person.quantity ?? 0),

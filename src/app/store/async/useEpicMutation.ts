@@ -9,11 +9,14 @@ import type { MutationEntry } from "@/app/store/async/types";
 type UseEpicMutationOptions<TArg, TData> = {
   request: ActionCreatorWithPayload<RequestPayload<TArg>>;
   selectMutation: (state: RootState) => MutationEntry;
+  /** Optional cache/group key so switch/merge concurrency is scoped (e.g. by entity id). */
+  key?: (arg: TArg) => string;
 };
 
 export function useEpicMutation<TArg, TData = unknown>({
   request,
   selectMutation,
+  key,
 }: UseEpicMutationOptions<TArg, TData>) {
   const dispatch = useDispatch<AppDispatch>();
   const mutation = useSelector(selectMutation);
@@ -22,10 +25,10 @@ export function useEpicMutation<TArg, TData = unknown>({
   const mutateAsync = useCallback(
     (arg: TArg) => {
       const { requestId, promise } = registerDeferred<TData>();
-      dispatch(request({ arg, requestId }) as UnknownAction);
+      dispatch(request({ arg, requestId, key: key?.(arg) }) as UnknownAction);
       return promise;
     },
-    [dispatch, request],
+    [dispatch, key, request],
   );
 
   const mutate = useCallback(

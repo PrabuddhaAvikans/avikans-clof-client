@@ -4,15 +4,18 @@ import { writeAuthToken } from "@/services/apiClient";
 import { asRecord } from "@/services/mappers/common";
 
 export function mapAuthUser(raw: unknown): AuthUser {
-  const user = asRecord(raw) as unknown as AuthUser;
+  const user = asRecord(raw);
   return {
     id: String(user.id),
-    email: user.email,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    displayName: user.displayName || `${user.firstName} ${user.lastName}`.trim(),
-    role: user.role,
-    permissions: user.permissions ?? [],
+    email: String(user.email ?? ""),
+    firstName: String(user.firstName ?? ""),
+    lastName: String(user.lastName ?? ""),
+    displayName:
+      String(user.displayName ?? "").trim() ||
+      `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim(),
+    avatarFileKey: (user.avatarFileKey as string | undefined) || undefined,
+    role: String(user.role ?? ""),
+    permissions: (user.permissions as AuthUser["permissions"]) ?? [],
   };
 }
 

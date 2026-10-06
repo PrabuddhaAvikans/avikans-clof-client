@@ -1,3 +1,8 @@
+import {
+  downloadSecureFile,
+  fetchSecureFileBlob,
+} from "@/lib/secureFile";
+
 export type AttachmentKind =
   | "pdf"
   | "spreadsheet"
@@ -15,6 +20,9 @@ export type AttachmentIconSource = {
 export type OpenableAttachment = {
   name?: string;
   fileName?: string;
+  /** Opaque server file key — preferred for persisted files. */
+  fileKey?: string;
+  /** Local-only blob/data URL for unsaved drafts. Never use storage URLs. */
   url?: string;
   type?: string;
   mimeType?: string;
@@ -209,13 +217,22 @@ type ResolvedAttachmentUrl = {
   revoke: boolean;
 };
 
-function resolveAttachmentUrl(attachment: OpenableAttachment): ResolvedAttachmentUrl {
-  if (attachment.url) {
+async function resolveAttachmentUrl(
+  attachment: OpenableAttachment,
+): Promise<ResolvedAttachmentUrl> {
+  if (attachment.fileKey?.trim()) {
+    const blob = await fetchSecureFileBlob(attachment.fileKey.trim());
+    return { url: URL.createObjectURL(blob), revoke: true };
+  }
+
+  if (attachment.url?.startsWith("blob:") || attachment.url?.startsWith("data:")) {
     return { url: attachment.url, revoke: false };
   }
+
   if (attachment.file) {
     return { url: URL.createObjectURL(attachment.file), revoke: true };
   }
+
   return { url: URL.createObjectURL(buildDemoBlob(attachment)), revoke: true };
 }
 
@@ -251,9 +268,15 @@ function openInNewTab(url: string): boolean {
   return true;
 }
 
-export function openAttachment(attachment: OpenableAttachment): void {
+export async function openAttachment(attachment: OpenableAttachment): Promise<void> {
   const name = attachmentDisplayName(attachment);
-  const { url, revoke } = resolveAttachmentUrl(attachment);
+
+  if (attachment.fileKey?.trim() && !isPreviewableAttachment(attachment)) {
+    await downloadSecureFile(attachment.fileKey.trim(), name);
+    return;
+  }
+
+  const { url, revoke } = await resolveAttachmentUrl(attachment);
 
   if (isPreviewableAttachment(attachment)) {
     const opened = openInNewTab(url);
@@ -267,9 +290,15 @@ export function openAttachment(attachment: OpenableAttachment): void {
   scheduleRevoke(url, revoke);
 }
 
-export function downloadAttachment(attachment: OpenableAttachment): void {
+export async function downloadAttachment(attachment: OpenableAttachment): Promise<void> {
   const name = attachmentDisplayName(attachment);
-  const { url, revoke } = resolveAttachmentUrl(attachment);
+
+  if (attachment.fileKey?.trim()) {
+    await downloadSecureFile(attachment.fileKey.trim(), name);
+    return;
+  }
+
+  const { url, revoke } = await resolveAttachmentUrl(attachment);
   triggerDownload(url, name);
   scheduleRevoke(url, revoke);
 }

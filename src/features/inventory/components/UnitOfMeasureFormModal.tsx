@@ -1,54 +1,84 @@
 import { useMemo } from "react";
 import { toast } from "@/components/feedback/toast";
-import { FormikForm, FormikInput } from "@/components/forms";
+import { FormikForm, FormikInput, FormikSelect } from "@/components/forms";
 import { Button, Modal } from "@/components/ui";
 import {
   unitOfMeasureFormSchema,
   type UnitOfMeasureFormValues,
 } from "@/features/inventory/schemas/inventorySchema";
-import { useCreateUnitOfMeasure } from "@/features/inventory/hooks/useUnitsOfMeasureApi";
-import { UNITS_OF_MEASURE_UPDATED_EVENT } from "@/lib/unitsOfMeasure";
+import {
+  useCreateUnitOfMeasure,
+  useUpdateUnitOfMeasure,
+} from "@/features/inventory/hooks/useUnitsOfMeasureApi";
+import { UNITS_OF_MEASURE_UPDATED_EVENT, type UnitOfMeasure } from "@/lib/unitsOfMeasure";
 
-export type AddUnitOfMeasureModalProps = {
+const STATUS_OPTIONS = [
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive" },
+];
+
+export type UnitOfMeasureFormModalProps = {
   open: boolean;
   onClose: () => void;
-  onCreated: (code: string) => void;
+  onSaved: (code: string) => void;
   defaultCode?: string;
+  unit?: UnitOfMeasure | null;
 };
 
-export function AddUnitOfMeasureModal({
+export function UnitOfMeasureFormModal({
   open,
   onClose,
-  onCreated,
+  onSaved,
   defaultCode = "",
-}: AddUnitOfMeasureModalProps) {
+  unit = null,
+}: UnitOfMeasureFormModalProps) {
+  const isEditing = Boolean(unit);
   const createUnit = useCreateUnitOfMeasure();
+  const updateUnit = useUpdateUnitOfMeasure();
+
   const initialValues = useMemo<UnitOfMeasureFormValues>(
     () => ({
-      code: defaultCode,
-      name: "",
+      code: unit?.code ?? defaultCode,
+      name: unit?.name ?? "",
+      status: unit?.status ?? "active",
     }),
-    [defaultCode],
+    [defaultCode, unit],
   );
 
   const handleSubmit = async (values: UnitOfMeasureFormValues) => {
+    const payload = {
+      code: values.code,
+      name: values.name,
+      status: values.status,
+    };
+
     try {
-      const created = await createUnit.mutateAsync({
-        code: values.code,
-        name: values.name,
-        status: "active",
-      });
+      const saved =
+        isEditing && unit?.id
+          ? await updateUnit.mutateAsync({ id: unit.id, data: payload })
+          : await createUnit.mutateAsync(payload);
+
       window.dispatchEvent(new Event(UNITS_OF_MEASURE_UPDATED_EVENT));
-      onCreated(created.code);
+      onSaved(saved.code);
       onClose();
-      toast.success(`Added ${created.code} - ${created.name}.`);
+      toast.success(
+        isEditing
+          ? `Updated ${saved.code} - ${saved.name}.`
+          : `Added ${saved.code} - ${saved.name}.`,
+      );
     } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : "Could not add unit of measure.");
+      toast.error(error instanceof Error ? error.message : "Could not save unit of measure.");
     }
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Add Unit of Measure" size="sm" footer={null}>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={isEditing ? "Edit Unit of Measure" : "Add Unit of Measure"}
+      size="sm"
+      footer={null}
+    >
       {open && (
         <FormikForm<UnitOfMeasureFormValues>
           initialValues={initialValues}
@@ -72,12 +102,18 @@ export function AddUnitOfMeasureModal({
                 required
                 placeholder="e.g. Feet"
               />
+              <FormikSelect
+                name="status"
+                label="Status"
+                required
+                options={STATUS_OPTIONS}
+              />
               <div className="flex justify-end gap-2 border-t border-border pt-4">
                 <Button type="button" variant="outline" onClick={onClose} disabled={formik.isSubmitting}>
                   Cancel
                 </Button>
                 <Button type="submit" loading={formik.isSubmitting}>
-                  Add
+                  {isEditing ? "Save" : "Add"}
                 </Button>
               </div>
             </>

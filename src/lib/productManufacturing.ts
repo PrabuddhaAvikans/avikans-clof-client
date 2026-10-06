@@ -30,8 +30,8 @@ export function productNeedsManufacturing(
 }
 
 export function lineNeedsManufacturing(line: {
-  requiresManufacturing?: boolean;
-  isCustomized?: boolean;
+  requiresManufacturing?: boolean | null;
+  isCustomized?: boolean | null;
 }): boolean {
   if (line.isCustomized) return true;
   if (typeof line.requiresManufacturing === "boolean") {
@@ -41,7 +41,7 @@ export function lineNeedsManufacturing(line: {
 }
 
 export function orderNeedsManufacturing(
-  lines: Array<{ requiresManufacturing?: boolean; isCustomized?: boolean }>,
+  lines: Array<{ requiresManufacturing?: boolean | null; isCustomized?: boolean | null }>,
 ): boolean {
   return lines.some((line) => lineNeedsManufacturing(line));
 }

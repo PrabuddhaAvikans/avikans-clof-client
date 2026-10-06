@@ -100,6 +100,7 @@ export const unitOfMeasureFormSchema = yup.object({
     .trim()
     .required("Unit name is required")
     .max(80, "Use 80 characters or fewer"),
+  status: yup.string().oneOf(["active", "inactive"] as const).required(),
 });
 
 export type UnitOfMeasureFormValues = yup.InferType<typeof unitOfMeasureFormSchema>;

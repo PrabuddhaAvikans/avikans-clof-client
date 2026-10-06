@@ -381,7 +381,10 @@ export function CustomerAddressManager() {
   const billingActive = resolveActiveAddress(values.billingAddresses, billingActiveIndex);
 
   return (
-    <section className="rounded-md border border-border bg-card p-4">
+    <section
+      id="customer-addresses"
+      className="scroll-mt-24 rounded-md border border-border bg-card p-4"
+    >
       <div className="mb-4">
         <h2 className="text-sm font-semibold text-foreground">Addresses</h2>
         <p className="mt-0.5 text-xs text-muted-foreground">

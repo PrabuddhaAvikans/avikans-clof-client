@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import {
+  AlertTriangle,
   CheckCircle2,
   Clock3,
   Factory,
@@ -17,7 +18,9 @@ import { PageHeader } from "@/components/feedback/PageHeader";
 import { PageContent } from "@/components/feedback/PageStates";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/Button";
+import { Checkbox } from "@/components/ui/Checkbox";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SummaryCard } from "@/components/ui/SummaryCard";
 import { Tabs, TabList, Tab, TabPanel } from "@/components/ui/Tabs";
 import { manufacturingActions } from "@/features/manufacturing/store/manufacturingSlice";
@@ -35,12 +38,8 @@ import {
   useRunDayValidation,
 } from "@/features/end-of-day-management/hooks/useEndOfDayManagement";
 import { usePermissions } from "@/hooks/usePermissions";
-import { formatDateTime } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/format";
 import { formatWorkedDuration } from "@/lib/employee-work";
-import {
-  workspacePanelBody,
-  workspacePanelShell,
-} from "@/lib/panelLayout";
 import { PeriodStatus, WorkerSessionCloseRule } from "@/types/end-of-day-management";
 
 export function DayCloseWorkspacePage() {
@@ -80,6 +79,7 @@ export function DayCloseWorkspacePage() {
     (workspace.activeSessionCount ?? 0) > 0;
 
   const validations = workspace?.validations ?? [];
+  const incompleteCount = workspace?.incompleteEmployeeCount ?? 0;
 
   const blockingCount = useMemo(
     () => validations.filter((item) => item.isBlocking).length,
@@ -142,7 +142,7 @@ export function DayCloseWorkspacePage() {
         },
       });
       toast.success(
-        `Day ${result.period.businessDate} closed. Next day ${result.nextPeriod.businessDate} is open.`,
+        `Day ${formatDate(result.period.businessDate)} closed. Next day ${formatDate(result.nextPeriod.businessDate)} is open.`,
       );
       setConfirmCloseOpen(false);
       setSupervisorConfirmed(false);
@@ -168,7 +168,7 @@ export function DayCloseWorkspacePage() {
     if (!period) return;
     try {
       await reopenDay.mutateAsync({ id: period.id, input: { reason } });
-      toast.success(`${period.businessDate} reopened`);
+      toast.success(`${formatDate(period.businessDate)} reopened`);
       setReopenOpen(false);
       await refetch();
     } catch (err) {
@@ -179,6 +179,8 @@ export function DayCloseWorkspacePage() {
       toast.error(message);
     }
   };
+
+  const displayDate = period ? formatDate(period.businessDate, "MMM d, yyyy") : "";
 
   return (
     <PageContainer maxWidth="wide">
@@ -250,38 +252,52 @@ export function DayCloseWorkspacePage() {
       >
         {!workspace || !period ? null : (
           <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-xs">
-              <div>
-                <p className="text-xs text-muted-foreground">Business date</p>
-                <p className="text-lg font-semibold tabular-nums tracking-tight">
-                  {period.businessDate}
-                </p>
-              </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-semibold tabular-nums text-foreground">
+                {displayDate}
+              </span>
               <PeriodStatusBadge status={period.status} />
               {blockingCount > 0 ? (
-                <span className="rounded-md border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-800">
+                <StatusBadge variant="danger" size="sm" dot>
                   {blockingCount} blocker{blockingCount === 1 ? "" : "s"}
-                </span>
+                </StatusBadge>
               ) : isOpenLike ? (
-                <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800">
+                <StatusBadge variant="success" size="sm" dot>
                   Ready to close
-                </span>
+                </StatusBadge>
               ) : null}
               <Link
                 to={ROUTES.endOfDayManagement.month}
-                className="ml-auto text-xs font-medium text-foreground underline-offset-2 hover:underline"
+                className="ml-auto text-sm font-medium text-foreground underline-offset-2 hover:underline"
               >
                 Month-End Closing
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {(blockingCount > 0 || incompleteCount > 0) && isOpenLike && (
+              <div className="flex flex-wrap gap-2">
+                {blockingCount > 0 && (
+                  <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                    <ShieldAlert className="h-4 w-4 shrink-0" />
+                    {blockingCount} issue{blockingCount === 1 ? "" : "s"} must be cleared before close
+                  </div>
+                )}
+                {incompleteCount > 0 && (
+                  <div className="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-sm text-warning">
+                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                    {incompleteCount} employee{incompleteCount === 1 ? "" : "s"} under required hours
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <SummaryCard
                 title="Employee hours"
                 value={`${completedEmployees}/${workspace.employeeDaySummaries?.length ?? 0}`}
                 description={
-                  (workspace.incompleteEmployeeCount ?? 0) > 0
-                    ? `${workspace.incompleteEmployeeCount} under ${Math.round(workspace.requiredDailyWorkMinutes / 60)}h`
+                  incompleteCount > 0
+                    ? `${incompleteCount} under ${Math.round(workspace.requiredDailyWorkMinutes / 60)}h`
                     : `${Math.round(workspace.requiredDailyWorkMinutes / 60)}h required`
                 }
                 icon={<UserRound className="h-4 w-4" />}
@@ -309,53 +325,45 @@ export function DayCloseWorkspacePage() {
               <SummaryCard
                 title="Blockers"
                 value={blockingCount}
-                description={
-                  blockingCount > 0 ? "Must clear before close" : "None"
-                }
+                description={blockingCount > 0 ? "Must clear before close" : "None"}
                 icon={<ShieldAlert className="h-4 w-4" />}
               />
             </div>
 
-            <div className={workspacePanelShell}>
-              <Tabs value={tab} onChange={setTab} className="flex min-h-0 flex-1 flex-col">
-                <div className="border-b border-border px-2">
-                  <TabList className="border-b-0">
-                    <Tab value="employees">
-                      Employees
-                      {(workspace.incompleteEmployeeCount ?? 0) > 0
-                        ? ` (${workspace.incompleteEmployeeCount})`
-                        : ""}
-                    </Tab>
-                    <Tab value="production">Production</Tab>
-                    <Tab value="validation">
-                      Validation{blockingCount > 0 ? ` (${blockingCount})` : ""}
-                    </Tab>
-                  </TabList>
-                </div>
+            <Tabs value={tab} onChange={setTab}>
+              <TabList>
+                <Tab value="employees">
+                  Employees
+                  {incompleteCount > 0 ? ` (${incompleteCount})` : ""}
+                </Tab>
+                <Tab value="production">Production</Tab>
+                <Tab value="validation">
+                  Validation{blockingCount > 0 ? ` (${blockingCount})` : ""}
+                </Tab>
+              </TabList>
 
-                <TabPanel value="employees" className={workspacePanelBody}>
-                  <EmployeeDayClosePanel
-                    summaries={workspace.employeeDaySummaries ?? []}
-                    requiredMinutes={workspace.requiredDailyWorkMinutes}
-                  />
-                </TabPanel>
+              <TabPanel value="employees" className="pt-4">
+                <EmployeeDayClosePanel
+                  summaries={workspace.employeeDaySummaries ?? []}
+                  requiredMinutes={workspace.requiredDailyWorkMinutes}
+                />
+              </TabPanel>
 
-                <TabPanel value="production" className={workspacePanelBody}>
-                  <DayProductionPanel
-                    snapshots={workspace.productionSnapshots ?? []}
-                    isOpenDay={isOpenLike}
-                    activeSessionCount={workspace.activeSessionCount ?? 0}
-                  />
-                </TabPanel>
+              <TabPanel value="production" className="pt-4">
+                <DayProductionPanel
+                  snapshots={workspace.productionSnapshots ?? []}
+                  isOpenDay={isOpenLike}
+                  activeSessionCount={workspace.activeSessionCount ?? 0}
+                />
+              </TabPanel>
 
-                <TabPanel value="validation" className={workspacePanelBody}>
-                  <ValidationIssueList
-                    issues={validations}
-                    emptyMessage="No blockers. You can close the day."
-                  />
-                </TabPanel>
-              </Tabs>
-            </div>
+              <TabPanel value="validation" className="pt-4">
+                <ValidationIssueList
+                  issues={validations}
+                  emptyMessage="No blockers. You can close the day."
+                />
+              </TabPanel>
+            </Tabs>
           </div>
         )}
       </PageContent>
@@ -364,68 +372,48 @@ export function DayCloseWorkspacePage() {
         open={confirmCloseOpen}
         onClose={() => setConfirmCloseOpen(false)}
         onConfirm={() => void handleClose()}
-        title={`Close ${period?.businessDate ?? "this day"}?`}
+        title={`Close ${displayDate || "this day"}?`}
         description="Pauses unfinished work and opens the next business date. Jobs are not force-completed."
         confirmLabel="Close day"
         loading={closeDay.isPending}
       >
-        {needsSupervisorConfirm && (
-          <label className="mt-3 flex items-start gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="mt-1"
+        <div className="mt-3 space-y-3">
+          {needsSupervisorConfirm && (
+            <Checkbox
               checked={supervisorConfirmed}
               onChange={(event) => setSupervisorConfirmed(event.target.checked)}
+              label="Confirm active sessions may be paused"
             />
-            <span>Confirm active sessions may be paused.</span>
-          </label>
-        )}
-        {workspace?.allowIncompleteEmployeeHoursException &&
-          (workspace.incompleteEmployeeCount ?? 0) > 0 && (
-            <label className="mt-3 flex items-start gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="mt-1"
-                checked={incompleteHoursExceptionConfirmed}
-                onChange={(event) =>
-                  setIncompleteHoursExceptionConfirmed(event.target.checked)
-                }
-              />
-              <span>
-                Exception: close with {workspace.incompleteEmployeeCount}{" "}
-                incomplete employee day
-                {workspace.incompleteEmployeeCount === 1 ? "" : "s"}.
-              </span>
-            </label>
           )}
-        {workspace?.requireOvertimeApproval &&
-          (workspace.totalOvertimeMinutes ?? 0) > 0 && (
-            <label className="mt-3 flex items-start gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="mt-1"
+          {workspace?.allowIncompleteEmployeeHoursException && incompleteCount > 0 && (
+            <Checkbox
+              checked={incompleteHoursExceptionConfirmed}
+              onChange={(event) =>
+                setIncompleteHoursExceptionConfirmed(event.target.checked)
+              }
+              label={`Exception: close with ${incompleteCount} incomplete employee day${incompleteCount === 1 ? "" : "s"}`}
+            />
+          )}
+          {workspace?.requireOvertimeApproval &&
+            (workspace.totalOvertimeMinutes ?? 0) > 0 && (
+              <Checkbox
                 checked={overtimeApproved}
                 onChange={(event) => setOvertimeApproved(event.target.checked)}
+                label={`Approve overtime ${formatWorkedDuration(workspace.totalOvertimeMinutes)} for ${workspace.overtimeEmployeeCount} employee${workspace.overtimeEmployeeCount === 1 ? "" : "s"}`}
               />
-              <span>
-                Approve overtime{" "}
-                {formatWorkedDuration(workspace.totalOvertimeMinutes)} for{" "}
-                {workspace.overtimeEmployeeCount} employee
-                {workspace.overtimeEmployeeCount === 1 ? "" : "s"}.
-              </span>
-            </label>
+            )}
+          {blockingCount > 0 ? (
+            <p className="flex items-center gap-2 text-sm text-destructive">
+              <ShieldAlert className="h-4 w-4" />
+              {blockingCount} blocking issue(s) must be fixed first.
+            </p>
+          ) : (
+            <p className="flex items-center gap-2 text-sm text-success">
+              <CheckCircle2 className="h-4 w-4" />
+              Ready to close.
+            </p>
           )}
-        {blockingCount > 0 ? (
-          <p className="mt-3 flex items-center gap-2 text-sm text-red-700">
-            <ShieldAlert className="h-4 w-4" />
-            {blockingCount} blocking issue(s) must be fixed first.
-          </p>
-        ) : (
-          <p className="mt-3 flex items-center gap-2 text-sm text-emerald-700">
-            <CheckCircle2 className="h-4 w-4" />
-            Ready to close.
-          </p>
-        )}
+        </div>
       </ConfirmationDialog>
 
       <ReopenPeriodDialog
@@ -433,7 +421,7 @@ export function DayCloseWorkspacePage() {
         onClose={() => setReopenOpen(false)}
         onConfirm={(reason) => void handleReopen(reason)}
         loading={reopenDay.isPending}
-        title={`Reopen ${period?.businessDate ?? "day"}?`}
+        title={`Reopen ${displayDate || "day"}?`}
         description="Authorized reopen only. Original close stays in the audit trail."
         originalClosedBy={period?.originalClosedByName}
         originalClosedAt={

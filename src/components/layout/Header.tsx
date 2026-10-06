@@ -32,6 +32,7 @@ import { IconButton } from "@/components/ui/IconButton";
 import { Modal } from "@/components/ui/Modal";
 import { SearchBar } from "@/components/ui/SearchBar";
 import { NotificationCenter } from "@/features/admin/components/NotificationCenter";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 const QUICK_CREATE_ITEMS = [
   { label: "Customer", path: ROUTES.customers.new, icon: Users },
@@ -199,9 +200,11 @@ export function Header() {
               aria-expanded={profileOpen}
               aria-haspopup="menu"
             >
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground text-xs font-semibold text-background">
-                {displayName.charAt(0)}
-              </span>
+              <UserAvatar
+                name={displayName}
+                avatarFileKey={user?.avatarFileKey}
+                size="sm"
+              />
               <span className="hidden min-w-0 lg:block">
                 <span className="block truncate text-[13px] font-medium text-foreground" title={displayName}>
                   {displayName}

@@ -11,6 +11,7 @@ import { FormikForm, DynamicForm } from "@/components/forms";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { UserAvatarUploader } from "@/features/admin/components/UserAvatarUploader";
 import { createUserFormSections } from "@/features/admin/forms/userFormFields";
 import { userFormSchema, type UserFormValues } from "@/features/admin/schemas/userSchema";
 import { useRefreshSessionPermissions } from "@/features/admin/hooks/useRefreshSessionPermissions";
@@ -25,8 +26,10 @@ import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
 import { usePermissions } from "@/hooks/usePermissions";
 import { resolveEffectivePermissions } from "@/lib/effectivePermissions";
 import { DEMO_LOGIN_PASSWORD } from "@/services/mock/mockAuthService";
+import { asRecord } from "@/services/mappers/common";
+import { mapUser } from "@/services/mappers/userMappers";
+import { http } from "@/services/apiClient";
 import type { UserFormData } from "@/services";
-
 const defaultValues: UserFormValues = {
   email: "",
   firstName: "",
@@ -118,13 +121,31 @@ function PermissionsPreview({
   );
 }
 
+async function uploadUserAvatar(userId: string, file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return mapUser(asRecord(await http.postForm(`/api/users/${userId}/avatar`, formData)));
+}
+
+async function deleteUserAvatar(userId: string) {
+  return mapUser(asRecord(await http.delete(`/api/users/${userId}/avatar`)));
+}
+
 function UserFormActions({
   isEdit,
   roleGroupIds,
+  avatarFileKey,
+  onAvatarChange,
+  pendingAvatarFile,
+  onPendingAvatarFileChange,
   onToggleGroup,
 }: {
   isEdit: boolean;
   roleGroupIds: string[];
+  avatarFileKey: string;
+  onAvatarChange: (avatarFileKey: string) => void;
+  pendingAvatarFile: File | null;
+  onPendingAvatarFileChange: (file: File | null) => void;
   onToggleGroup: (groupId: string) => void;
 }) {
   const { values, validateForm, isSubmitting, setFieldValue } = useFormikContext<UserFormValues>();
@@ -137,6 +158,8 @@ function UserFormActions({
   const { hasPermission } = usePermissions();
   const refreshSession = useRefreshSessionPermissions();
   const canSave = isEdit ? hasPermission("users:edit") : hasPermission("users:create");
+  const canManageAvatar =
+    canSave || Boolean(isEdit && id && id === currentUser?.id);
 
   const roleOptions = useMemo(
     () =>
@@ -175,7 +198,12 @@ function UserFormActions({
           await refreshSession();
         }
       } else {
-        await createUser.mutateAsync(toFormData());
+        const created = await createUser.mutateAsync(toFormData());
+        if (pendingAvatarFile) {
+          const withAvatar = await uploadUserAvatar(created.id, pendingAvatarFile);
+          onAvatarChange(withAvatar.avatarFileKey ?? "");
+          onPendingAvatarFileChange(null);
+        }
         toast.success(
           sendInvite
             ? `User created and invitation queued. They can sign in with ${DEMO_LOGIN_PASSWORD}.`
@@ -192,9 +220,39 @@ function UserFormActions({
     void setFieldValue("roleGroupIds", roleGroupIds, false);
   }, [roleGroupIds, setFieldValue]);
 
+  const profileName =
+    `${values.firstName} ${values.lastName}`.trim() || values.email || "User";
+
   return (
     <div className="grid gap-6 lg:grid-cols-3">
-      <div className="lg:col-span-1">
+      <div className="space-y-4 lg:col-span-1">
+        <UserAvatarUploader
+          avatarFileKey={avatarFileKey || undefined}
+          displayName={profileName}
+          disabled={!canManageAvatar}
+          onUpload={async (file) => {
+            if (isEdit && id) {
+              const updated = await uploadUserAvatar(id, file);
+              onAvatarChange(updated.avatarFileKey ?? "");
+              if (id === currentUser?.id) {
+                await refreshSession();
+              }
+              return;
+            }
+            onPendingAvatarFileChange(file);
+          }}
+          onRemove={async () => {
+            if (isEdit && id) {
+              await deleteUserAvatar(id);
+              onAvatarChange("");
+              if (id === currentUser?.id) {
+                await refreshSession();
+              }
+              return;
+            }
+            onPendingAvatarFileChange(null);
+          }}
+        />
         <DynamicForm sections={sections} columns={1} />
       </div>
       <div className="space-y-6 lg:col-span-2">
@@ -234,6 +292,8 @@ export function UserFormPage() {
 
   const { data: user, isLoading } = useUser(id ?? "");
   const [roleGroupIds, setRoleGroupIds] = useState<string[]>([]);
+  const [avatarFileKey, setAvatarFileKey] = useState("");
+  const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null);
 
   const initialValues = useMemo<UserFormValues>(() => {
     if (!user) return defaultValues;
@@ -251,7 +311,11 @@ export function UserFormPage() {
   }, [user]);
 
   useEffect(() => {
-    if (user) setRoleGroupIds(user.roleGroupIds);
+    if (user) {
+      setRoleGroupIds(user.roleGroupIds);
+      setAvatarFileKey(user.avatarFileKey ?? "");
+      setPendingAvatarFile(null);
+    }
   }, [user]);
 
   const toggleGroup = (groupId: string) => {
@@ -286,7 +350,15 @@ export function UserFormPage() {
           onSubmit={() => undefined}
           enableReinitialize
         >
-          <UserFormActions isEdit={isEdit} roleGroupIds={roleGroupIds} onToggleGroup={toggleGroup} />
+          <UserFormActions
+            isEdit={isEdit}
+            roleGroupIds={roleGroupIds}
+            avatarFileKey={avatarFileKey}
+            onAvatarChange={setAvatarFileKey}
+            pendingAvatarFile={pendingAvatarFile}
+            onPendingAvatarFileChange={setPendingAvatarFile}
+            onToggleGroup={toggleGroup}
+          />
         </FormikForm>
       </PageContent>
     </PageContainer>

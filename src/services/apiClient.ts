@@ -124,37 +124,28 @@ function toApiError(payload: unknown, status: number, traceId?: string | null): 
   };
 }
 
-export async function apiRequest<T>(
-  path: string,
-  options: RequestInit = {},
-): Promise<T> {
-  const headers = new Headers(options.headers);
-  if (!headers.has("Content-Type") && options.body) {
-    headers.set("Content-Type", "application/json");
-  }
-
+function attachAuthHeader(headers: Headers): void {
   // Dev-only: auto-attach JWT so local API calls are authenticated.
   // Production builds must not rely on this helper for shipping auth headers
   // unless you intentionally add a production-safe path later.
-  if (import.meta.env.DEV) {
-    const token = getAuthToken();
-    if (token) {
-      headers.set("Authorization", `Bearer ${token}`);
-    } else {
-      headers.delete("Authorization");
-    }
+  if (!import.meta.env.DEV) return;
+  const token = getAuthToken();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  } else {
+    headers.delete("Authorization");
   }
+}
 
-  const response = await fetch(`${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`, {
-    ...options,
-    headers,
-  });
+function resolveApiUrl(path: string): string {
+  return `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+}
 
+async function parseErrorPayload(
+  response: Response,
+  path: string,
+): Promise<never> {
   const traceId = response.headers.get("trace-id");
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
   const text = await response.text();
   let payload: unknown = undefined;
   if (text) {
@@ -165,14 +156,70 @@ export async function apiRequest<T>(
     }
   }
 
-  if (!response.ok) {
-    if (response.status === 401 && !isLoginRequest(path)) {
-      expireSession();
-    }
-    throw toApiError(payload, response.status, traceId);
+  if (response.status === 401 && !isLoginRequest(path)) {
+    expireSession();
+  }
+  throw toApiError(payload, response.status, traceId);
+}
+
+export async function apiRequest<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const headers = new Headers(options.headers);
+  const isFormData =
+    typeof FormData !== "undefined" && options.body instanceof FormData;
+  if (!headers.has("Content-Type") && options.body && !isFormData) {
+    headers.set("Content-Type", "application/json");
+  }
+  if (isFormData) {
+    headers.delete("Content-Type");
   }
 
-  return payload as T;
+  attachAuthHeader(headers);
+
+  const response = await fetch(resolveApiUrl(path), {
+    ...options,
+    headers,
+  });
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  if (!response.ok) {
+    await parseErrorPayload(response, path);
+  }
+
+  const text = await response.text();
+  if (!text) {
+    return undefined as T;
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return text as T;
+  }
+}
+
+export async function apiRequestBlob(
+  path: string,
+  options: RequestInit = {},
+): Promise<Blob> {
+  const headers = new Headers(options.headers);
+  attachAuthHeader(headers);
+
+  const response = await fetch(resolveApiUrl(path), {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    await parseErrorPayload(response, path);
+  }
+
+  return response.blob();
 }
 
 function jsonBody(body: unknown): RequestInit {
@@ -187,10 +234,16 @@ function jsonBody(body: unknown): RequestInit {
 /** Thin HTTP helpers for epic `execute` bodies. */
 export const http = {
   get: <T = unknown>(path: string) => apiRequest<T>(path),
+  getBlob: (path: string) => apiRequestBlob(path),
   post: <T = unknown>(path: string, body?: unknown) =>
     apiRequest<T>(path, {
       method: "POST",
       ...(body === undefined ? {} : jsonBody(body)),
+    }),
+  postForm: <T = unknown>(path: string, body: FormData) =>
+    apiRequest<T>(path, {
+      method: "POST",
+      body,
     }),
   put: <T = unknown>(path: string, body?: unknown) =>
     apiRequest<T>(path, {

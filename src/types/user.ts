@@ -32,7 +32,7 @@ export interface User {
   lastName: string;
   displayName: string;
   phone?: string;
-  avatarUrl?: string;
+  avatarFileKey?: string;
   roleId: string;
   roleName: string;
   roleGroupIds: string[];

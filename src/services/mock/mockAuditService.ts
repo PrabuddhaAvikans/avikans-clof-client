@@ -25,6 +25,7 @@ function matchesFilters(
   },
 ): boolean {
   if (filters.entity && log.entity !== filters.entity) return false;
+  if (filters.entityId && log.entityId !== filters.entityId) return false;
   if (filters.action && log.action !== filters.action) return false;
   if (filters.severity && log.severity !== filters.severity) return false;
   if (filters.userId && log.userId !== filters.userId) return false;

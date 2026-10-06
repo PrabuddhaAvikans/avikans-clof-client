@@ -20,7 +20,8 @@ export function useUnitsOfMeasure(): UnitOfMeasure[] {
   }, [refetch]);
 
   return useMemo(() => {
-    if (data?.items.length) return data.items;
+    // Prefer API once loaded (including empty). Fall back only before first response.
+    if (data) return data.items;
     return loadUnitsOfMeasure();
   }, [data]);
 }

@@ -11,6 +11,9 @@ export type Attachment = {
   id: string;
   name: string;
   size?: number;
+  /** Opaque server file key — preferred for persisted files. */
+  fileKey?: string;
+  /** Local-only blob/data URL for unsaved drafts. */
   url?: string;
   type?: string;
   mimeType?: string;
@@ -42,7 +45,7 @@ export function AttachmentPanel({
       onOpen(attachment);
       return;
     }
-    openAttachment(attachment);
+    void openAttachment(attachment);
   };
 
   const handleDownload = (attachment: Attachment) => {
@@ -51,7 +54,7 @@ export function AttachmentPanel({
       onDownload(attachment);
       return;
     }
-    downloadAttachment(attachment);
+    void downloadAttachment(attachment);
   };
 
   return (

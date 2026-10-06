@@ -117,9 +117,7 @@ export function EmployeeDayClosePanel({
   return (
     <div className={cn("space-y-3", className)}>
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-        <p>
-          Required {formatWorkedDuration(requiredMinutes)} · hours ≠ task progress
-        </p>
+        <p>Required {formatWorkedDuration(requiredMinutes)}</p>
         <Link
           to={ROUTES.manufacturing.jobs}
           className="inline-flex items-center gap-1 font-medium text-foreground underline-offset-2 hover:underline"
@@ -178,12 +176,6 @@ export function EmployeeDayClosePanel({
         </div>
       </div>
 
-      <p className="text-[11px] text-muted-foreground">
-        Showing {visible.length} of {filtered.length}
-        {filtered.length !== summaries.length ? ` (filtered from ${summaries.length})` : ""}
-        · expand one employee to check allocations
-      </p>
-
       {filtered.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
           No employees match this filter.
@@ -205,7 +197,7 @@ export function EmployeeDayClosePanel({
               <li key={employee.employeeId} className="border-b border-border last:border-b-0">
                 <button
                   type="button"
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-muted/30"
+                  className="flex w-full items-center gap-2 px-3 py-2.5 text-left hover:bg-muted/30"
                   onClick={() => setExpandedId(isOpen ? null : employee.employeeId)}
                   aria-expanded={isOpen}
                 >
@@ -221,25 +213,27 @@ export function EmployeeDayClosePanel({
                         {isComplete ? "Done" : "Open"}
                       </StatusBadge>
                       {employee.overtimeMinutes > 0 && (
-                        <span className="text-[10px] tabular-nums text-muted-foreground">
+                        <span className="text-[11px] tabular-nums text-muted-foreground">
                           OT {formatWorkedDuration(employee.overtimeMinutes)}
                         </span>
                       )}
                     </div>
-                    <div className="mt-1 flex items-center gap-2">
-                      <div className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
                         <div
                           className={cn(
                             "h-full rounded-full",
-                            isComplete ? "bg-emerald-500" : "bg-amber-500",
+                            isComplete ? "bg-success" : "bg-warning",
                           )}
                           style={{ width: `${pct}%` }}
                         />
                       </div>
-                      <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
+                      <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
                         {formatWorkedDuration(employee.workedMinutes)}/
                         {formatWorkedDuration(employee.requiredMinutes)}
-                        {jobs.length > 0 ? ` · ${jobs.length} job${jobs.length === 1 ? "" : "s"}` : ""}
+                        {jobs.length > 0
+                          ? ` · ${jobs.length} job${jobs.length === 1 ? "" : "s"}`
+                          : ""}
                       </span>
                     </div>
                   </div>
@@ -337,9 +331,9 @@ function FilterChip({
         "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
         active
           ? tone === "warning"
-            ? "border-amber-500/40 bg-amber-500/10 text-foreground"
+            ? "border-warning/40 bg-warning/10 text-foreground"
             : tone === "success"
-              ? "border-emerald-500/40 bg-emerald-500/10 text-foreground"
+              ? "border-success/40 bg-success/10 text-foreground"
               : "border-foreground/20 bg-muted text-foreground"
           : "border-border bg-card text-muted-foreground hover:bg-muted/40",
       )}

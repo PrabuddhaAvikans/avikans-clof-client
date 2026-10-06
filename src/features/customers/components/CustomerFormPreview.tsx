@@ -1,9 +1,16 @@
+import { useState } from "react";
 import { useFormikContext } from "formik";
 import { FileText, MapPin, Quote, UserRound } from "lucide-react";
 import { Button, StatusBadge } from "@/components/ui";
+import { toast } from "@/components/feedback/toast";
+import { CustomerContactHistoryModal } from "@/features/customers/components/CustomerContactHistoryModal";
+import { downloadCustomerCard } from "@/features/customers/lib/customerCardExport";
 import type { CustomerFormValues } from "@/features/customers/schemas/customerSchema";
-import { formatCurrency } from "@/lib/format";
 import { CUSTOMER_TYPE_OPTIONS } from "@/features/shared/components/CustomerSelectorModal";
+import { formatCurrency } from "@/lib/format";
+import { http } from "@/services/apiClient";
+import { asRecord } from "@/services/mappers/common";
+import { mapCustomer } from "@/services/mappers/customerMappers";
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -21,8 +28,23 @@ function formatAddress(address: { city: string; state: string; country: string }
   return [address.city, address.state, address.country].filter(Boolean).join(", ");
 }
 
-export function CustomerFormPreview() {
+export type CustomerFormPreviewProps = {
+  customerId?: string;
+  onCreateQuotation?: () => void;
+  onManageAddresses?: () => void;
+  createQuotationPending?: boolean;
+};
+
+export function CustomerFormPreview({
+  customerId,
+  onCreateQuotation,
+  onManageAddresses,
+  createQuotationPending = false,
+}: CustomerFormPreviewProps) {
   const { values } = useFormikContext<CustomerFormValues>();
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
   const typeLabel =
     CUSTOMER_TYPE_OPTIONS.find((option) => option.value === values.type)?.label ?? values.type;
   const contactName = values.contactSameAsName
@@ -38,6 +60,35 @@ export function CustomerFormPreview() {
       values.shippingAddresses?.[0];
 
   const shipTo = formatAddress(shipToAddress);
+  const hasCustomerId = Boolean(customerId);
+
+  const handleViewContactHistory = () => {
+    if (!customerId) {
+      toast.info("Save the customer first to view contact history.");
+      return;
+    }
+    setHistoryOpen(true);
+  };
+
+  const handleExportCustomerCard = async () => {
+    if (!customerId) {
+      toast.info("Save the customer first to export the customer card.");
+      return;
+    }
+
+    setExporting(true);
+    try {
+      const customer = mapCustomer(
+        asRecord(await http.get(`/api/customers/${customerId}`)),
+      );
+      downloadCustomerCard(customer);
+      toast.success("Customer card exported.");
+    } catch {
+      toast.error("Failed to export customer card.");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <aside className="space-y-3">
@@ -98,6 +149,9 @@ export function CustomerFormPreview() {
           size="sm"
           className="h-8 w-full justify-start text-[12px]"
           leftIcon={<Quote className="h-3.5 w-3.5" />}
+          onClick={onCreateQuotation}
+          disabled={!onCreateQuotation || createQuotationPending}
+          loading={createQuotationPending}
         >
           Create Quotation
         </Button>
@@ -107,6 +161,8 @@ export function CustomerFormPreview() {
           size="sm"
           className="h-8 w-full justify-start text-[12px]"
           leftIcon={<UserRound className="h-3.5 w-3.5" />}
+          onClick={handleViewContactHistory}
+          disabled={!hasCustomerId}
         >
           View Contact History
         </Button>
@@ -116,6 +172,8 @@ export function CustomerFormPreview() {
           size="sm"
           className="h-8 w-full justify-start text-[12px]"
           leftIcon={<MapPin className="h-3.5 w-3.5" />}
+          onClick={onManageAddresses}
+          disabled={!onManageAddresses}
         >
           Manage Addresses
         </Button>
@@ -125,10 +183,22 @@ export function CustomerFormPreview() {
           size="sm"
           className="h-8 w-full justify-start text-[12px]"
           leftIcon={<FileText className="h-3.5 w-3.5" />}
+          onClick={() => void handleExportCustomerCard()}
+          disabled={!hasCustomerId || exporting}
+          loading={exporting}
         >
           Export Customer Card
         </Button>
       </section>
+
+      {customerId ? (
+        <CustomerContactHistoryModal
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          customerId={customerId}
+          customerName={values.name || undefined}
+        />
+      ) : null}
     </aside>
   );
 }

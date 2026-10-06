@@ -9,9 +9,13 @@ import type { AuditLogListFilters } from "@/services";
 import type { PaginatedResponse } from "@/types/common";
 import type { AuditLogEntry, AuditLogSummary } from "@/types/audit";
 
-export function useAuditLogs(filters: AuditLogListFilters) {
+export function useAuditLogs(
+  filters: AuditLogListFilters,
+  options?: { enabled?: boolean },
+) {
   return useEpicQuery<AuditLogListFilters, PaginatedResponse<AuditLogEntry>>({
     arg: filters,
+    enabled: options?.enabled ?? true,
     request: auditLogsActions.fetchListRequest,
     selectEntry: (state, key) => state.auditLogs.lists[key],
   });

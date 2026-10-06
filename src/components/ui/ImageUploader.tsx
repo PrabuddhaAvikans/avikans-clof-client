@@ -177,7 +177,7 @@ export function ImageUploader({
                 type="button"
                 className="block w-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={() =>
-                  openAttachment({
+                  void openAttachment({
                     name: image.file?.name ?? "Product image",
                     url: image.previewUrl,
                     mimeType: image.file?.type || "image/*",

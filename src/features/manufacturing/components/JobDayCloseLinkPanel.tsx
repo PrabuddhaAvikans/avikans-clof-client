@@ -113,7 +113,7 @@ export function JobDayCloseLinkPanel({
                       <div
                         className={cn(
                           "h-full rounded-full",
-                          isComplete ? "bg-emerald-500" : "bg-amber-500",
+                          isComplete ? "bg-success" : "bg-warning",
                         )}
                         style={{ width: `${pct}%` }}
                       />

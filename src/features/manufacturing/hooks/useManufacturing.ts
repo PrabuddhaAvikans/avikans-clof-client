@@ -83,6 +83,7 @@ export function useManufacturingTaskAction() {
   >({
     request: manufacturingActions.taskActionRequest,
     selectMutation: (state: RootState) => state.manufacturing.taskAction,
+    key: (arg) => arg.id,
   });
 }
 

@@ -1,5 +1,14 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Building2, Calculator, Factory, Globe, RotateCcw, Save } from "lucide-react";
+import {
+  Building2,
+  Calculator,
+  Factory,
+  FileText,
+  Globe,
+  RotateCcw,
+  Save,
+  ShoppingCart,
+} from "lucide-react";
 import { toast } from "@/components/feedback/toast";
 import { ROUTES } from "@/app/config/routes";
 import { PageHeader } from "@/components/feedback/PageHeader";
@@ -54,6 +63,12 @@ const SECTIONS = [
     icon: Globe,
   },
   {
+    id: "sales",
+    label: "Sales defaults",
+    description: "Quotation validity and payment terms",
+    icon: ShoppingCart,
+  },
+  {
     id: "costing",
     label: "Costing rates",
     description: "Labour and overtime",
@@ -64,6 +79,12 @@ const SECTIONS = [
     label: "Production work",
     description: "Active tasks per employee",
     icon: Factory,
+  },
+  {
+    id: "documents",
+    label: "Document numbers",
+    description: "Prefixes for quotations, orders, and jobs",
+    icon: FileText,
   },
 ] as const;
 

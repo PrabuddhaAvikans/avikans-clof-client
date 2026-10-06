@@ -25,7 +25,7 @@ import { isIssuedQuotation } from "@/features/sales/lib/quotationLifecycle";
 import type { Quotation } from "@/types/quotation";
 import { loadSystemSettings, quotationValidUntilDate } from "@/lib/systemSettings";
 import { toast } from "@/components/feedback/toast";
-import type { FormikProps } from "formik";
+import type { FormikProps, FormikTouched } from "formik";
 
 type QuotationAction = "draft" | "save" | "preview" | "send";
 
@@ -203,7 +203,7 @@ export function EstimateFormPage() {
           notes: true,
           termsAndConditions: true,
           attachments: true,
-        },
+        } as unknown as FormikTouched<QuotationFormValues>,
         true,
       );
       toast.error(message);

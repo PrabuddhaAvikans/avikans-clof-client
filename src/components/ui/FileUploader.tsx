@@ -12,6 +12,9 @@ export type UploadedFile = {
   name?: string;
   size?: number;
   mimeType?: string;
+  /** Opaque server file key for persisted files. Prefer over any URL. */
+  fileKey?: string;
+  /** Local-only blob/data URL for unsaved drafts. */
   url?: string;
 };
 
@@ -179,10 +182,11 @@ export function FileUploader({
                 className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
                 disabled={disabled}
                 onClick={() =>
-                  openAttachment({
+                  void openAttachment({
                     name,
                     mimeType,
                     file: item.file,
+                    fileKey: item.fileKey,
                     url: item.url,
                   })
                 }
@@ -208,10 +212,11 @@ export function FileUploader({
                   aria-label={`Download ${name}`}
                   disabled={disabled}
                   onClick={() =>
-                    downloadAttachment({
+                    void downloadAttachment({
                       name,
                       mimeType,
                       file: item.file,
+                      fileKey: item.fileKey,
                       url: item.url,
                     })
                   }

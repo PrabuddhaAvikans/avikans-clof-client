@@ -125,7 +125,8 @@ const taskActionEpic = createApiEpic({
   request: actions.taskActionRequest,
   success: actions.taskActionSuccess,
   failure: actions.taskActionFailure,
-  concurrency: "merge",
+  // Serialize actions per job id (key from useManufacturingTaskAction) to avoid RowVersion races.
+  concurrency: "switch",
   execute: async ({ id, action }) =>
     mapManufacturingJob(
       asRecord(await http.post(`/api/manufacturing/jobs/${id}/task-actions`, action)),

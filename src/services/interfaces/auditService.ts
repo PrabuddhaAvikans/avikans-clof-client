@@ -9,6 +9,7 @@ import type {
 
 export interface AuditLogListFilters extends PaginatedRequest {
   entity?: AuditEntity;
+  entityId?: string;
   action?: AuditAction;
   severity?: AuditSeverity;
   userId?: string;
