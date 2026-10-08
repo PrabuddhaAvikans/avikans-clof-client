@@ -77,6 +77,8 @@ export interface OrderFlowStage {
   total: number;
   attentionCount: number;
   attentionSeverity: OrderFlowSeverity;
+  /** Short badge text for real exceptions only (empty when healthy). */
+  attentionLabel: string;
   stats: OrderFlowStat[];
   messages: string[];
 }

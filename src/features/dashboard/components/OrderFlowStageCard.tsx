@@ -155,12 +155,15 @@ export function OrderFlowStageCard({ stage, href, className }: OrderFlowStageCar
         {showAttention ? (
           <span
             className={cn(
-              "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium",
+              "inline-flex max-w-full items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium",
               attentionBadgeClass(stage.attentionSeverity),
             )}
+            title={stage.attentionLabel || `${stage.attentionCount} need attention`}
           >
-            <AlertTriangle className="h-3 w-3" aria-hidden />
-            {stage.attentionCount} need attention
+            <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden />
+            <span className="truncate">
+              {stage.attentionLabel || `${stage.attentionCount} need attention`}
+            </span>
           </span>
         ) : (
           <span className="inline-flex h-[22px] items-center text-[11px] text-muted-foreground">

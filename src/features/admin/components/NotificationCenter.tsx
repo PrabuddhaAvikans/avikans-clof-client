@@ -28,6 +28,7 @@ import {
   useNotifications,
   useUnreadNotificationCount,
 } from "@/features/admin/hooks/useNotifications";
+import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
 import { useBreakpoint } from "@/hooks/useMediaQuery";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { formatDateTime } from "@/lib/format";
@@ -37,10 +38,6 @@ import type {
   NotificationCategoryValue,
   NotificationTypeValue,
 } from "@/types/notification";
-
-export type NotificationCenterProps = {
-  recipientId: string;
-};
 
 const CATEGORY_META: Record<
   NotificationCategoryValue,
@@ -215,7 +212,7 @@ function NotificationSkeleton() {
   );
 }
 
-export function NotificationCenter({ recipientId }: NotificationCenterProps) {
+export function NotificationCenter() {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<InboxTab>("all");
   const [panelStyle, setPanelStyle] = useState<CSSProperties>({});
@@ -223,19 +220,11 @@ export function NotificationCenter({ recipientId }: NotificationCenterProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const isDesktop = useBreakpoint("md");
+  const { user } = useAuthSession();
+  const recipientId = user?.id ?? "";
 
   const { data: unreadCount = 0 } = useUnreadNotificationCount(recipientId);
-  const listFilters = useMemo(
-    () => ({
-      page: 1,
-      pageSize: 20,
-      recipientId,
-      sortBy: "createdAt",
-      sortDirection: "desc" as const,
-    }),
-    [recipientId],
-  );
-  const { data: notifications, refetch, isLoading, isError } = useNotifications(listFilters);
+  const { data: notifications, refetch, isLoading, isError } = useNotifications();
   const markRead = useMarkNotificationAsRead();
   const markAllRead = useMarkAllNotificationsAsRead();
 

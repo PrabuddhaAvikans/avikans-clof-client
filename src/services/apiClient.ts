@@ -7,6 +7,11 @@ const API_BASE_URL = configuredBase ? configuredBase.replace(/\/$/, "") : "";
 
 const AUTH_TOKEN_KEY = "avikans.auth.token";
 
+/** Empty string = same origin (Vite proxy). Absolute URL when VITE_API_BASE_URL is set. */
+export function getApiBaseUrl(): string {
+  return API_BASE_URL;
+}
+
 export function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;
   return (

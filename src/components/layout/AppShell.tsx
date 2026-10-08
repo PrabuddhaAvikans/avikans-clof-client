@@ -5,6 +5,7 @@ import type { AppDispatch, RootState } from "@/app/store";
 import { closeRightDrawer, setSidebarCollapsed } from "@/app/store/uiSlice";
 import { AppFooter } from "@/components/layout/AppFooter";
 import { Header } from "@/components/layout/Header";
+import { useNotificationsRealtime } from "@/features/admin/hooks/useNotificationsRealtime";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useBreakpoints } from "@/hooks/useMediaQuery";
@@ -14,6 +15,8 @@ export function AppShell() {
   const dispatch = useDispatch<AppDispatch>();
   const rightDrawer = useSelector((state: RootState) => state.ui.rightDrawer);
   const { isMobile, isTablet } = useBreakpoints();
+
+  useNotificationsRealtime();
 
   useEffect(() => {
     if (isTablet) {

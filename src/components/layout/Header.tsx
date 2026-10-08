@@ -179,7 +179,7 @@ export function Header() {
             )}
           </div>
 
-          <NotificationCenter recipientId={user?.id ?? "usr-001"} />
+          <NotificationCenter />
 
           <IconButton
             variant="ghost"

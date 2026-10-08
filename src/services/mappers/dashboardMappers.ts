@@ -125,13 +125,18 @@ function asStageRecord(value: unknown): Record<string, unknown> {
 }
 
 export function mapOrderFlowStage(raw: Record<string, unknown>): OrderFlowStage {
+  const attentionCount = Number(raw.attentionCount ?? 0);
+  const attentionLabel = String(raw.attentionLabel ?? "").trim();
   return {
     stageKey: mapStageKey(raw.stageKey),
     title: String(raw.title ?? ""),
     summaryText: String(raw.summaryText ?? ""),
     total: Number(raw.total ?? 0),
-    attentionCount: Number(raw.attentionCount ?? 0),
+    attentionCount,
     attentionSeverity: mapSeverity(raw.attentionSeverity),
+    attentionLabel:
+      attentionLabel ||
+      (attentionCount > 0 ? `${attentionCount} need attention` : ""),
     stats: ((raw.stats as unknown[]) ?? []).map((item) =>
       mapOrderFlowStat(item as Record<string, unknown>),
     ),

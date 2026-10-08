@@ -1,24 +1,44 @@
+import { useMemo } from "react";
 import { useEpicMutation } from "@/app/store/async/useEpicMutation";
 import { useEpicQuery } from "@/app/store/async/useEpicQuery";
 import type { RootState } from "@/app/store";
+import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
 import { notificationsActions } from "@/features/admin/store/notificationsSlice";
 import type { NotificationListFilters } from "@/services";
 import type { AppNotification } from "@/types/notification";
 import type { PaginatedResponse } from "@/types/common";
 
-export function useNotifications(filters: NotificationListFilters) {
+export function useNotifications(filters?: Partial<NotificationListFilters>) {
+  const { user } = useAuthSession();
+  const recipientId = user?.id ?? "";
+  const arg = useMemo<NotificationListFilters>(
+    () => ({
+      page: 1,
+      pageSize: 20,
+      sortBy: "createdAt",
+      sortDirection: "desc",
+      ...filters,
+      recipientId,
+    }),
+    [filters, recipientId],
+  );
+
   return useEpicQuery<NotificationListFilters, PaginatedResponse<AppNotification>>({
-    arg: filters,
+    arg,
+    enabled: Boolean(recipientId),
     request: notificationsActions.fetchListRequest,
     selectEntry: (state, key) => state.notifications.lists[key],
   });
 }
 
-export function useUnreadNotificationCount(recipientId: string) {
+export function useUnreadNotificationCount(recipientId?: string) {
+  const { user } = useAuthSession();
+  const id = recipientId || user?.id || "";
+
   return useEpicQuery<string, number>({
-    arg: recipientId,
-    enabled: Boolean(recipientId),
-    getKey: (id) => `unread:${id}`,
+    arg: id,
+    enabled: Boolean(id),
+    getKey: (value) => `unread:${value}`,
     request: notificationsActions.fetchUnreadCountRequest,
     selectEntry: (state, key) => state.notifications.unreadCounts[key],
   });
