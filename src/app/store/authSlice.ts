@@ -12,7 +12,11 @@ import {
   setMutationSuccess,
 } from "@/app/store/async/reducers";
 import type { MutationEntry } from "@/app/store/async/types";
-import { readStoredAuthUser } from "@/app/store/authStorage";
+import {
+  clearStoredAuthUser,
+  readStoredAuthUser,
+} from "@/app/store/authStorage";
+import { clearAuthToken, getAuthToken } from "@/services/apiClient";
 import type { LoginCredentials } from "@/services/interfaces/authService";
 
 export interface AuthUser {
@@ -33,10 +37,20 @@ export interface AuthState {
 }
 
 const storedUser = readStoredAuthUser();
+const hasToken = Boolean(getAuthToken());
 
-const initialState: AuthState = storedUser
-  ? { isAuthenticated: true, user: storedUser, login: createMutationEntry() }
-  : { isAuthenticated: false, user: null, login: createMutationEntry() };
+// User and JWT must both exist; otherwise clear the orphaned half-session.
+if (storedUser && !hasToken) {
+  clearStoredAuthUser();
+}
+if (!storedUser && hasToken) {
+  clearAuthToken();
+}
+
+const initialState: AuthState =
+  storedUser && hasToken
+    ? { isAuthenticated: true, user: storedUser, login: createMutationEntry() }
+    : { isAuthenticated: false, user: null, login: createMutationEntry() };
 
 export const authSlice = createSlice({
   name: "auth",

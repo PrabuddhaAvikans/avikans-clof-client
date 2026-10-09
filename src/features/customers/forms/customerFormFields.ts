@@ -24,6 +24,8 @@ export const customerFormSections: DynamicFormSection[] = [
         label: 'Customer Number',
         type: 'text',
         required: true,
+        hint: 'Auto-generated on create',
+        disabled: true,
       },
       {
         name: 'name',

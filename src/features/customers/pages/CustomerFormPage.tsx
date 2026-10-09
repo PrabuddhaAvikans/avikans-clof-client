@@ -1,6 +1,13 @@
-﻿import { useEffect, useMemo, useState, type ReactNode } from "react";
+﻿import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MutableRefObject,
+  type ReactNode,
+} from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { useFormikContext } from "formik";
+import { useFormikContext, type FormikProps, type FormikTouched } from "formik";
 import { CustomerAddressManager } from "@/features/customers/components/CustomerAddressManager";
 import {
   isAddressDraft,
@@ -11,6 +18,7 @@ import { ROUTES } from "@/app/config/routes";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/feedback/PageHeader";
 import { PageContent } from "@/components/feedback/PageStates";
+import { toast } from "@/components/feedback/toast";
 import {
   FormikForm,
   FormikCheckbox,
@@ -28,12 +36,55 @@ import {
 import {
   useCreateCustomer,
   useCustomer,
+  useCustomers,
   useUpdateCustomer,
 } from "@/features/customers/hooks/useCustomers";
 import { CUSTOMER_TYPE_OPTIONS } from "@/features/shared/components/CustomerSelectorModal";
+import { suggestCustomerCode } from "@/lib/customerCode";
 import { DEFAULT_COUNTRY } from "@/lib/countries";
 import { cn } from "@/lib/utils";
 import type { CustomerFormData } from "@/services";
+
+type CustomerSaveAction = "draft" | "close" | "estimate";
+
+function firstFormError(errors: unknown): string | null {
+  if (!errors) return null;
+  if (typeof errors === "string") return errors;
+  if (Array.isArray(errors)) {
+    for (const item of errors) {
+      const found = firstFormError(item);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (typeof errors === "object") {
+    for (const value of Object.values(errors as Record<string, unknown>)) {
+      const found = firstFormError(value);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function withoutDraftAddresses(values: CustomerFormValues): CustomerFormValues {
+  const billingAddresses = values.billingAddresses.filter((address) => !isAddressDraft(address));
+  const shippingAddresses = (values.shippingAddresses ?? []).filter(
+    (address) => !isAddressDraft(address),
+  );
+  return {
+    ...values,
+    billingAddresses,
+    activeBillingAddressIndex: Math.min(
+      values.activeBillingAddressIndex ?? 0,
+      Math.max(billingAddresses.length - 1, 0),
+    ),
+    shippingAddresses,
+    activeShippingAddressIndex: Math.min(
+      values.activeShippingAddressIndex ?? 0,
+      Math.max(shippingAddresses.length - 1, 0),
+    ),
+  };
+}
 
 const TABS = [
   { id: "overview", label: "Overview" },
@@ -163,11 +214,40 @@ function ContactSyncEffect() {
   return null;
 }
 
-function CustomerInfoSection() {
+function CustomerCodeSync({
+  existingCodes,
+  autoCodeRef,
+}: {
+  existingCodes: string[];
+  autoCodeRef: MutableRefObject<boolean>;
+}) {
+  const { values, setFieldValue } = useFormikContext<CustomerFormValues>();
+
+  useEffect(() => {
+    if (!autoCodeRef.current) return;
+    const next = suggestCustomerCode(existingCodes);
+    if (values.code === next) return;
+    void setFieldValue("code", next, false);
+  }, [autoCodeRef, existingCodes, setFieldValue, values.code]);
+
+  return null;
+}
+
+function CustomerInfoSection({ isCreate }: { isCreate: boolean }) {
   return (
     <SectionCard title="Customer Info" description="Identity and primary contact details.">
       <div className="grid gap-2 sm:grid-cols-2">
-        <FormikInput name="code" label="Customer Number" required />
+        <FormikInput
+          name="code"
+          label="Customer Number"
+          required
+          readOnly={isCreate}
+          hint={
+            isCreate
+              ? "Auto-generated. Assigned when you create the customer."
+              : undefined
+          }
+        />
         <FormikSelect name="type" label="Customer Type" options={CUSTOMER_TYPE_OPTIONS} required />
         <FormikInput name="name" label="Customer Name" required className="sm:col-span-2" />
         <FormikInput name="email" label="Email" type="email" required />
@@ -243,13 +323,33 @@ export function CustomerFormPage() {
   const [searchParams] = useSearchParams();
   const createAfterSave = searchParams.get("afterSave");
   const [tab, setTab] = useState("overview");
-  const [pendingAction, setPendingAction] = useState<"draft" | "close" | "estimate">("close");
+  const [pendingAction, setPendingAction] = useState<CustomerSaveAction>("close");
+  const pendingActionRef = useRef<CustomerSaveAction>(pendingAction);
+  const setAction = (action: CustomerSaveAction) => {
+    pendingActionRef.current = action;
+    setPendingAction(action);
+  };
 
   const { data: customer, isLoading, error } = useCustomer(id ?? "");
+  const { data: customersList } = useCustomers({ page: 1, pageSize: 200 });
   const createCustomer = useCreateCustomer();
   const updateCustomer = useUpdateCustomer();
+  const autoCodeRef = useRef(!isEdit);
+
+  const existingCodes = useMemo(
+    () => (customersList?.items ?? []).map((entry) => entry.code),
+    [customersList?.items],
+  );
 
   const initialValues = useMemo<CustomerFormValues>(() => {
+    // Keep create initials stable — CustomerCodeSync fills the number when the list loads.
+    // Depending on existingCodes here + enableReinitialize wipes typed fields.
+    if (!isEdit) {
+      return {
+        ...defaultValues,
+        code: suggestCustomerCode([]),
+      };
+    }
     if (!customer) return defaultValues;
     const primary =
       customer.contactPersons.find((c) => c.isPrimary) ?? customer.contactPersons[0];
@@ -307,26 +407,32 @@ export function CustomerFormPage() {
       notes: customer.notes ?? "",
       status: customer.status,
     };
-  }, [customer]);
+  }, [customer, isEdit]);
 
   const busy = createCustomer.isPending || updateCustomer.isPending;
 
   const handleSubmit = async (values: CustomerFormValues) => {
-    const payload = toFormData(values);
-    const action = pendingAction;
+    const payload = toFormData(withoutDraftAddresses(values));
+    const action = pendingActionRef.current;
+    pendingActionRef.current = "close";
     setPendingAction("close");
 
-    if (isEdit && id) {
-      await updateCustomer.mutateAsync({ id, data: payload });
-      if (action === "estimate") {
-        navigate(`${ROUTES.quotations.new}?customerId=${id}`);
-      } else if (action === "draft") {
-        navigate(ROUTES.customers.edit(id));
-      } else {
-        navigate(ROUTES.customers.detail(id));
+    try {
+      if (isEdit && id) {
+        await updateCustomer.mutateAsync({ id, data: payload });
+        toast.success("Customer saved.");
+        if (action === "estimate") {
+          navigate(`${ROUTES.quotations.new}?customerId=${id}`);
+        } else if (action === "draft") {
+          navigate(ROUTES.customers.edit(id));
+        } else {
+          navigate(ROUTES.customers.detail(id));
+        }
+        return;
       }
-    } else {
+
       const created = await createCustomer.mutateAsync(payload);
+      toast.success("Customer created.");
       if (action === "estimate" || createAfterSave === "estimate") {
         navigate(`${ROUTES.quotations.new}?customerId=${created.id}`);
       } else if (action === "draft") {
@@ -334,7 +440,43 @@ export function CustomerFormPage() {
       } else {
         navigate(ROUTES.customers.detail(created.id));
       }
+    } catch (err) {
+      const message =
+        err && typeof err === "object" && "message" in err && typeof err.message === "string"
+          ? err.message
+          : "Failed to save customer";
+      toast.error(message);
     }
+  };
+
+  const runAction = async (
+    formik: FormikProps<CustomerFormValues>,
+    action: CustomerSaveAction,
+  ) => {
+    setAction(action);
+    const cleaned = withoutDraftAddresses(formik.values);
+    await formik.setValues(cleaned, false);
+    const errors = await formik.validateForm(cleaned);
+    const message = firstFormError(errors);
+    if (message) {
+      await formik.setTouched(
+        {
+          code: true,
+          name: true,
+          email: true,
+          phone: true,
+          contactPerson: true,
+          billingAddresses: true,
+          shippingAddresses: true,
+          paymentTermsDays: true,
+          status: true,
+        } as unknown as FormikTouched<CustomerFormValues>,
+        true,
+      );
+      toast.error(message);
+      return;
+    }
+    await formik.submitForm();
   };
 
   return (
@@ -358,8 +500,7 @@ export function CustomerFormPage() {
                   navigate(`${ROUTES.quotations.new}?customerId=${id}`);
                   return;
                 }
-                setPendingAction("estimate");
-                void formik.submitForm();
+                void runAction(formik, "estimate");
               },
               onManageAddresses: () => {
                 setTab("overview");
@@ -374,6 +515,9 @@ export function CustomerFormPage() {
             return (
               <>
               <ContactSyncEffect />
+              {!isEdit ? (
+                <CustomerCodeSync existingCodes={existingCodes} autoCodeRef={autoCodeRef} />
+              ) : null}
 
               <PageHeader
                 title={isEdit ? "Edit / Configure Customer" : "Add / Configure Customer"}
@@ -396,22 +540,22 @@ export function CustomerFormPage() {
                       </Button>
                     </Link>
                     <Button
-                      type="submit"
+                      type="button"
                       variant="outline"
                       size="sm"
                       leftIcon={<Save className="h-3.5 w-3.5" />}
                       loading={busy && pendingAction === "draft"}
-                      onClick={() => setPendingAction("draft")}
+                      onClick={() => void runAction(formik, "draft")}
                     >
                       Save Draft
                     </Button>
                     <Button
-                      type="submit"
+                      type="button"
                       variant="outline"
                       size="sm"
                       leftIcon={<Save className="h-3.5 w-3.5" />}
                       loading={busy && pendingAction === "close"}
-                      onClick={() => setPendingAction("close")}
+                      onClick={() => void runAction(formik, "close")}
                     >
                       Save & Close
                     </Button>
@@ -420,10 +564,7 @@ export function CustomerFormPage() {
                       variant="primary"
                       size="sm"
                       loading={busy && pendingAction === "estimate"}
-                      onClick={() => {
-                        setPendingAction("estimate");
-                        void formik.submitForm();
-                      }}
+                      onClick={() => void runAction(formik, "estimate")}
                     >
                       Save & Create Quotation
                     </Button>
@@ -448,7 +589,7 @@ export function CustomerFormPage() {
                   <div className="grid grid-cols-1 gap-3 xl:grid-cols-12">
                     <div className="space-y-3 xl:col-span-9">
                       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                        <CustomerInfoSection />
+                        <CustomerInfoSection isCreate={!isEdit} />
                         <ContactPersonSection />
                       </div>
                       <CustomerAddressManager />

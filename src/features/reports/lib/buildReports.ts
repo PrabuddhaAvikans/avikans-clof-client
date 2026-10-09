@@ -270,7 +270,6 @@ const builders: Record<ReportId, Builder> = {
       name: item.name,
       itemType: item.itemType,
       warehouse: item.warehouse,
-      location: item.location,
       quantityOnHand: item.quantityOnHand,
       quantityReserved: item.quantityReserved,
       quantityAvailable: item.quantityAvailable,

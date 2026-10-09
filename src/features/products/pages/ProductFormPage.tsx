@@ -475,8 +475,11 @@ function ProductSkuSync({
 
   useEffect(() => {
     if (!autoSkuRef.current) return;
-    if (!values.name.trim()) return;
-    const next = suggestProductSku(values.productType, values.name, existingSkus);
+    const next = suggestProductSku(
+      values.productType,
+      values.name.trim() || "PROD",
+      existingSkus,
+    );
     if (values.sku === next) return;
     void setFieldValue("sku", next, false);
   }, [autoSkuRef, existingSkus, setFieldValue, values.name, values.productType, values.sku]);
@@ -506,6 +509,7 @@ export function ProductFormPage() {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newBrandName, setNewBrandName] = useState("");
   const [saveMode, setSaveMode] = useState<"draft" | "close" | "publish">("draft");
+  const [autoSku, setAutoSku] = useState(!isEditing);
   const autoSkuRef = useRef(!isEditing);
 
   useEffect(() => {
@@ -681,18 +685,21 @@ export function ProductFormPage() {
                     }}
                     onGenerateSku={() => {
                       autoSkuRef.current = true;
+                      setAutoSku(true);
                       void formik.setFieldValue(
                         "sku",
                         suggestProductSku(
                           formik.values.productType,
-                          formik.values.name || "PROD",
+                          formik.values.name.trim() || "PROD",
                           existingSkus,
                         ),
                       );
                     }}
                     onManualSkuEdit={() => {
                       autoSkuRef.current = false;
+                      setAutoSku(false);
                     }}
+                    autoSku={autoSku}
                   />
                 </TabPanel>
 
@@ -1088,6 +1095,7 @@ function OverviewTab({
   onCreateBrand,
   onGenerateSku,
   onManualSkuEdit,
+  autoSku,
 }: {
   categoryOptions: { value: string; label: string }[];
   brandOptions: { value: string; label: string }[];
@@ -1096,6 +1104,7 @@ function OverviewTab({
   onCreateBrand: (query: string) => void;
   onGenerateSku: () => void;
   onManualSkuEdit: () => void;
+  autoSku: boolean;
 }) {
   const { values } = useFormikContext<ProductFormSchemaValues>();
 
@@ -1109,6 +1118,7 @@ function OverviewTab({
           onCreateBrand={onCreateBrand}
           onGenerateSku={onGenerateSku}
           onManualSkuEdit={onManualSkuEdit}
+          autoSku={autoSku}
         />
         <AccessoriesSection />
       </div>
@@ -1130,6 +1140,7 @@ function BasicInformationSection({
   onCreateBrand,
   onGenerateSku,
   onManualSkuEdit,
+  autoSku,
 }: {
   categoryOptions: { value: string; label: string }[];
   brandOptions: { value: string; label: string }[];
@@ -1137,6 +1148,7 @@ function BasicInformationSection({
   onCreateBrand: (query: string) => void;
   onGenerateSku: () => void;
   onManualSkuEdit: () => void;
+  autoSku: boolean;
 }) {
   return (
     <div className="space-y-3">
@@ -1154,7 +1166,11 @@ function BasicInformationSection({
             />
           </div>
           <div className="sm:col-span-2">
-            <ProductSkuField onGenerate={onGenerateSku} onManualEdit={onManualSkuEdit} />
+            <ProductSkuField
+              autoMode={autoSku}
+              onGenerate={onGenerateSku}
+              onManualEdit={onManualSkuEdit}
+            />
           </div>
         </div>
       </SectionCard>

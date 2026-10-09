@@ -6,11 +6,18 @@ import { useFormikFieldState } from "@/components/forms/useFormikFieldState";
 
 export type ProductSkuFieldProps = {
   disabled?: boolean;
+  /** When true, the code stays in sync with type/name until edited. */
+  autoMode?: boolean;
   onGenerate: () => void;
   onManualEdit?: () => void;
 };
 
-export function ProductSkuField({ disabled, onGenerate, onManualEdit }: ProductSkuFieldProps) {
+export function ProductSkuField({
+  disabled,
+  autoMode = true,
+  onGenerate,
+  onManualEdit,
+}: ProductSkuFieldProps) {
   const { field, error, helpers } = useFormikFieldState("sku");
 
   return (
@@ -21,7 +28,11 @@ export function ProductSkuField({ disabled, onGenerate, onManualEdit }: ProductS
           label="Product code"
           required
           error={error}
-          hint="Unique catalog code. Generate from type and name, or enter your own."
+          hint={
+            autoMode
+              ? "Auto-generated from product type and name. Edit to override."
+              : "Custom code. Click Generate to restore auto mode."
+          }
         >
           <Input
             id="sku"
@@ -44,6 +55,7 @@ export function ProductSkuField({ disabled, onGenerate, onManualEdit }: ProductS
         disabled={disabled}
         leftIcon={<RefreshCw className="h-3.5 w-3.5" />}
         onClick={onGenerate}
+        title="Generate from type and name"
       >
         Generate
       </Button>

@@ -201,7 +201,6 @@ export const REPORT_DEFINITIONS: ReportDefinition[] = [
       col("name", "Item"),
       col("itemType", "Type", "status"),
       col("warehouse", "Warehouse"),
-      col("location", "Location"),
       col("quantityOnHand", "On hand", "number"),
       col("quantityReserved", "Reserved", "number"),
       col("quantityAvailable", "Available", "number"),

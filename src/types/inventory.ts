@@ -95,7 +95,6 @@ export interface InventoryItem {
   quantityReserved: number;
   quantityAvailable: number;
   warehouse: string;
-  location: string;
   minStock: number;
   maxStock: number;
   reorderLevel: number;

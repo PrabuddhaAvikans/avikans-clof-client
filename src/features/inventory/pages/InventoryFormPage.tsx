@@ -141,8 +141,11 @@ function ItemBehaviourSync({
 
   useEffect(() => {
     if (!autoSkuRef.current) return;
-    if (!values.name.trim()) return;
-    const next = suggestInventorySku(values.itemType, values.name, existingSkus);
+    const next = suggestInventorySku(
+      values.itemType,
+      values.name.trim() || "ITEM",
+      existingSkus,
+    );
     if (values.sku === next) return;
     void setFieldValue("sku", next, false);
   }, [autoSkuRef, existingSkus, setFieldValue, values.itemType, values.name, values.sku]);
@@ -177,6 +180,7 @@ function GeneralTab({
   onCreateTax,
   onGenerateSku,
   onManualSkuEdit,
+  autoSku,
 }: {
   categoryOptions: { value: string; label: string }[];
   brandOptions: { value: string; label: string }[];
@@ -188,6 +192,7 @@ function GeneralTab({
   onCreateTax: (name: string) => string;
   onGenerateSku: () => void;
   onManualSkuEdit: () => void;
+  autoSku: boolean;
 }) {
   return (
     <div className="space-y-3">
@@ -196,7 +201,11 @@ function GeneralTab({
         description="Unique code and name used across costing, manufacturing, and sales."
       >
         <div className="grid gap-3 sm:grid-cols-2">
-          <InventorySkuField onGenerate={onGenerateSku} onManualEdit={onManualSkuEdit} />
+          <InventorySkuField
+            autoMode={autoSku}
+            onGenerate={onGenerateSku}
+            onManualEdit={onManualSkuEdit}
+          />
           <FormikInput name="name" label="Item Name" required placeholder="e.g. LED Driver 40W" />
           <FormikSelect name="status" label="Status" options={STATUS_OPTIONS} />
         </div>
@@ -410,10 +419,7 @@ function PricingTab() {
   );
 }
 
-function toPayload(
-  values: InventoryFormValues,
-  location: string,
-): InventoryFormData {
+function toPayload(values: InventoryFormValues): InventoryFormData {
   const trackStock = values.trackStock !== false;
   return {
     sku: values.sku,
@@ -427,7 +433,6 @@ function toPayload(
     taxCode: values.taxCode || undefined,
     quantityOnHand: trackStock ? values.quantityOnHand ?? 0 : 0,
     warehouse: values.warehouse,
-    location,
     minStock: trackStock ? values.minStock ?? 0 : 0,
     maxStock: trackStock ? values.maxStock ?? 0 : 0,
     reorderLevel: trackStock ? values.reorderLevel ?? 0 : 0,
@@ -449,6 +454,7 @@ export function InventoryFormPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<string>("general");
   const [saveMode, setSaveMode] = useState<"close" | "new">("close");
+  const [autoSku, setAutoSku] = useState(!isEdit);
   const autoSkuRef = useRef(!isEdit);
 
   const { data: item, isLoading, error } = useInventoryItem(id ?? "");
@@ -500,7 +506,7 @@ export function InventoryFormPage() {
           validationSchema={inventoryFormSchema}
           enableReinitialize
           onSubmit={async (values, helpers) => {
-            const payload = toPayload(values, isEdit && item ? item.location : "");
+            const payload = toPayload(values);
             if (isEdit && id) {
               await updateItem.mutateAsync({ id, data: payload });
               toast.success("Inventory item updated.");
@@ -511,6 +517,7 @@ export function InventoryFormPage() {
             toast.success("Inventory item created.");
             if (saveMode === "new") {
               autoSkuRef.current = true;
+              setAutoSku(true);
               helpers.resetForm({ values: createDefaultInventoryFormValues() });
               setActiveTab("general");
               return;
@@ -521,9 +528,10 @@ export function InventoryFormPage() {
           {(formik) => {
             const generateSku = () => {
               autoSkuRef.current = true;
+              setAutoSku(true);
               const next = suggestInventorySku(
                 formik.values.itemType,
-                formik.values.name || "ITEM",
+                formik.values.name.trim() || "ITEM",
                 existingSkus,
               );
               void formik.setFieldValue("sku", next);
@@ -622,7 +630,9 @@ export function InventoryFormPage() {
                           onGenerateSku={generateSku}
                           onManualSkuEdit={() => {
                             autoSkuRef.current = false;
+                            setAutoSku(false);
                           }}
+                          autoSku={autoSku}
                         />
                       </TabPanel>
                       <TabPanel value="stock" className="pt-0">

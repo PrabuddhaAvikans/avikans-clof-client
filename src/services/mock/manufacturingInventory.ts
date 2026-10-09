@@ -162,7 +162,6 @@ async function upsertScrapLot(options: {
       supplier: source.supplier,
       quantityOnHand: 0,
       warehouse: source.warehouse,
-      location: kind === "recoverable" ? "Recovered Bin" : "Scrap Bin",
       minStock: 0,
       maxStock: source.maxStock,
       reorderLevel: 0,

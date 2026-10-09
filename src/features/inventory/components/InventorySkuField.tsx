@@ -6,17 +6,34 @@ import { useFormikFieldState } from "@/components/forms/useFormikFieldState";
 
 export type InventorySkuFieldProps = {
   disabled?: boolean;
+  /** When true, the code stays in sync with type/name until edited. */
+  autoMode?: boolean;
   onGenerate: () => void;
   onManualEdit?: () => void;
 };
 
-export function InventorySkuField({ disabled, onGenerate, onManualEdit }: InventorySkuFieldProps) {
+export function InventorySkuField({
+  disabled,
+  autoMode = true,
+  onGenerate,
+  onManualEdit,
+}: InventorySkuFieldProps) {
   const { field, error, helpers } = useFormikFieldState("sku");
 
   return (
     <div className="flex items-start gap-2">
       <div className="min-w-0 flex-1">
-        <FormField id="sku" label="Item Code (SKU)" required error={error} hint="Unique code. Generate from type and name, or enter your own.">
+        <FormField
+          id="sku"
+          label="Item Code (SKU)"
+          required
+          error={error}
+          hint={
+            autoMode
+              ? "Auto-generated from item type and name. Edit to override."
+              : "Custom code. Click Generate to restore auto mode."
+          }
+        >
           <Input
             id="sku"
             name="sku"
@@ -38,6 +55,7 @@ export function InventorySkuField({ disabled, onGenerate, onManualEdit }: Invent
         disabled={disabled}
         leftIcon={<RefreshCw className="h-3.5 w-3.5" />}
         onClick={onGenerate}
+        title="Generate from type and name"
       >
         Generate
       </Button>

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useFormikContext } from "formik";
 import { Modal } from "@/components/ui/Modal";
 import { FormikForm, DynamicForm, FormActions } from "@/components/forms";
@@ -7,7 +7,11 @@ import {
   customerFormSchema,
   type CustomerFormValues,
 } from "@/features/customers/schemas/customerSchema";
-import { useCreateCustomer } from "@/features/customers/hooks/useCustomers";
+import {
+  useCreateCustomer,
+  useCustomers,
+} from "@/features/customers/hooks/useCustomers";
+import { suggestCustomerCode } from "@/lib/customerCode";
 import { DEFAULT_COUNTRY } from "@/lib/countries";
 import type { CustomerFormData } from "@/services";
 import type { Customer } from "@/types/customer";
@@ -36,6 +40,24 @@ function ContactSyncEffect() {
     values.phone,
     setFieldValue,
   ]);
+
+  return null;
+}
+
+function CustomerCodeSync({
+  existingCodes,
+}: {
+  existingCodes: string[];
+}) {
+  const { values, setFieldValue } = useFormikContext<CustomerFormValues>();
+  const autoCodeRef = useRef(true);
+
+  useEffect(() => {
+    if (!autoCodeRef.current) return;
+    const next = suggestCustomerCode(existingCodes);
+    if (values.code === next) return;
+    void setFieldValue("code", next, false);
+  }, [existingCodes, setFieldValue, values.code]);
 
   return null;
 }
@@ -79,38 +101,47 @@ export type RegisterCustomerModalProps = {
   onRegistered: (customer: Customer) => void;
 };
 
-const defaultValues: CustomerFormValues = {
-  code: "",
-  name: "",
-  type: "corporate",
-  email: "",
-  phone: "",
-  contactSameAsName: true,
-  contactPerson: {
-    name: "",
-    title: "",
-    email: "",
-    phone: "",
-    isPrimary: true,
-  },
-  billingAddresses: [{ ...EMPTY_ADDRESS }],
-  activeBillingAddressIndex: 0,
-  deliverySameAsBilling: true,
-  shippingAddresses: [],
-  activeShippingAddressIndex: 0,
-  taxId: "",
-  creditLimit: 0,
-  paymentTermsDays: 30,
-  notes: "",
-  status: "active",
-};
-
 export function RegisterCustomerModal({
   open,
   onClose,
   onRegistered,
 }: RegisterCustomerModalProps) {
   const createCustomer = useCreateCustomer();
+  const { data: customersList } = useCustomers({ page: 1, pageSize: 200 });
+
+  const existingCodes = useMemo(
+    () => (customersList?.items ?? []).map((entry) => entry.code),
+    [customersList?.items],
+  );
+
+  const defaultValues = useMemo<CustomerFormValues>(
+    () => ({
+      code: suggestCustomerCode(existingCodes),
+      name: "",
+      type: "corporate",
+      email: "",
+      phone: "",
+      contactSameAsName: true,
+      contactPerson: {
+        name: "",
+        title: "",
+        email: "",
+        phone: "",
+        isPrimary: true,
+      },
+      billingAddresses: [{ ...EMPTY_ADDRESS }],
+      activeBillingAddressIndex: 0,
+      deliverySameAsBilling: true,
+      shippingAddresses: [],
+      activeShippingAddressIndex: 0,
+      taxId: "",
+      creditLimit: 0,
+      paymentTermsDays: 30,
+      notes: "",
+      status: "active",
+    }),
+    [existingCodes],
+  );
 
   const handleSubmit = async (values: CustomerFormValues) => {
     const payload = toFormData(values);
@@ -134,6 +165,7 @@ export function RegisterCustomerModal({
           {(formik) => (
             <>
               <ContactSyncEffect />
+              <CustomerCodeSync existingCodes={existingCodes} />
               <div className="max-h-[70vh] overflow-auto pr-1">
                 <DynamicForm sections={customerFormSections} />
               </div>
@@ -155,4 +187,3 @@ export function RegisterCustomerModal({
     </Modal>
   );
 }
-

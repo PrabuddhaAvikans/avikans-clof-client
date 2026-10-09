@@ -87,13 +87,12 @@ export const mockInventoryService: InventoryService = {
     return applyListQuery(
       inventoryItems,
       filters,
-      ["name", "sku", "description", "category", "location", "warehouse", "brand"],
+      ["name", "sku", "description", "category", "warehouse", "brand"],
       (item) => {
         if (filters.category && item.category !== filters.category) return false;
         if (filters.itemType && item.itemType !== filters.itemType) return false;
         if (filters.stockStatus && item.stockStatus !== filters.stockStatus) return false;
         if (filters.status && item.status !== filters.status) return false;
-        if (filters.location && item.location !== filters.location) return false;
         if (filters.warehouse && item.warehouse !== filters.warehouse) return false;
         return true;
       },

@@ -218,12 +218,12 @@ export function ProductBomReadOnlyTable({
                   <td className="px-3 py-2">{line.isRequired ? "Yes" : "Optional"}</td>
                   <td className="px-3 py-2 text-muted-foreground">{line.notes ?? "-"}</td>
                 </tr>
-                {line.alternatives.length > 0 && (
+                {(line.alternatives ?? []).length > 0 && (
                   <tr className="border-b border-border bg-muted/10">
                     <td colSpan={10} className="px-3 py-2">
                       <div className="text-xs font-medium text-muted-foreground">Alternatives</div>
                       <div className="mt-1 space-y-1">
-                        {line.alternatives.map((alt) => (
+                        {(line.alternatives ?? []).map((alt) => (
                           <div
                             key={alt.id}
                             className="flex flex-wrap items-center justify-between gap-2 rounded border border-border bg-card px-2 py-1.5 text-xs"
@@ -284,6 +284,6 @@ export function bomItemsToFormValues(
     isRequired: item.isRequired,
     notes: item.notes ?? "",
     sequence: item.sequence,
-    alternatives: item.alternatives.map(({ id: _id, ...alt }) => alt),
+    alternatives: (item.alternatives ?? []).map(({ id: _id, ...alt }) => alt),
   }));
 }

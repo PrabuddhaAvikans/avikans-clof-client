@@ -22,6 +22,10 @@ export function mapAuthUser(raw: unknown): AuthUser {
 /** Map login API payload and persist JWT. */
 export function mapLoginResponse(raw: unknown): AuthUser {
   const result = asRecord(raw);
-  writeAuthToken(String(result.token ?? ""), isAuthPersisted());
+  const token = String(result.token ?? "").trim();
+  if (token) {
+    // Persist flag is refined in signInUser once Remember Me is known.
+    writeAuthToken(token, isAuthPersisted());
+  }
   return mapAuthUser(result.user);
 }

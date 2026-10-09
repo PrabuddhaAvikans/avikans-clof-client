@@ -6,7 +6,7 @@ import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { Modal } from "@/components/ui/Modal";
 import { useBrands } from "@/features/products/hooks/useBrands";
 import { useCategories } from "@/features/products/hooks/useCategories";
-import { useCreateProduct } from "@/features/products/hooks/useProducts";
+import { useCreateProduct, useProducts } from "@/features/products/hooks/useProducts";
 import {
   buildDuplicateProductCreatePayload,
   buildDuplicateProductFormValues,
@@ -43,6 +43,7 @@ export function DuplicateProductModal({
   onCreated,
 }: DuplicateProductModalProps) {
   const createProduct = useCreateProduct();
+  const { data: productsData } = useProducts({ page: 1, pageSize: 200 });
   const { data: categoriesData } = useCategories({ page: 1, pageSize: 200 });
   const { data: brandsData } = useBrands({ page: 1, pageSize: 200 });
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -50,9 +51,14 @@ export function DuplicateProductModal({
     null,
   );
 
+  const existingSkus = useMemo(
+    () => (productsData?.items ?? []).map((entry) => entry.sku),
+    [productsData?.items],
+  );
+
   const initialValues = useMemo(
-    () => (product ? buildDuplicateProductFormValues(product) : null),
-    [product],
+    () => (product ? buildDuplicateProductFormValues(product, existingSkus) : null),
+    [existingSkus, product],
   );
 
   const categoryOptions = useMemo(
@@ -162,7 +168,12 @@ export function DuplicateProductModal({
             <div className="sm:col-span-2">
               <FormikInput name="name" label="Product Name" required />
             </div>
-            <FormikInput name="sku" label="SKU" required />
+            <FormikInput
+              name="sku"
+              label="SKU"
+              required
+              hint="Auto-generated from product type and name"
+            />
             <FormikSelect
               name="status"
               label="Status"

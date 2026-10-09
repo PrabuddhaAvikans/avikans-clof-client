@@ -1,4 +1,36 @@
-import type { Product, ProductVersion } from "@/types/product";
+import type { BomItem, Product, ProductVersion } from "@/types/product";
+
+function mapBomItem(raw: Record<string, unknown>): BomItem {
+  const alternatives = ((raw.alternatives as unknown[]) ?? []).map((entry) => {
+    const alt = (entry ?? {}) as Record<string, unknown>;
+    return {
+      id: String(alt.id ?? ""),
+      inventoryItemId: String(alt.inventoryItemId ?? ""),
+      inventoryItemName: String(alt.inventoryItemName ?? ""),
+      sku: String(alt.sku ?? ""),
+      unitCost: Number(alt.unitCost ?? 0),
+      isApproved: Boolean(alt.isApproved),
+      notes: alt.notes as string | undefined,
+    };
+  });
+
+  return {
+    id: String(raw.id ?? ""),
+    inventoryItemId: String(raw.inventoryItemId ?? ""),
+    inventoryItemName: String(raw.inventoryItemName ?? ""),
+    sku: String(raw.sku ?? ""),
+    quantity: Number(raw.quantity ?? 0),
+    unit: String(raw.unit ?? "pcs"),
+    unitCost: Number(raw.unitCost ?? 0),
+    wastePercent: Number(raw.wastePercent ?? 0),
+    requiredQuantity: Number(raw.requiredQuantity ?? raw.quantity ?? 0),
+    lineCost: Number(raw.lineCost ?? 0),
+    isRequired: raw.isRequired !== false,
+    notes: raw.notes as string | undefined,
+    sequence: Number(raw.sequence ?? 0),
+    alternatives,
+  };
+}
 
 export function mapVersion(raw: Record<string, unknown>): ProductVersion {
   return {
@@ -9,7 +41,9 @@ export function mapVersion(raw: Record<string, unknown>): ProductVersion {
     status: (raw.status as ProductVersion["status"]) ?? "draft",
     isLocked: Boolean(raw.isLocked),
     specifications: (raw.specifications as ProductVersion["specifications"]) ?? {},
-    bom: (raw.bom as ProductVersion["bom"]) ?? [],
+    bom: ((raw.bom as unknown[]) ?? []).map((item) =>
+      mapBomItem((item ?? {}) as Record<string, unknown>),
+    ),
     operations: (raw.operations as ProductVersion["operations"]) ?? [],
     attributes: (raw.attributes as ProductVersion["attributes"]) ?? [],
     images: (raw.images as ProductVersion["images"]) ?? [],

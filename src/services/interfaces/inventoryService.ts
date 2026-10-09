@@ -16,7 +16,6 @@ export interface InventoryListFilters extends PaginatedRequest {
   itemType?: InventoryItemTypeValue;
   stockStatus?: StockStatusValue;
   status?: EntityStatus;
-  location?: string;
   warehouse?: string;
 }
 
@@ -32,7 +31,6 @@ export interface InventoryFormData {
   taxCode?: string;
   quantityOnHand: number;
   warehouse: string;
-  location: string;
   minStock: number;
   maxStock: number;
   reorderLevel: number;

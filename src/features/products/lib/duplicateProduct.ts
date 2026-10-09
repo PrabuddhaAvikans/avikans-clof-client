@@ -1,4 +1,5 @@
 import * as yup from "yup";
+import { suggestProductSku } from "@/lib/productSku";
 import type { Product, ProductFormData, ProductTypeValue } from "@/types/product";
 import type { EntityStatus } from "@/types/common";
 
@@ -44,10 +45,15 @@ export const duplicateProductFormSchema = yup.object({
 
 export function buildDuplicateProductFormValues(
   product: Product,
+  existingSkus: string[] = [],
 ): DuplicateProductFormValues {
+  const name = `${product.name} (Copy)`;
   return {
-    name: `${product.name} (Copy)`,
-    sku: `${product.sku}-COPY`,
+    name,
+    sku: suggestProductSku(product.productType, name, [
+      ...existingSkus,
+      product.sku,
+    ]),
     description: product.description,
     categoryId: product.categoryId,
     brandId: product.brandId,

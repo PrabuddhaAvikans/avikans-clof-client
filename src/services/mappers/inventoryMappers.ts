@@ -21,7 +21,6 @@ export function mapItem(raw: Record<string, unknown>): InventoryItem {
     quantityReserved: Number(raw.quantityReserved ?? 0),
     quantityAvailable: Number(raw.quantityAvailable ?? 0),
     warehouse: String(raw.warehouse ?? ""),
-    location: String(raw.location ?? ""),
     minStock: Number(raw.minStock ?? 0),
     maxStock: Number(raw.maxStock ?? 0),
     reorderLevel: Number(raw.reorderLevel ?? 0),

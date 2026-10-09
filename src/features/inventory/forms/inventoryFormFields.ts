@@ -50,7 +50,13 @@ export const inventoryGeneralSections: DynamicFormSection[] = [
     title: "Item Details",
     columns: 3,
     fields: [
-      { name: "sku", label: "Item Code (SKU)", type: "text", required: true },
+      {
+        name: "sku",
+        label: "Item Code (SKU)",
+        type: "text",
+        required: true,
+        hint: "Auto-generated from item type and name",
+      },
       { name: "name", label: "Item Name", type: "text", required: true },
       {
         name: "itemType",

@@ -54,7 +54,6 @@ export function buildInventoryItemFromForm(
     quantityReserved: 0,
     quantityAvailable: data.quantityOnHand,
     warehouse: data.warehouse,
-    location: data.location,
     minStock: data.minStock,
     maxStock: data.maxStock,
     reorderLevel: data.reorderLevel,

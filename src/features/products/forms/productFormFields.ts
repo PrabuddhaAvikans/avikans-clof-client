@@ -48,6 +48,7 @@ export function createProductFormSections(
           label: 'Product Code',
           type: 'text',
           required: true,
+          hint: 'Auto-generated from product type and name',
         },
         {
           name: 'productType',

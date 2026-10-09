@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { ActionCreatorWithPayload, UnknownAction } from "@reduxjs/toolkit";
 import type { AppDispatch, RootState } from "@/app/store";
@@ -28,6 +28,8 @@ export function useEpicQuery<TArg, TData>({
   );
   const entry = useSelector((state: RootState) => selectEntry(state, key));
   const status = entry?.status ?? "idle";
+  const data = entry?.data;
+  const activeKeyRef = useRef<string | null>(null);
 
   const refetch = useCallback(() => {
     if (!enabled) return;
@@ -36,12 +38,22 @@ export function useEpicQuery<TArg, TData>({
 
   useEffect(() => {
     if (!enabled) return;
+
+    const isNewMountForKey = activeKeyRef.current !== key;
+    activeKeyRef.current = key;
+
     if (status === "idle") {
       dispatch(request({ arg, key }) as UnknownAction);
+      return;
     }
-  }, [arg, dispatch, enabled, key, request, status]);
 
-  const data = entry?.data;
+    // After remount/login, retry a stuck failure that has no cached data.
+    // Only on first observation of this key for this mount — avoids retry loops.
+    if (isNewMountForKey && status === "failed" && data === undefined) {
+      dispatch(request({ arg, key }) as UnknownAction);
+    }
+  }, [arg, data, dispatch, enabled, key, request, status]);
+
   const isLoading =
     enabled && (status === "idle" || status === "loading") && data === undefined;
   const isError = status === "failed";

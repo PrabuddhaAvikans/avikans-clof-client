@@ -1,10 +1,11 @@
 import {
+  combineReducers,
   configureStore,
   type Middleware,
   type UnknownAction,
 } from "@reduxjs/toolkit";
 import { createEpicMiddleware } from "redux-observable";
-import authReducer from "@/app/store/authSlice";
+import authReducer, { signOut } from "@/app/store/authSlice";
 import uiReducer from "@/app/store/uiSlice";
 import { rootEpic } from "@/app/store/rootEpic";
 import salesOrdersReducer from "@/features/sales/store/salesOrdersSlice";
@@ -33,40 +34,48 @@ import endOfDayManagementReducer from "@/features/end-of-day-management/store/en
 import invoicesReducer from "@/features/finance/store/invoicesSlice";
 import creditNotesReducer from "@/features/finance/store/creditNotesSlice";
 
-const epicMiddleware = createEpicMiddleware<
-  UnknownAction
->();
+const epicMiddleware = createEpicMiddleware<UnknownAction>();
+
+const appReducer = combineReducers({
+  auth: authReducer,
+  ui: uiReducer,
+  salesOrders: salesOrdersReducer,
+  quotations: quotationsReducer,
+  customers: customersReducer,
+  products: productsReducer,
+  categories: categoriesReducer,
+  brands: brandsReducer,
+  inventory: inventoryReducer,
+  warehouses: warehousesReducer,
+  unitsOfMeasure: unitsOfMeasureReducer,
+  deliveries: deliveriesReducer,
+  manufacturing: manufacturingReducer,
+  productionTracking: productionTrackingReducer,
+  costing: costingReducer,
+  users: usersReducer,
+  auditLogs: auditLogsReducer,
+  notifications: notificationsReducer,
+  systemSettings: systemSettingsReducer,
+  permissions: permissionsReducer,
+  workflow: workflowReducer,
+  dashboard: dashboardReducer,
+  reports: reportsReducer,
+  reprocessing: reprocessingReducer,
+  endOfDayManagement: endOfDayManagementReducer,
+  invoices: invoicesReducer,
+  creditNotes: creditNotesReducer,
+});
+
+/** Clear cached feature data on logout so the next sign-in refetches from idle. */
+const rootReducer: typeof appReducer = (state, action) => {
+  if (signOut.match(action)) {
+    return appReducer(undefined, action);
+  }
+  return appReducer(state, action);
+};
 
 export const store = configureStore({
-  reducer: {
-    auth: authReducer,
-    ui: uiReducer,
-    salesOrders: salesOrdersReducer,
-    quotations: quotationsReducer,
-    customers: customersReducer,
-    products: productsReducer,
-    categories: categoriesReducer,
-    brands: brandsReducer,
-    inventory: inventoryReducer,
-    warehouses: warehousesReducer,
-    unitsOfMeasure: unitsOfMeasureReducer,
-    deliveries: deliveriesReducer,
-    manufacturing: manufacturingReducer,
-    productionTracking: productionTrackingReducer,
-    costing: costingReducer,
-    users: usersReducer,
-    auditLogs: auditLogsReducer,
-    notifications: notificationsReducer,
-    systemSettings: systemSettingsReducer,
-    permissions: permissionsReducer,
-    workflow: workflowReducer,
-    dashboard: dashboardReducer,
-    reports: reportsReducer,
-    reprocessing: reprocessingReducer,
-    endOfDayManagement: endOfDayManagementReducer,
-    invoices: invoicesReducer,
-    creditNotes: creditNotesReducer,
-  },
+  reducer: rootReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(epicMiddleware as Middleware),
 });

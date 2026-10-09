@@ -130,10 +130,6 @@ function toApiError(payload: unknown, status: number, traceId?: string | null): 
 }
 
 function attachAuthHeader(headers: Headers): void {
-  // Dev-only: auto-attach JWT so local API calls are authenticated.
-  // Production builds must not rely on this helper for shipping auth headers
-  // unless you intentionally add a production-safe path later.
-  if (!import.meta.env.DEV) return;
   const token = getAuthToken();
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
